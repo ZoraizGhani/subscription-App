@@ -1,0 +1,221 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+// ---------------------------------------------------------------------------
+// App configuration
+// ---------------------------------------------------------------------------
+
+// One row per shop, backing the admin Settings screen. Shopify is the source of
+// truth for plans and contracts; this table only holds our own preferences.
+model ShopSettings {
+  id    String @id @default(cuid())
+  shop  String @unique
+
+  // Customer portal permissions
+  portalEnabled           Boolean @default(true)
+  allowCancel             Boolean @default(true)
+  allowSkipCycle          Boolean @default(true)
+  allowPause              Boolean @default(true)
+  allowChangeFrequency    Boolean @default(true)
+  allowChangeAddress      Boolean @default(true)
+  allowChangePaymentMethod Boolean @default(true)
+  minCyclesBeforeCancel   Int     @default(0)
+
+  // Failed payment handling
+  dunningMaxRetries        Int @default(3)
+  dunningRetryIntervalDays Int @default(3)
+
+  // PDP widget copy
+  widgetHeading          String @default("Subscribe & Save")
+  widgetOneTimeLabel     String @default("One-time purchase")
+  widgetSubscribeLabel   String @default("Subscribe")
+  widgetShowDiscountBadge Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Selling plan mirror
+//
+// Created and updated through the Admin GraphQL API (sellingPlanGroupCreate /
+// sellingPlanGroupUpdate). Mirrored here so admin screens can list and search
+// plans without paging the Admin API on every render.
+// ---------------------------------------------------------------------------
+
+model SellingPlanGroup {
+  id        String @id @default(cuid())
+  shop      String
+  shopifyId String @unique // gid://shopify/SellingPlanGroup/...
+
+  name         String
+  merchantCode String
+  appName      String?
+  description  String?
+  // JSON-encoded string[] of the option names shown to buyers (e.g. ["Delivery every"])
+  options      String  @default("[]")
+  // JSON-encoded string[] of product GIDs this group is attached to
+  productIds   String  @default("[]")
+  position     Int     @default(0)
+
+  plans SellingPlan[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+}
+
+model SellingPlan {
+  id        String @id @default(cuid())
+  shopifyId String @unique // gid://shopify/SellingPlan/...
+
+  group   SellingPlanGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId String
+
+  name String
+
+  // Billing / delivery cadence. Interval is one of DAY | WEEK | MONTH | YEAR.
+  billingInterval       String
+  billingIntervalCount  Int
+  deliveryInterval      String
+  deliveryIntervalCount Int
+
+  // Discount: NONE | PERCENTAGE | FIXED_AMOUNT | PRICE
+  pricingPolicyType String @default("NONE")
+  discountValue     Float?
+
+  minCycles Int?
+  maxCycles Int?
+  position  Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId])
+}
+
+// ---------------------------------------------------------------------------
+// Subscription mirror, kept in sync by webhooks
+// ---------------------------------------------------------------------------
+
+model SubscriptionContract {
+  id        String @id @default(cuid())
+  shop      String
+  shopifyId String @unique // gid://shopify/SubscriptionContract/...
+
+  customerShopifyId String?
+  customerEmail     String?
+  customerName      String?
+
+  // ACTIVE | PAUSED | CANCELLED | EXPIRED | FAILED
+  status       String
+  currencyCode String @default("USD")
+
+  nextBillingDate      DateTime?
+  billingInterval      String?
+  billingIntervalCount Int?
+
+  sellingPlanGroupShopifyId String?
+  originOrderShopifyId      String?
+
+  // JSON snapshot of contract lines (title, variant GID, quantity, price) so the
+  // subscriptions list can render without a per-row Admin API call.
+  linesJson String?
+
+  lastPaymentStatus String?
+  totalAmount       Float?
+
+  pausedAt    DateTime?
+  cancelledAt DateTime?
+
+  billingAttempts BillingAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop, status])
+  @@index([customerShopifyId])
+}
+
+model BillingAttempt {
+  id        String  @id @default(cuid())
+  shop      String
+  shopifyId String? @unique // gid://shopify/SubscriptionBillingAttempt/...
+
+  contract           SubscriptionContract? @relation(fields: [contractShopifyId], references: [shopifyId], onDelete: SetNull)
+  contractShopifyId  String?
+
+  // SUCCESS | FAILURE
+  status          String
+  orderShopifyId  String?
+  amount          Float?
+  currencyCode    String?
+  errorCode       String?
+  errorMessage    String?
+  attemptedAt     DateTime @default(now())
+
+  @@index([shop, status])
+  @@index([contractShopifyId])
+}
+
+// Recurring orders seen via orders/create, for dashboard analytics.
+model SubscriptionOrder {
+  id             String @id @default(cuid())
+  shop           String
+  orderShopifyId String @unique // gid://shopify/Order/...
+  orderName      String?
+
+  contractShopifyId String?
+  totalPrice        Float?
+  currencyCode      String?
+  processedAt       DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([shop, processedAt])
+  @@index([contractShopifyId])
+}
+
+// Shopify delivers webhooks at least once. Handlers record the webhook id here
+// and skip anything they have already processed.
+model ProcessedWebhook {
+  webhookId  String   @id
+  shop       String
+  topic      String
+  receivedAt DateTime @default(now())
+
+  @@index([receivedAt])
+}

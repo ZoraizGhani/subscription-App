@@ -1,0 +1,57 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+#
+# Distribution: custom (single merchant). Set "Custom distribution" in the
+# Dev Dashboard for this app -- see docs/SETUP.md.
+
+client_id = "4df4707f56ec6035d9395e58a3d4b8ce"
+name = "Subscription App"
+application_url = "https://example.com"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+#
+# write_products                  -- selling plan groups hang off products/variants
+# read_customers/write_customers  -- Customers screen + attaching contracts to customers
+# write_own_subscription_contracts -- create/read/update contracts this app owns (protected scope)
+# write_customer_payment_methods  -- vaulted payment methods used for recurring billing
+# read_orders                     -- orders/create webhook for recurring order tracking
+scopes = "write_products,read_customers,write_customers,write_own_subscription_contracts,write_customer_payment_methods,read_orders"
+
+[webhooks]
+api_version = "2026-07"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = [ "app/uninstalled" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/subscription_contracts/create"
+  topics = [ "subscription_contracts/create" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/subscription_contracts/update"
+  topics = [ "subscription_contracts/update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/subscription_billing_attempts/success"
+  topics = [ "subscription_billing_attempts/success" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/subscription_billing_attempts/failure"
+  topics = [ "subscription_billing_attempts/failure" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/orders/create"
+  topics = [ "orders/create" ]
+
+[auth]
+redirect_urls = [ "https://example.com/api/auth" ]
+
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = true
