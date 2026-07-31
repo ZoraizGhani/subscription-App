@@ -5,6 +5,7 @@ import { isDuplicateWebhook } from "../models/webhook.server";
 import {
   findOrderContractId,
   recordSubscriptionOrder,
+  tagOrderAsSubscription,
 } from "../models/subscription.server";
 import type { OrderWebhookPayload } from "../models/webhookPayloads";
 
@@ -34,7 +35,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return new Response();
   }
 
-  await recordSubscriptionOrder({ shop, payload: order, contractShopifyId });
+  await Promise.all([
+    recordSubscriptionOrder({ shop, payload: order, contractShopifyId }),
+    tagOrderAsSubscription({ graphql: admin.graphql, orderId }),
+  ]);
 
   return new Response();
 };

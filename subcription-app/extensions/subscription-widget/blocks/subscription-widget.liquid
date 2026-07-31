@@ -1,0 +1,132 @@
+{% comment %}
+  Self-contained purchase widget: variant picker (if the product has more than
+  one option), quantity, a one-time-vs-subscribe choice built from the
+  product's selling plan groups, and its own add-to-cart button.
+
+  Because this renders its own buy button, merchants should remove or hide the
+  theme's default variant picker / buy buttons block on templates where this
+  widget is used, to avoid two separate purchase forms on the same page.
+{% endcomment %}
+
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+
+<div
+  class="subscription-widget"
+  style="--subscription-widget-accent: {{ block.settings.accent_color }};"
+  data-subscription-widget
+  data-section-id="{{ section.id }}"
+  {{ block.shopify_attributes }}
+>
+  <script type="application/json" data-subscription-widget-product>
+    {{ product | json }}
+  </script>
+
+  {%- if product.has_only_default_variant == false -%}
+    {%- for option in product.options_with_values -%}
+      <div class="subscription-widget__option" data-option-index="{{ forloop.index0 }}">
+        <span class="subscription-widget__label">{{ option.name }}</span>
+        <div class="subscription-widget__option-values">
+          {%- for value in option.values -%}
+            <button
+              type="button"
+              class="subscription-widget__option-value{% if value == current_variant.options[forloop.parentloop.index0] %} is-selected{% endif %}"
+              data-option-value="{{ value | escape }}"
+            >
+              {{ value }}
+            </button>
+          {%- endfor -%}
+        </div>
+      </div>
+    {%- endfor -%}
+  {%- endif -%}
+
+  <div class="subscription-widget__option">
+    <span class="subscription-widget__label">Quantity</span>
+    <div class="subscription-widget__quantity">
+      <button type="button" data-quantity-decrease aria-label="Decrease quantity">&minus;</button>
+      <input type="number" min="1" value="1" data-quantity-input aria-label="Quantity">
+      <button type="button" data-quantity-increase aria-label="Increase quantity">+</button>
+    </div>
+  </div>
+
+  <div class="subscription-widget__option">
+    <span class="subscription-widget__label">{{ block.settings.heading }}</span>
+
+    {%- if block.settings.show_one_time_option -%}
+      <label class="subscription-widget__plan">
+        <input type="radio" name="subscription-widget-plan-{{ block.id }}" value="" checked data-plan-option>
+        <span class="subscription-widget__plan-body">
+          <span class="subscription-widget__plan-title">One-time purchase</span>
+          <span class="subscription-widget__plan-price" data-plan-price>{{ current_variant.price | money }}</span>
+        </span>
+      </label>
+    {%- endif -%}
+
+    {%- for group in product.selling_plan_groups -%}
+      {%- for plan in group.selling_plans -%}
+        {%- assign allocation = nil -%}
+        {%- for a in current_variant.selling_plan_allocations -%}
+          {%- if a.selling_plan.id == plan.id -%}
+            {%- assign allocation = a -%}
+          {%- endif -%}
+        {%- endfor -%}
+        <label class="subscription-widget__plan">
+          <input
+            type="radio"
+            name="subscription-widget-plan-{{ block.id }}"
+            value="{{ plan.id }}"
+            data-plan-option
+            {% if block.settings.show_one_time_option == false and forloop.first %}checked{% endif %}
+          >
+          <span class="subscription-widget__plan-body">
+            <span class="subscription-widget__plan-title">{{ plan.name }}</span>
+            <span class="subscription-widget__plan-price" data-plan-price>
+              {%- if allocation -%}{{ allocation.price | money }}{%- else -%}{{ current_variant.price | money }}{%- endif -%}
+            </span>
+          </span>
+        </label>
+      {%- endfor -%}
+    {%- endfor -%}
+  </div>
+
+  <button type="button" class="subscription-widget__submit" data-add-to-cart>
+    {{ block.settings.button_label }}
+  </button>
+  <p class="subscription-widget__status" data-status role="status" aria-live="polite"></p>
+</div>
+
+<script src="{{ 'subscription-widget.js' | asset_url }}" defer></script>
+<link rel="stylesheet" href="{{ 'subscription-widget.css' | asset_url }}">
+
+{% schema %}
+{
+  "name": "Subscription widget",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Plan section heading",
+      "default": "Choose your plan"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_one_time_option",
+      "label": "Show one-time purchase option",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "Add to cart"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#1a1a1a"
+    }
+  ]
+}
+{% endschema %}

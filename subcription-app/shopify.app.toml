@@ -15,8 +15,9 @@ embedded = true
 # read_customers/write_customers  -- Customers screen + attaching contracts to customers
 # write_own_subscription_contracts -- create/read/update contracts this app owns (protected scope)
 # write_customer_payment_methods  -- vaulted payment methods used for recurring billing
-# read_orders                     -- orders/create webhook for recurring order tracking
-scopes = "write_products,read_customers,write_customers,write_own_subscription_contracts,write_customer_payment_methods,read_orders"
+# read_orders/write_orders        -- orders/create webhook + tagging subscription orders
+# read_publications/write_publications -- publish products to sales channels (e.g. Online Store) via API
+scopes = "write_products,read_customers,write_customers,write_own_subscription_contracts,write_customer_payment_methods,read_orders,write_orders,read_publications,write_publications"
 
 [webhooks]
 api_version = "2026-07"
@@ -53,5 +54,4 @@ api_version = "2026-07"
 redirect_urls = [ "https://example.com/api/auth" ]
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true

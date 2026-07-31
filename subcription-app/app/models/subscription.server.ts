@@ -259,6 +259,36 @@ export async function findOrderContractId({
   return nodes.find((node) => node.contract?.id)?.contract?.id ?? null;
 }
 
+const TAGS_ADD_MUTATION = `#graphql
+  mutation TagSubscriptionOrder($id: ID!, $tags: [String!]!) {
+    tagsAdd(id: $id, tags: $tags) {
+      userErrors { field message }
+    }
+  }
+`;
+
+/** Tags an order so merchants can filter subscription orders in the Orders list. */
+export async function tagOrderAsSubscription({
+  graphql,
+  orderId,
+}: {
+  graphql: AdminGraphqlClient;
+  orderId: string;
+}) {
+  const response = await graphql(TAGS_ADD_MUTATION, {
+    variables: { id: orderId, tags: ["Subscription"] },
+  });
+
+  const body = (await response.json()) as {
+    data?: { tagsAdd: { userErrors: { field: string[]; message: string }[] } };
+  };
+
+  const userErrors = body.data?.tagsAdd.userErrors ?? [];
+  if (userErrors.length) {
+    throw new Error(`tagsAdd failed for ${orderId}: ${JSON.stringify(userErrors)}`);
+  }
+}
+
 /**
  * Record an order that came from a subscription. Callers must confirm the order
  * actually has subscription lines -- see findOrderContractId.

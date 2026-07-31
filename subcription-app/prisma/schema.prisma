@@ -88,6 +88,9 @@ model SellingPlanGroup {
   options      String  @default("[]")
   // JSON-encoded string[] of product GIDs this group is attached to
   productIds   String  @default("[]")
+  // Cached from the product at save time so the selling-plans list screen can
+  // render without paging the Admin API for every configured product.
+  productTitle String?
   position     Int     @default(0)
 
   plans SellingPlan[]
@@ -161,12 +164,42 @@ model SubscriptionContract {
   pausedAt    DateTime?
   cancelledAt DateTime?
 
+  // Customer-supplied reason from the portal's cancel flow. Shopify's contract
+  // object has no field for this, so it only ever exists in our own mirror.
+  cancellationReason String?
+
   billingAttempts BillingAttempt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([shop, status])
+  @@index([customerShopifyId])
+}
+
+// ---------------------------------------------------------------------------
+// Customer portal login -- entirely separate from Shopify's own customer
+// accounts. Not email-verified at signup (no email sending is set up yet):
+// a signup only checks whether the email matches an existing subscriber on
+// file, it does not prove the signer owns that inbox. Do not treat this as
+// safe for real customer data until email verification is added.
+// ---------------------------------------------------------------------------
+
+model PortalCustomer {
+  id           String @id @default(cuid())
+  shop         String
+  email        String // stored lowercased
+  passwordHash String
+  name         String
+
+  // Set at signup if the email matches a SubscriptionContract.customerEmail
+  // for this shop. Null means the account has no linked subscriptions yet.
+  customerShopifyId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([shop, email])
   @@index([customerShopifyId])
 }
 

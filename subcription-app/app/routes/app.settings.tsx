@@ -1,5 +1,5 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { authenticate } from "../shopify.server";
@@ -17,11 +17,18 @@ export default function Settings() {
 
   return (
     <s-page heading="Settings">
+      <s-section heading="Selling plans">
+        <s-paragraph>
+          Configure the 30/45/60-day Subscribe &amp; Save tiers for a product.
+        </s-paragraph>
+        <Link to="/app/settings/selling-plans">Manage selling plans</Link>
+      </s-section>
+
       <s-section heading="Not built yet">
         <s-paragraph>
-          Build the form from the Settings frame in Figma. The ShopSettings row for
-          this shop already exists and is loaded below; add an action that writes
-          back through updateShopSettings.
+          Build the rest of this form from the Settings frame in Figma. The
+          ShopSettings row for this shop already exists and is loaded below; add an
+          action that writes back through updateShopSettings.
         </s-paragraph>
         <s-box
           padding="base"

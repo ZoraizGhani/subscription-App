@@ -1,0 +1,312 @@
+/* Shared styling for the customer portal (/account/*). This is the app's own
+   plain HTML, not Polaris web components -- those only render correctly
+   inside the embedded Shopify admin iframe, which this is not. */
+
+.page {
+  min-height: 100vh;
+  background: #faf7f0;
+  color: #1a1a1a;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.heading {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a8478;
+}
+
+/* --- Auth pages (sign-in / create account) --- */
+
+.authWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 1.5rem;
+}
+
+.authLogo {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin-bottom: 2.5rem;
+}
+
+.authCard {
+  width: 100%;
+  max-width: 28rem;
+  background: #fff;
+  border: 1px solid #e7e2d8;
+  border-radius: 0.5rem;
+  padding: 2rem;
+}
+
+.authTitle {
+  font-size: 1.75rem;
+  margin: 0.25rem 0 1.5rem;
+}
+
+.field {
+  display: block;
+  margin-bottom: 1.25rem;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b6558;
+  margin-bottom: 0.375rem;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid #d8d2c4;
+  border-radius: 0.375rem;
+  font-size: 0.9375rem;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+.input:focus {
+  outline: 2px solid #1a1a1a;
+  outline-offset: 1px;
+}
+
+.error {
+  background: #fbeceb;
+  color: #a02b1f;
+  border: 1px solid #f0c7c3;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.buttonPrimary {
+  width: 100%;
+  padding: 0.875rem;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.buttonPrimary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.authFooter {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #6b6558;
+  margin-top: 1.25rem;
+}
+
+.authFooter a {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+/* --- Shell: sidebar + content, for logged-in pages --- */
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 16rem;
+  flex-shrink: 0;
+  background: #fff;
+  border-right: 1px solid #e7e2d8;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 0;
+}
+
+.brand {
+  font-weight: 800;
+  font-size: 1.125rem;
+  padding: 0 1.5rem 1.5rem;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+}
+
+.navLink {
+  padding: 0.75rem 1.5rem;
+  color: #4a453b;
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border-left: 3px solid transparent;
+}
+
+.navLink:hover {
+  background: #faf7f0;
+}
+
+.navLinkActive {
+  composes: navLink;
+  color: #1a1a1a;
+  font-weight: 700;
+  background: #faf7f0;
+  border-left-color: #1a1a1a;
+}
+
+.sidebarFooter {
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.content {
+  flex: 1;
+  padding: 2.5rem 3rem;
+  max-width: 64rem;
+}
+
+/* --- Shared content pieces --- */
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.statCard {
+  background: #fff;
+  border: 1px solid #e7e2d8;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+}
+
+.statLabel {
+  composes: eyebrow;
+}
+
+.statValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-top: 0.375rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e7e2d8;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a8478;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e7e2d8;
+}
+
+.table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f0ede4;
+  font-size: 0.9375rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badgeActive {
+  composes: badge;
+  background: #e5f3e5;
+  color: #2a7a2a;
+}
+
+.badgePaused {
+  composes: badge;
+  background: #fdf0dc;
+  color: #9a6a10;
+}
+
+.badgeCancelled {
+  composes: badge;
+  background: #fbeceb;
+  color: #a02b1f;
+}
+
+.badgeNeutral {
+  composes: badge;
+  background: #f0ede4;
+  color: #6b6558;
+}
+
+.buttonSecondary {
+  padding: 0.625rem 1.25rem;
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid #d8d2c4;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.buttonDanger {
+  composes: buttonSecondary;
+  color: #a02b1f;
+  border-color: #f0c7c3;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #a02b1f;
+  font-size: 0.875rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.emptyState {
+  color: #6b6558;
+  font-size: 0.9375rem;
+  padding: 2rem 0;
+}
