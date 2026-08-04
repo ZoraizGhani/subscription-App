@@ -1,0 +1,27 @@
+.account-portal-link {
+  position: fixed;
+  bottom: 1.5rem;
+  z-index: 999;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  background: var(--account-portal-link-bg, #1a1a1a);
+  color: var(--account-portal-link-color, #ffffff);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.account-portal-link:hover {
+  opacity: 0.9;
+}
+
+.account-portal-link--bottom-right {
+  right: 1.5rem;
+}
+
+.account-portal-link--bottom-left {
+  left: 1.5rem;
+}

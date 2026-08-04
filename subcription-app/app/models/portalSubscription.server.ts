@@ -90,6 +90,36 @@ export async function listPortalSubscriptions({
   }));
 }
 
+export async function listPortalOrders({
+  shop,
+  customerShopifyId,
+}: {
+  shop: string;
+  customerShopifyId: string;
+}) {
+  const contracts = await db.subscriptionContract.findMany({
+    where: { shop, customerShopifyId },
+    select: { shopifyId: true, linesJson: true },
+  });
+  const titleByContract = new Map(
+    contracts.map((c) => [c.shopifyId, firstLineTitle(c.linesJson)]),
+  );
+
+  const orders = await db.subscriptionOrder.findMany({
+    where: { shop, contractShopifyId: { in: contracts.map((c) => c.shopifyId) } },
+    orderBy: { processedAt: "desc" },
+  });
+
+  return orders.map((o) => ({
+    orderShopifyId: o.orderShopifyId,
+    orderName: o.orderName,
+    processedAt: o.processedAt,
+    totalPrice: o.totalPrice,
+    currencyCode: o.currencyCode,
+    productTitle: o.contractShopifyId ? titleByContract.get(o.contractShopifyId) : null,
+  }));
+}
+
 const CANCEL_MUTATION = `#graphql
   mutation PortalCancelSubscription($id: ID!) {
     subscriptionContractCancel(subscriptionContractId: $id, actor: CUSTOMER) {

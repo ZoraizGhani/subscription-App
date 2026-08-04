@@ -64,7 +64,7 @@ export default function PortalCreateAccount() {
             <input type="hidden" name="shop" value={shop} />
             <label className={styles.field}>
               <span className={styles.fieldLabel}>Full name</span>
-              <input className={styles.input} type="text" name="name" required autoFocus />
+              <input className={styles.input} type="text" name="name" required />
             </label>
             <label className={styles.field}>
               <span className={styles.fieldLabel}>Email</span>

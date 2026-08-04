@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 
+import { unauthenticated } from "../shopify.server";
 import db from "../db.server";
 
 const SALT_ROUNDS = 10;
@@ -78,4 +79,97 @@ export async function verifyPortalLogin({
 
 export async function getPortalCustomerById(id: string) {
   return db.portalCustomer.findUnique({ where: { id } });
+}
+
+export async function updatePortalAccountInfo({
+  id,
+  name,
+  email,
+}: {
+  id: string;
+  name: string;
+  email: string;
+}) {
+  return db.portalCustomer.update({
+    where: { id },
+    data: { name, email: email.trim().toLowerCase() },
+  });
+}
+
+export async function updatePortalPassword({
+  id,
+  currentPassword,
+  newPassword,
+}: {
+  id: string;
+  currentPassword: string;
+  newPassword: string;
+}) {
+  const account = await db.portalCustomer.findUnique({ where: { id } });
+  if (!account) {
+    throw new PortalAuthError("Account not found.");
+  }
+  const valid = await bcrypt.compare(currentPassword, account.passwordHash);
+  if (!valid) {
+    throw new PortalAuthError("Current password is incorrect.");
+  }
+  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await db.portalCustomer.update({ where: { id }, data: { passwordHash } });
+}
+
+const DELETE_CANCEL_MUTATION = `#graphql
+  mutation PortalDeleteAccountCancel($id: ID!) {
+    subscriptionContractCancel(subscriptionContractId: $id, actor: CUSTOMER) {
+      contract { id status }
+      userErrors { field message }
+    }
+  }
+`;
+
+/**
+ * Cancels every active contract the customer owns on Shopify, then deletes
+ * the local portal login. Matches the portal's own "delete account" warning
+ * (deleting the account cancels all active subscriptions).
+ */
+export async function deletePortalAccount({ id, shop }: { id: string; shop: string }) {
+  const account = await db.portalCustomer.findUnique({ where: { id } });
+  if (!account || account.shop !== shop) {
+    throw new PortalAuthError("Account not found.");
+  }
+
+  if (account.customerShopifyId) {
+    const activeContracts = await db.subscriptionContract.findMany({
+      where: { shop, customerShopifyId: account.customerShopifyId, status: "ACTIVE" },
+    });
+
+    if (activeContracts.length) {
+      const { admin } = await unauthenticated.admin(shop);
+      for (const contract of activeContracts) {
+        const response = await admin.graphql(DELETE_CANCEL_MUTATION, {
+          variables: { id: contract.shopifyId },
+        });
+        const body = (await response.json()) as {
+          data?: {
+            subscriptionContractCancel: {
+              contract: { id: string; status: string } | null;
+              userErrors: { field: string[]; message: string }[];
+            };
+          };
+        };
+        const result = body.data?.subscriptionContractCancel;
+        if (result?.contract) {
+          await db.subscriptionContract.update({
+            where: { shopifyId: contract.shopifyId },
+            data: {
+              status: result.contract.status,
+              cancelledAt: new Date(),
+              cancellationReason: "Account deleted",
+            },
+          });
+        }
+      }
+    }
+  }
+
+  await db.portalCustomer.delete({ where: { id } });
 }

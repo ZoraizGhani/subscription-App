@@ -1,0 +1,39 @@
+.account-portal-section {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  background: var(--account-portal-bg, #faf7f0);
+  color: var(--account-portal-text, #1a1a1a);
+}
+
+.account-portal-section__heading {
+  font-size: 1.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.account-portal-section__description {
+  font-size: 1rem;
+  max-width: 32rem;
+  margin: 0 auto 1.5rem;
+  opacity: 0.8;
+}
+
+.account-portal-section__button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.875rem 1.75rem;
+  border-radius: 999px;
+  background: var(--account-portal-button-bg, #1a1a1a);
+  color: var(--account-portal-button-text, #ffffff);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.account-portal-section__button:hover {
+  opacity: 0.9;
+}
+
+.account-portal-section__notice {
+  color: #a02b1f;
+  font-size: 0.875rem;
+}

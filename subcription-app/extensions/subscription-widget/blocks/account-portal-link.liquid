@@ -1,0 +1,65 @@
+{% comment %}
+  App embed block: a floating button shown on every storefront page, linking
+  signed-in-or-not customers to the standalone customer portal (a page this
+  app serves at its own URL, not a theme template -- see app/routes/account*).
+  Enabled once in Theme editor > App embeds, not placed per-template.
+{% endcomment %}
+
+{%- assign portal_base = block.settings.portal_url | strip -%}
+
+{%- if portal_base != blank -%}
+  <a
+    href="{{ portal_base }}/account/sign-in?shop={{ shop.permanent_domain }}"
+    class="account-portal-link account-portal-link--{{ block.settings.position }}"
+    style="--account-portal-link-bg: {{ block.settings.button_color }}; --account-portal-link-color: {{ block.settings.text_color }};"
+    {{ block.shopify_attributes }}
+  >
+    {{ block.settings.button_label }}
+  </a>
+
+  <link rel="stylesheet" href="{{ 'account-portal-link.css' | asset_url }}">
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Account portal link",
+  "target": "body",
+  "settings": [
+    {
+      "type": "text",
+      "id": "portal_url",
+      "label": "Portal app URL",
+      "info": "The base URL this app is running at (from Dev Dashboard > App URL, or your dev tunnel URL while testing).",
+      "default": "https://null-wrote-weights-dec.trycloudflare.com"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "My Account"
+    },
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Position",
+      "options": [
+        { "value": "bottom-right", "label": "Bottom right" },
+        { "value": "bottom-left", "label": "Bottom left" }
+      ],
+      "default": "bottom-right"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button color",
+      "default": "#1a1a1a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    }
+  ]
+}
+{% endschema %}

@@ -59,7 +59,7 @@ export default function PortalSignIn() {
             <input type="hidden" name="shop" value={shop} />
             <label className={styles.field}>
               <span className={styles.fieldLabel}>Email</span>
-              <input className={styles.input} type="email" name="email" required autoFocus />
+              <input className={styles.input} type="email" name="email" required />
             </label>
             <label className={styles.field}>
               <span className={styles.fieldLabel}>Password</span>

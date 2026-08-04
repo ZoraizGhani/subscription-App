@@ -310,3 +310,284 @@
   font-size: 0.9375rem;
   padding: 2rem 0;
 }
+
+/* --- Top bar (storefront-style nav on logged-in pages) --- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 3rem;
+  background: #faf7f0;
+  border-bottom: 1px solid #e7e2d8;
+}
+
+.topbarNav {
+  display: flex;
+  gap: 2rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b6558;
+}
+
+.topbarNavActive {
+  color: #1a1a1a;
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #6b6558;
+}
+
+/* --- Pill action buttons (row of actions on a subscription card) --- */
+
+.pillButton {
+  padding: 0.625rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pillNeutral {
+  composes: pillButton;
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid #d8d2c4;
+}
+
+.pillDark {
+  composes: pillButton;
+  background: #1a1a1a;
+  color: #fff;
+  border: 1px solid #1a1a1a;
+}
+
+.pillButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* --- Subscription card --- */
+
+.subCard {
+  composes: card;
+}
+
+.subHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #f0ede4;
+  margin-bottom: 1.25rem;
+}
+
+.subPrice {
+  text-align: right;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.metaLabel {
+  composes: eyebrow;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.metaValue {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-top: 1.25rem;
+  border-top: 1px solid #f0ede4;
+}
+
+.actionsRow > .cancelLink {
+  margin-left: auto;
+}
+
+.cancelLink {
+  color: #a02b1f;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* --- Modal --- */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 26, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 100;
+}
+
+.modalCard {
+  width: 100%;
+  max-width: 30rem;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  background: #faf7f0;
+  border-radius: 0.5rem;
+  padding: 2rem;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.modalHeader .eyebrow {
+  margin: 0;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #6b6558;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.reasonList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.reasonOption {
+  width: 100%;
+  text-align: left;
+  padding: 1rem 1.25rem;
+  background: #fff;
+  border: 1px solid #e7e2d8;
+  border-radius: 0.375rem;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.reasonOption:hover {
+  background: #f0ede4;
+}
+
+/* --- Settings screen --- */
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .settingsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sectionHeading {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0 0 1.25rem;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #f0ede4;
+  margin: 1.75rem 0;
+}
+
+.helpList {
+  display: flex;
+  flex-direction: column;
+}
+
+.helpItem {
+  padding: 0.875rem 0;
+  border-bottom: 1px solid #f0ede4;
+  font-size: 0.9375rem;
+  color: #1a1a1a;
+  text-decoration: none;
+}
+
+.helpItem:last-child {
+  border-bottom: none;
+}
+
+.dangerBox {
+  border: 1px solid #f0c7c3;
+  background: #fdf7f2;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.dangerHeading {
+  composes: sectionHeading;
+  color: #a02b1f;
+}
+
+.dangerText {
+  font-size: 0.875rem;
+  color: #6b6558;
+  margin: 0 0 1.25rem;
+}
+
+.buttonDangerFull {
+  width: 100%;
+  padding: 0.875rem;
+  background: #7a1f16;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.buttonDangerFull:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.success {
+  background: #e5f3e5;
+  color: #2a7a2a;
+  border: 1px solid #cfe8cf;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}

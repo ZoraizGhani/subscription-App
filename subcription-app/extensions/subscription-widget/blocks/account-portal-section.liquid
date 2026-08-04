@@ -1,0 +1,99 @@
+{% comment %}
+  App block (not an embed): a normal in-page section a merchant adds to any
+  page via "Add section > Apps" -- e.g. a dedicated "My Account" page --
+  rather than a floating button shown everywhere. Links out to the standalone
+  customer portal this app serves at its own URL (see app/routes/account*).
+{% endcomment %}
+
+{%- assign portal_base = block.settings.portal_url | strip -%}
+
+<div
+  class="account-portal-section"
+  style="--account-portal-bg: {{ block.settings.background_color }}; --account-portal-text: {{ block.settings.text_color }}; --account-portal-button-bg: {{ block.settings.button_color }}; --account-portal-button-text: {{ block.settings.button_text_color }};"
+  {{ block.shopify_attributes }}
+>
+  {%- if block.settings.heading != blank -%}
+    <h2 class="account-portal-section__heading">{{ block.settings.heading }}</h2>
+  {%- endif -%}
+  {%- if block.settings.description != blank -%}
+    <p class="account-portal-section__description">{{ block.settings.description }}</p>
+  {%- endif -%}
+
+  {%- if portal_base != blank -%}
+    <a
+      href="{{ portal_base }}/account/sign-in?shop={{ shop.permanent_domain }}"
+      class="account-portal-section__button"
+    >
+      {{ block.settings.button_label }}
+    </a>
+  {%- else -%}
+    <p class="account-portal-section__notice">
+      Set the "Portal app URL" setting on this block to activate the button.
+    </p>
+  {%- endif -%}
+</div>
+
+<link rel="stylesheet" href="{{ 'account-portal-section.css' | asset_url }}">
+
+{% schema %}
+{
+  "name": "Account portal",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Manage your subscription"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Description",
+      "default": "Sign in to view orders, update your subscription, or cancel anytime."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "Sign in to My Account"
+    },
+    {
+      "type": "text",
+      "id": "portal_url",
+      "label": "Portal app URL",
+      "info": "The base URL this app is running at (from Dev Dashboard > App URL, or your dev tunnel URL while testing).",
+      "default": "https://null-wrote-weights-dec.trycloudflare.com"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#faf7f0"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#1a1a1a"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button color",
+      "default": "#1a1a1a"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#ffffff"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Account portal"
+    }
+  ]
+}
+{% endschema %}
