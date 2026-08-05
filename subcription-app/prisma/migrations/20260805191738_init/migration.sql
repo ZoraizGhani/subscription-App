@@ -1,6 +1,29 @@
 -- CreateTable
+CREATE TABLE "Session" (
+    "id" TEXT NOT NULL,
+    "shop" TEXT NOT NULL,
+    "state" TEXT NOT NULL,
+    "isOnline" BOOLEAN NOT NULL DEFAULT false,
+    "scope" TEXT,
+    "expires" TIMESTAMP(3),
+    "accessToken" TEXT NOT NULL,
+    "userId" BIGINT,
+    "firstName" TEXT,
+    "lastName" TEXT,
+    "email" TEXT,
+    "accountOwner" BOOLEAN NOT NULL DEFAULT false,
+    "locale" TEXT,
+    "collaborator" BOOLEAN DEFAULT false,
+    "emailVerified" BOOLEAN DEFAULT false,
+    "refreshToken" TEXT,
+    "refreshTokenExpires" TIMESTAMP(3),
+
+    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ShopSettings" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "portalEnabled" BOOLEAN NOT NULL DEFAULT true,
     "allowCancel" BOOLEAN NOT NULL DEFAULT true,
@@ -16,13 +39,15 @@ CREATE TABLE "ShopSettings" (
     "widgetOneTimeLabel" TEXT NOT NULL DEFAULT 'One-time purchase',
     "widgetSubscribeLabel" TEXT NOT NULL DEFAULT 'Subscribe',
     "widgetShowDiscountBadge" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ShopSettings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SellingPlanGroup" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "shopifyId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -31,14 +56,17 @@ CREATE TABLE "SellingPlanGroup" (
     "description" TEXT,
     "options" TEXT NOT NULL DEFAULT '[]',
     "productIds" TEXT NOT NULL DEFAULT '[]',
+    "productTitle" TEXT,
     "position" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SellingPlanGroup_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SellingPlan" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shopifyId" TEXT NOT NULL,
     "groupId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -47,18 +75,19 @@ CREATE TABLE "SellingPlan" (
     "deliveryInterval" TEXT NOT NULL,
     "deliveryIntervalCount" INTEGER NOT NULL,
     "pricingPolicyType" TEXT NOT NULL DEFAULT 'NONE',
-    "discountValue" REAL,
+    "discountValue" DOUBLE PRECISION,
     "minCycles" INTEGER,
     "maxCycles" INTEGER,
     "position" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "SellingPlan_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "SellingPlanGroup" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SellingPlan_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SubscriptionContract" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "shopifyId" TEXT NOT NULL,
     "customerShopifyId" TEXT,
@@ -66,55 +95,77 @@ CREATE TABLE "SubscriptionContract" (
     "customerName" TEXT,
     "status" TEXT NOT NULL,
     "currencyCode" TEXT NOT NULL DEFAULT 'USD',
-    "nextBillingDate" DATETIME,
+    "nextBillingDate" TIMESTAMP(3),
     "billingInterval" TEXT,
     "billingIntervalCount" INTEGER,
     "sellingPlanGroupShopifyId" TEXT,
     "originOrderShopifyId" TEXT,
     "linesJson" TEXT,
     "lastPaymentStatus" TEXT,
-    "totalAmount" REAL,
-    "pausedAt" DATETIME,
-    "cancelledAt" DATETIME,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "totalAmount" DOUBLE PRECISION,
+    "pausedAt" TIMESTAMP(3),
+    "cancelledAt" TIMESTAMP(3),
+    "cancellationReason" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SubscriptionContract_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PortalCustomer" (
+    "id" TEXT NOT NULL,
+    "shop" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "passwordHash" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "customerShopifyId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PortalCustomer_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "BillingAttempt" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "shopifyId" TEXT,
     "contractShopifyId" TEXT,
     "status" TEXT NOT NULL,
     "orderShopifyId" TEXT,
-    "amount" REAL,
+    "amount" DOUBLE PRECISION,
     "currencyCode" TEXT,
     "errorCode" TEXT,
     "errorMessage" TEXT,
-    "attemptedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "BillingAttempt_contractShopifyId_fkey" FOREIGN KEY ("contractShopifyId") REFERENCES "SubscriptionContract" ("shopifyId") ON DELETE SET NULL ON UPDATE CASCADE
+    "attemptedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BillingAttempt_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SubscriptionOrder" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "orderShopifyId" TEXT NOT NULL,
     "orderName" TEXT,
     "contractShopifyId" TEXT,
-    "totalPrice" REAL,
+    "totalPrice" DOUBLE PRECISION,
     "currencyCode" TEXT,
-    "processedAt" DATETIME,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "processedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SubscriptionOrder_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ProcessedWebhook" (
-    "webhookId" TEXT NOT NULL PRIMARY KEY,
+    "webhookId" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "topic" TEXT NOT NULL,
-    "receivedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "receivedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ProcessedWebhook_pkey" PRIMARY KEY ("webhookId")
 );
 
 -- CreateIndex
@@ -142,6 +193,12 @@ CREATE INDEX "SubscriptionContract_shop_status_idx" ON "SubscriptionContract"("s
 CREATE INDEX "SubscriptionContract_customerShopifyId_idx" ON "SubscriptionContract"("customerShopifyId");
 
 -- CreateIndex
+CREATE INDEX "PortalCustomer_customerShopifyId_idx" ON "PortalCustomer"("customerShopifyId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PortalCustomer_shop_email_key" ON "PortalCustomer"("shop", "email");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "BillingAttempt_shopifyId_key" ON "BillingAttempt"("shopifyId");
 
 -- CreateIndex
@@ -161,3 +218,9 @@ CREATE INDEX "SubscriptionOrder_contractShopifyId_idx" ON "SubscriptionOrder"("c
 
 -- CreateIndex
 CREATE INDEX "ProcessedWebhook_receivedAt_idx" ON "ProcessedWebhook"("receivedAt");
+
+-- AddForeignKey
+ALTER TABLE "SellingPlan" ADD CONSTRAINT "SellingPlan_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "SellingPlanGroup"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BillingAttempt" ADD CONSTRAINT "BillingAttempt_contractShopifyId_fkey" FOREIGN KEY ("contractShopifyId") REFERENCES "SubscriptionContract"("shopifyId") ON DELETE SET NULL ON UPDATE CASCADE;
