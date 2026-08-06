@@ -11,6 +11,8 @@ import {
   shipPortalOrderNow,
   updatePortalDeliveryFrequency,
   swapPortalProductVariant,
+  updatePortalPaymentMethod,
+  updatePortalShippingAddress,
   PortalOwnershipError,
 } from "../models/portalSubscription.server";
 import styles from "../styles/portal.module.css";
@@ -21,6 +23,18 @@ const INTERVAL_OPTIONS = [
   { value: "MONTH", label: "Month(s)" },
   { value: "YEAR", label: "Year(s)" },
 ];
+
+interface ShippingAddress {
+  address1: string;
+  address2: string;
+  city: string;
+  provinceCode: string;
+  countryCode: string;
+  zip: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+}
 
 interface ManageOptions {
   lineId: string;
@@ -37,7 +51,9 @@ interface ManageOptions {
   billingIntervalCount: number;
   nextBillingDate: string | null;
   paymentMethodDisplay: string | null;
+  paymentMethods: { id: string; display: string; isCurrent: boolean }[];
   shippingAddressDisplay: string | null;
+  shippingAddress: ShippingAddress | null;
 }
 
 const CANCEL_REASONS = [
@@ -61,6 +77,20 @@ function formatInterval(interval: string | null, count: number | null) {
   if (!interval || !count) return "—";
   const unit = interval.toLowerCase();
   return `Every ${count} ${unit}${count === 1 ? "" : "s"}`;
+}
+
+function blankAddress(): ShippingAddress {
+  return {
+    address1: "",
+    address2: "",
+    city: "",
+    provinceCode: "",
+    countryCode: "",
+    zip: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+  };
 }
 
 type Subscription = Awaited<ReturnType<typeof listPortalSubscriptions>>[number];
@@ -137,6 +167,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { intent, success: true };
     }
 
+    if (intent === "updatePaymentMethod") {
+      const paymentMethodId = String(formData.get("paymentMethodId") ?? "");
+      await updatePortalPaymentMethod({
+        shop: session.shop,
+        customerShopifyId: customer.customerShopifyId,
+        contractShopifyId,
+        paymentMethodId,
+      });
+      return { intent, success: true };
+    }
+
+    if (intent === "updateShippingAddress") {
+      await updatePortalShippingAddress({
+        shop: session.shop,
+        customerShopifyId: customer.customerShopifyId,
+        contractShopifyId,
+        address: {
+          firstName: String(formData.get("firstName") ?? ""),
+          lastName: String(formData.get("lastName") ?? ""),
+          address1: String(formData.get("address1") ?? ""),
+          address2: String(formData.get("address2") ?? ""),
+          city: String(formData.get("city") ?? ""),
+          provinceCode: String(formData.get("provinceCode") ?? ""),
+          zip: String(formData.get("zip") ?? ""),
+          countryCode: String(formData.get("countryCode") ?? ""),
+          phone: String(formData.get("phone") ?? ""),
+        },
+      });
+      return { intent, success: true };
+    }
+
     const reason = String(formData.get("reason") ?? "Not specified");
     await cancelPortalSubscription({
       shop: session.shop,
@@ -169,10 +230,16 @@ function ManageSubscriptionModal({
   onClose: () => void;
 }) {
   const optionsFetcher = useFetcher<ManageOptions | { error: string }>();
-  const saveFetcher = useFetcher<typeof action>();
+  const frequencyFetcher = useFetcher<typeof action>();
+  const variantFetcher = useFetcher<typeof action>();
+  const paymentFetcher = useFetcher<typeof action>();
+  const addressFetcher = useFetcher<typeof action>();
+
   const [interval, setInterval_] = useState(sub.billingInterval ?? "DAY");
   const [intervalCount, setIntervalCount] = useState(sub.billingIntervalCount ?? 1);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
+  const [address, setAddress] = useState<ShippingAddress | null>(null);
 
   if (optionsFetcher.state === "idle" && !optionsFetcher.data) {
     optionsFetcher.load(`/account/subscriptions/manage?contractId=${encodeURIComponent(sub.contractShopifyId)}`);
@@ -181,9 +248,16 @@ function ManageSubscriptionModal({
   const options = optionsFetcher.data && "variants" in optionsFetcher.data ? optionsFetcher.data : null;
   const loadError = optionsFetcher.data && "error" in optionsFetcher.data ? optionsFetcher.data.error : null;
   const activeVariantId = selectedVariantId ?? options?.currentVariantId ?? null;
+  const activePaymentMethodId =
+    selectedPaymentMethodId ?? options?.paymentMethods.find((p) => p.isCurrent)?.id ?? null;
+  const currentAddress = address ?? options?.shippingAddress ?? null;
+
+  const setAddressField = (field: keyof ShippingAddress, value: string) => {
+    setAddress({ ...(currentAddress ?? blankAddress()), [field]: value });
+  };
 
   const saveFrequency = () => {
-    saveFetcher.submit(
+    frequencyFetcher.submit(
       {
         intent: "updateFrequency",
         contractShopifyId: sub.contractShopifyId,
@@ -196,7 +270,7 @@ function ManageSubscriptionModal({
 
   const saveVariant = () => {
     if (!options || !selectedVariantId || selectedVariantId === options.currentVariantId) return;
-    saveFetcher.submit(
+    variantFetcher.submit(
       {
         intent: "swapVariant",
         contractShopifyId: sub.contractShopifyId,
@@ -207,11 +281,31 @@ function ManageSubscriptionModal({
     );
   };
 
-  const busy = saveFetcher.state !== "idle";
-  const savedIntent =
-    saveFetcher.state === "idle" && saveFetcher.data && "success" in saveFetcher.data
-      ? saveFetcher.data.intent
-      : null;
+  const savePaymentMethod = () => {
+    const currentId = options?.paymentMethods.find((p) => p.isCurrent)?.id ?? null;
+    if (!selectedPaymentMethodId || selectedPaymentMethodId === currentId) return;
+    paymentFetcher.submit(
+      {
+        intent: "updatePaymentMethod",
+        contractShopifyId: sub.contractShopifyId,
+        paymentMethodId: selectedPaymentMethodId,
+      },
+      { method: "post", action: "/account/subscriptions" },
+    );
+  };
+
+  const saveAddress = () => {
+    if (!currentAddress) return;
+    addressFetcher.submit(
+      { intent: "updateShippingAddress", contractShopifyId: sub.contractShopifyId, ...currentAddress },
+      { method: "post", action: "/account/subscriptions" },
+    );
+  };
+
+  const frequencyBusy = frequencyFetcher.state !== "idle";
+  const variantBusy = variantFetcher.state !== "idle";
+  const paymentBusy = paymentFetcher.state !== "idle";
+  const addressBusy = addressFetcher.state !== "idle";
 
   return (
     <div className={styles.modalOverlay}>
@@ -231,37 +325,19 @@ function ManageSubscriptionModal({
 
         {options && (
           <>
-            {savedIntent === "updateFrequency" && (
-              <div className={styles.success}>Delivery frequency updated.</div>
-            )}
-            {savedIntent === "swapVariant" && <div className={styles.success}>Option updated.</div>}
-            {saveFetcher.data && "error" in saveFetcher.data && (
-              <div className={styles.error}>{saveFetcher.data.error}</div>
-            )}
-
-            <div className={styles.metaGrid}>
-              <div>
-                <span className={styles.metaLabel}>Next delivery date</span>
-                <div className={styles.metaValue}>{formatDate(options.nextBillingDate)}</div>
-              </div>
-              <div>
-                <span className={styles.metaLabel}>Payment method</span>
-                <div className={styles.metaValue}>{options.paymentMethodDisplay ?? "—"}</div>
-              </div>
-              <div>
-                <span className={styles.metaLabel}>Shipping address</span>
-                <div className={styles.metaValue}>{options.shippingAddressDisplay ?? "—"}</div>
-              </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Next delivery date</span>
+              <div className={styles.metaValue}>{formatDate(options.nextBillingDate)}</div>
             </div>
-            <p style={{ color: "#8a8478", fontSize: "0.8125rem", margin: "-0.5rem 0 1.25rem" }}>
-              To change your payment method or shipping address, contact support — that&apos;s not
-              self-service here yet.
-            </p>
-
-            <hr className={styles.divider} style={{ margin: "0 0 1.25rem" }} />
 
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Delivery frequency</span>
+              {frequencyFetcher.data?.intent === "updateFrequency" && "success" in frequencyFetcher.data && (
+                <div className={styles.success}>Delivery frequency updated.</div>
+              )}
+              {frequencyFetcher.data && "error" in frequencyFetcher.data && (
+                <div className={styles.error}>{frequencyFetcher.data.error}</div>
+              )}
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <input
                   className={styles.input}
@@ -285,57 +361,196 @@ function ManageSubscriptionModal({
                 <button
                   type="button"
                   className={styles.pillDark}
-                  disabled={busy}
+                  disabled={frequencyBusy}
                   onClick={saveFrequency}
                 >
-                  Save
+                  {frequencyBusy ? "Saving..." : "Save"}
                 </button>
               </div>
             </div>
 
-            {options.variants.length > 1 && (
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Select flavor(s)</span>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  {options.variants.map((variant) => (
-                    <label
-                      key={variant.id}
-                      className={styles.reasonOption}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        opacity: variant.availableForSale ? 1 : 0.5,
-                      }}
-                    >
-                      <span>
-                        <input
-                          type="radio"
-                          name="variant"
-                          value={variant.id}
-                          checked={activeVariantId === variant.id}
-                          disabled={!variant.availableForSale}
-                          onChange={() => setSelectedVariantId(variant.id)}
-                          style={{ marginRight: "0.5rem" }}
-                        />
-                        {variant.title}
-                        {!variant.availableForSale && " (out of stock)"}
-                      </span>
-                      <span>{formatMoney(Number(variant.price), variant.currencyCode)}</span>
-                    </label>
-                  ))}
+            <hr className={styles.divider} style={{ margin: "1.25rem 0" }} />
+
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Payment method</span>
+              {paymentFetcher.data?.intent === "updatePaymentMethod" && "success" in paymentFetcher.data && (
+                <div className={styles.success}>Payment method updated.</div>
+              )}
+              {paymentFetcher.data && "error" in paymentFetcher.data && (
+                <div className={styles.error}>{paymentFetcher.data.error}</div>
+              )}
+              {options.paymentMethods.length > 1 ? (
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <select
+                    className={styles.input}
+                    style={{ flex: 1 }}
+                    value={activePaymentMethodId ?? ""}
+                    onChange={(e) => setSelectedPaymentMethodId(e.target.value)}
+                  >
+                    {options.paymentMethods.map((pm) => (
+                      <option key={pm.id} value={pm.id}>
+                        {pm.display}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className={styles.pillDark}
+                    disabled={paymentBusy}
+                    onClick={savePaymentMethod}
+                  >
+                    {paymentBusy ? "Saving..." : "Save"}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className={styles.pillDark}
-                  style={{ marginTop: "0.75rem" }}
-                  disabled={busy || !selectedVariantId || selectedVariantId === options.currentVariantId}
-                  onClick={saveVariant}
-                >
-                  {busy && saveFetcher.formData?.get("intent") === "swapVariant"
-                    ? "Saving..."
-                    : "Save option"}
-                </button>
-              </div>
+              ) : (
+                <>
+                  <div className={styles.metaValue}>{options.paymentMethodDisplay ?? "—"}</div>
+                  <p style={{ color: "#8a8478", fontSize: "0.8125rem", margin: "0.375rem 0 0" }}>
+                    This is the only card on file — add another via checkout to enable switching here.
+                  </p>
+                </>
+              )}
+            </div>
+
+            <hr className={styles.divider} style={{ margin: "1.25rem 0" }} />
+
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Shipping address</span>
+              {addressFetcher.data?.intent === "updateShippingAddress" && "success" in addressFetcher.data && (
+                <div className={styles.success}>Shipping address updated.</div>
+              )}
+              {addressFetcher.data && "error" in addressFetcher.data && (
+                <div className={styles.error}>{addressFetcher.data.error}</div>
+              )}
+              {currentAddress ? (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                    <input
+                      className={styles.input}
+                      placeholder="First name"
+                      value={currentAddress.firstName}
+                      onChange={(e) => setAddressField("firstName", e.target.value)}
+                    />
+                    <input
+                      className={styles.input}
+                      placeholder="Last name"
+                      value={currentAddress.lastName}
+                      onChange={(e) => setAddressField("lastName", e.target.value)}
+                    />
+                  </div>
+                  <input
+                    className={styles.input}
+                    style={{ marginTop: "0.5rem" }}
+                    placeholder="Address"
+                    value={currentAddress.address1}
+                    onChange={(e) => setAddressField("address1", e.target.value)}
+                  />
+                  <input
+                    className={styles.input}
+                    style={{ marginTop: "0.5rem" }}
+                    placeholder="Apartment, suite, etc. (optional)"
+                    value={currentAddress.address2}
+                    onChange={(e) => setAddressField("address2", e.target.value)}
+                  />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginTop: "0.5rem" }}>
+                    <input
+                      className={styles.input}
+                      placeholder="City"
+                      value={currentAddress.city}
+                      onChange={(e) => setAddressField("city", e.target.value)}
+                    />
+                    <input
+                      className={styles.input}
+                      placeholder="Province/state code"
+                      value={currentAddress.provinceCode}
+                      onChange={(e) => setAddressField("provinceCode", e.target.value)}
+                    />
+                    <input
+                      className={styles.input}
+                      placeholder="ZIP/postal code"
+                      value={currentAddress.zip}
+                      onChange={(e) => setAddressField("zip", e.target.value)}
+                    />
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginTop: "0.5rem" }}>
+                    <input
+                      className={styles.input}
+                      placeholder="Country code (e.g. US)"
+                      value={currentAddress.countryCode}
+                      onChange={(e) => setAddressField("countryCode", e.target.value.toUpperCase())}
+                    />
+                    <input
+                      className={styles.input}
+                      placeholder="Phone (optional)"
+                      value={currentAddress.phone}
+                      onChange={(e) => setAddressField("phone", e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.pillDark}
+                    style={{ marginTop: "0.75rem" }}
+                    disabled={addressBusy}
+                    onClick={saveAddress}
+                  >
+                    {addressBusy ? "Saving..." : "Save address"}
+                  </button>
+                </>
+              ) : (
+                <div className={styles.metaValue}>—</div>
+              )}
+            </div>
+
+            {options.variants.length > 1 && (
+              <>
+                <hr className={styles.divider} style={{ margin: "1.25rem 0" }} />
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>Select flavor(s)</span>
+                  {variantFetcher.data?.intent === "swapVariant" && "success" in variantFetcher.data && (
+                    <div className={styles.success}>Option updated.</div>
+                  )}
+                  {variantFetcher.data && "error" in variantFetcher.data && (
+                    <div className={styles.error}>{variantFetcher.data.error}</div>
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                    {options.variants.map((variant) => (
+                      <label
+                        key={variant.id}
+                        className={styles.reasonOption}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          opacity: variant.availableForSale ? 1 : 0.5,
+                        }}
+                      >
+                        <span>
+                          <input
+                            type="radio"
+                            name="variant"
+                            value={variant.id}
+                            checked={activeVariantId === variant.id}
+                            disabled={!variant.availableForSale}
+                            onChange={() => setSelectedVariantId(variant.id)}
+                            style={{ marginRight: "0.5rem" }}
+                          />
+                          {variant.title}
+                          {!variant.availableForSale && " (out of stock)"}
+                        </span>
+                        <span>{formatMoney(Number(variant.price), variant.currencyCode)}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.pillDark}
+                    style={{ marginTop: "0.75rem" }}
+                    disabled={variantBusy || !selectedVariantId || selectedVariantId === options.currentVariantId}
+                    onClick={saveVariant}
+                  >
+                    {variantBusy ? "Saving..." : "Save option"}
+                  </button>
+                </div>
+              </>
             )}
           </>
         )}

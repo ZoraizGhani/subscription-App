@@ -491,15 +491,38 @@ const MANAGE_OPTIONS_QUERY = `#graphql
     subscriptionContract(id: $id) {
       nextBillingDate
       billingPolicy { interval intervalCount }
-      customer { defaultAddress { countryCodeV2 } }
+      customer {
+        defaultAddress { countryCodeV2 }
+        paymentMethods(first: 10, showRevoked: false) {
+          edges {
+            node {
+              id
+              instrument {
+                ... on CustomerCreditCard { brand lastDigits }
+              }
+            }
+          }
+        }
+      }
       customerPaymentMethod {
+        id
         instrument {
           ... on CustomerCreditCard { brand lastDigits }
         }
       }
       deliveryMethod {
         ... on SubscriptionDeliveryMethodShipping {
-          address { address1 city provinceCode countryCodeV2 }
+          address {
+            address1
+            address2
+            city
+            provinceCode
+            countryCodeV2
+            zip
+            firstName
+            lastName
+            phone
+          }
         }
       }
       lines(first: 1) {
@@ -551,18 +574,33 @@ export async function getPortalManageOptions({
   const contractResponse = await admin.graphql(MANAGE_OPTIONS_QUERY, {
     variables: { id: contractShopifyId },
   });
+  interface RawPaymentMethod {
+    id: string;
+    instrument: { brand?: string; lastDigits?: string } | null;
+  }
+  interface RawAddress {
+    address1: string;
+    address2: string | null;
+    city: string;
+    provinceCode: string | null;
+    countryCodeV2: string;
+    zip: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+  }
+
   const contractBody = (await contractResponse.json()) as {
     data?: {
       subscriptionContract: {
         nextBillingDate: string | null;
         billingPolicy: { interval: string; intervalCount: number } | null;
-        customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
-        customerPaymentMethod: {
-          instrument: { brand?: string; lastDigits?: string } | null;
+        customer: {
+          defaultAddress: { countryCodeV2: string | null } | null;
+          paymentMethods: { edges: { node: RawPaymentMethod }[] };
         } | null;
-        deliveryMethod: {
-          address?: { address1: string; city: string; provinceCode: string | null; countryCodeV2: string };
-        } | null;
+        customerPaymentMethod: { id: string; instrument: RawPaymentMethod["instrument"] } | null;
+        deliveryMethod: { address?: RawAddress } | null;
         lines: { nodes: { id: string; productId: string | null; variantId: string | null }[] };
       } | null;
     };
@@ -574,11 +612,18 @@ export async function getPortalManageOptions({
   }
   const country = contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
 
-  const cardInstrument = contract?.customerPaymentMethod?.instrument;
-  const paymentMethodDisplay =
-    cardInstrument?.brand && cardInstrument.lastDigits
-      ? `${cardInstrument.brand} •••• ${cardInstrument.lastDigits}`
-      : null;
+  const describeInstrument = (instrument: RawPaymentMethod["instrument"]) =>
+    instrument?.brand && instrument.lastDigits ? `${instrument.brand} •••• ${instrument.lastDigits}` : "On file";
+
+  const currentPaymentMethodId = contract?.customerPaymentMethod?.id ?? null;
+  const paymentMethods = (contract?.customer?.paymentMethods.edges ?? []).map((e) => ({
+    id: e.node.id,
+    display: describeInstrument(e.node.instrument),
+    isCurrent: e.node.id === currentPaymentMethodId,
+  }));
+  const paymentMethodDisplay = contract?.customerPaymentMethod
+    ? describeInstrument(contract.customerPaymentMethod.instrument)
+    : null;
 
   const address = contract?.deliveryMethod?.address;
   const shippingAddressDisplay = address
@@ -624,7 +669,21 @@ export async function getPortalManageOptions({
     billingIntervalCount: contract?.billingPolicy?.intervalCount ?? 1,
     nextBillingDate: contract?.nextBillingDate ?? null,
     paymentMethodDisplay,
+    paymentMethods,
     shippingAddressDisplay,
+    shippingAddress: address
+      ? {
+          address1: address.address1,
+          address2: address.address2 ?? "",
+          city: address.city,
+          provinceCode: address.provinceCode ?? "",
+          countryCode: address.countryCodeV2,
+          zip: address.zip ?? "",
+          firstName: address.firstName ?? "",
+          lastName: address.lastName ?? "",
+          phone: address.phone ?? "",
+        }
+      : null,
   };
 }
 
@@ -734,6 +793,115 @@ export async function updatePortalDeliveryFrequency({
         userErrors: { field: string[]; message: string }[];
       };
     };
+  };
+  const updateErrors = updateBody.data?.subscriptionDraftUpdate?.userErrors ?? [];
+  if (updateErrors.length) {
+    throw new Error(`subscriptionDraftUpdate failed: ${JSON.stringify(updateErrors)}`);
+  }
+
+  await commitPortalDraft(admin, draftId);
+  await syncSubscriptionContract({ graphql: admin.graphql, shop, contractId: contractShopifyId });
+}
+
+const CUSTOMER_PAYMENT_METHODS_QUERY = `#graphql
+  query PortalCustomerPaymentMethods($id: ID!) {
+    customer(id: $id) {
+      paymentMethods(first: 10, showRevoked: false) {
+        edges { node { id } }
+      }
+    }
+  }
+`;
+
+/**
+ * Only lets the customer switch to a payment method they already have saved
+ * with Shopify -- verified against their own customer record first, since
+ * the caller only ever supplies an id from the outside. Adding a genuinely
+ * new card isn't something this can do: raw card numbers must go through
+ * Shopify's own hosted checkout, never our server, for PCI compliance.
+ */
+export async function updatePortalPaymentMethod({
+  shop,
+  customerShopifyId,
+  contractShopifyId,
+  paymentMethodId,
+}: {
+  shop: string;
+  customerShopifyId: string;
+  contractShopifyId: string;
+  paymentMethodId: string;
+}) {
+  await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
+
+  const { admin } = await unauthenticated.admin(shop);
+
+  const ownedResponse = await admin.graphql(CUSTOMER_PAYMENT_METHODS_QUERY, {
+    variables: { id: customerShopifyId },
+  });
+  const ownedBody = (await ownedResponse.json()) as {
+    data?: { customer: { paymentMethods: { edges: { node: { id: string } }[] } } | null };
+  };
+  const ownedIds = new Set(
+    (ownedBody.data?.customer?.paymentMethods.edges ?? []).map((e) => e.node.id),
+  );
+  if (!ownedIds.has(paymentMethodId)) {
+    throw new Error("That payment method isn't on file for your account.");
+  }
+
+  const draftId = await openPortalDraft(admin, contractShopifyId);
+  const updateResponse = await admin.graphql(DRAFT_UPDATE_MUTATION, {
+    variables: { draftId, input: { paymentMethodId } },
+  });
+  const updateBody = (await updateResponse.json()) as {
+    data?: { subscriptionDraftUpdate: { userErrors: { field: string[]; message: string }[] } };
+  };
+  const updateErrors = updateBody.data?.subscriptionDraftUpdate?.userErrors ?? [];
+  if (updateErrors.length) {
+    throw new Error(`subscriptionDraftUpdate failed: ${JSON.stringify(updateErrors)}`);
+  }
+
+  await commitPortalDraft(admin, draftId);
+  await syncSubscriptionContract({ graphql: admin.graphql, shop, contractId: contractShopifyId });
+}
+
+export async function updatePortalShippingAddress({
+  shop,
+  customerShopifyId,
+  contractShopifyId,
+  address,
+}: {
+  shop: string;
+  customerShopifyId: string;
+  contractShopifyId: string;
+  address: {
+    firstName: string;
+    lastName: string;
+    address1: string;
+    address2: string;
+    city: string;
+    provinceCode: string;
+    zip: string;
+    countryCode: string;
+    phone: string;
+  };
+}) {
+  await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
+
+  if (!address.address1 || !address.city || !address.countryCode) {
+    throw new Error("Address line, city, and country are required.");
+  }
+
+  const { admin } = await unauthenticated.admin(shop);
+  const draftId = await openPortalDraft(admin, contractShopifyId);
+
+  const updateResponse = await admin.graphql(DRAFT_UPDATE_MUTATION, {
+    variables: {
+      draftId,
+      input: { deliveryMethod: { shipping: { address } } },
+    },
+  });
+  const updateBody = (await updateResponse.json()) as {
+    data?: { subscriptionDraftUpdate: { userErrors: { field: string[]; message: string }[] } };
   };
   const updateErrors = updateBody.data?.subscriptionDraftUpdate?.userErrors ?? [];
   if (updateErrors.length) {
