@@ -173,3 +173,172 @@ export async function deletePortalAccount({ id, shop }: { id: string; shop: stri
 
   await db.portalCustomer.delete({ where: { id } });
 }
+
+const DEFAULT_ADDRESS_QUERY = `#graphql
+  query PortalDefaultAddress($id: ID!) {
+    customer(id: $id) {
+      defaultAddress {
+        id
+        firstName
+        lastName
+        address1
+        address2
+        city
+        provinceCode
+        zip
+        countryCodeV2
+        phone
+      }
+    }
+  }
+`;
+
+export async function getPortalDefaultAddress({
+  shop,
+  customerShopifyId,
+}: {
+  shop: string;
+  customerShopifyId: string;
+}) {
+  const { admin } = await unauthenticated.admin(shop);
+  const response = await admin.graphql(DEFAULT_ADDRESS_QUERY, { variables: { id: customerShopifyId } });
+  const body = (await response.json()) as {
+    data?: {
+      customer: {
+        defaultAddress: {
+          id: string;
+          firstName: string | null;
+          lastName: string | null;
+          address1: string;
+          address2: string | null;
+          city: string;
+          provinceCode: string | null;
+          zip: string | null;
+          countryCodeV2: string;
+          phone: string | null;
+        } | null;
+      } | null;
+    };
+  };
+  return body.data?.customer?.defaultAddress ?? null;
+}
+
+const ADDRESS_CREATE_MUTATION = `#graphql
+  mutation PortalAddressCreate($customerId: ID!, $address: MailingAddressInput!) {
+    customerAddressCreate(customerId: $customerId, address: $address, setAsDefault: true) {
+      userErrors { field message }
+    }
+  }
+`;
+
+const ADDRESS_UPDATE_MUTATION = `#graphql
+  mutation PortalAddressUpdate($customerId: ID!, $addressId: ID!, $address: MailingAddressInput!) {
+    customerAddressUpdate(customerId: $customerId, addressId: $addressId, address: $address, setAsDefault: true) {
+      userErrors { field message }
+    }
+  }
+`;
+
+export async function updatePortalDefaultAddress({
+  shop,
+  customerShopifyId,
+  address,
+}: {
+  shop: string;
+  customerShopifyId: string;
+  address: {
+    firstName: string;
+    lastName: string;
+    address1: string;
+    address2: string;
+    city: string;
+    provinceCode: string;
+    zip: string;
+    countryCode: string;
+    phone: string;
+  };
+}) {
+  if (!address.address1 || !address.city || !address.countryCode) {
+    throw new Error("Address line, city, and country are required.");
+  }
+
+  const { admin } = await unauthenticated.admin(shop);
+  const existing = await getPortalDefaultAddress({ shop, customerShopifyId });
+
+  const response = existing
+    ? await admin.graphql(ADDRESS_UPDATE_MUTATION, {
+        variables: { customerId: customerShopifyId, addressId: existing.id, address },
+      })
+    : await admin.graphql(ADDRESS_CREATE_MUTATION, {
+        variables: { customerId: customerShopifyId, address },
+      });
+  const body = (await response.json()) as {
+    data?: {
+      customerAddressCreate?: { userErrors: { field: string[]; message: string }[] };
+      customerAddressUpdate?: { userErrors: { field: string[]; message: string }[] };
+    };
+  };
+  const userErrors =
+    body.data?.customerAddressCreate?.userErrors ?? body.data?.customerAddressUpdate?.userErrors ?? [];
+  if (userErrors.length) {
+    throw new Error(`Address update failed: ${JSON.stringify(userErrors)}`);
+  }
+}
+
+const CUSTOMER_PAYMENT_METHODS_FOR_EMAIL_QUERY = `#graphql
+  query PortalCustomerPaymentMethodsForEmail($id: ID!) {
+    customer(id: $id) {
+      paymentMethods(first: 1, showRevoked: false) {
+        edges { node { id } }
+      }
+    }
+  }
+`;
+
+const SEND_UPDATE_EMAIL_MUTATION = `#graphql
+  mutation PortalSendPaymentUpdateEmail($id: ID!) {
+    customerPaymentMethodSendUpdateEmail(customerPaymentMethodId: $id) {
+      customer { id }
+      userErrors { field message }
+    }
+  }
+`;
+
+/**
+ * Credit card payment methods can't be added or changed through the API at
+ * all -- Shopify's own docs are explicit about this being blocked for
+ * security reasons. The only supported path is emailing the customer a
+ * secure Shopify-hosted link where they enter card details themselves,
+ * never touching our server.
+ */
+export async function sendPortalPaymentUpdateEmail({
+  shop,
+  customerShopifyId,
+}: {
+  shop: string;
+  customerShopifyId: string;
+}) {
+  const { admin } = await unauthenticated.admin(shop);
+
+  const methodsResponse = await admin.graphql(CUSTOMER_PAYMENT_METHODS_FOR_EMAIL_QUERY, {
+    variables: { id: customerShopifyId },
+  });
+  const methodsBody = (await methodsResponse.json()) as {
+    data?: { customer: { paymentMethods: { edges: { node: { id: string } }[] } } | null };
+  };
+  const paymentMethodId = methodsBody.data?.customer?.paymentMethods.edges[0]?.node.id;
+  if (!paymentMethodId) {
+    throw new Error("No payment method on file to update.");
+  }
+
+  const response = await admin.graphql(SEND_UPDATE_EMAIL_MUTATION, {
+    variables: { id: paymentMethodId },
+  });
+  const body = (await response.json()) as {
+    data?: { customerPaymentMethodSendUpdateEmail: { userErrors: { field: string[]; message: string }[] } };
+  };
+  const userErrors = body.data?.customerPaymentMethodSendUpdateEmail?.userErrors ?? [];
+  if (userErrors.length) {
+    throw new Error(`customerPaymentMethodSendUpdateEmail failed: ${JSON.stringify(userErrors)}`);
+  }
+}

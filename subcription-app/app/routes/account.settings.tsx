@@ -7,6 +7,9 @@ import {
   updatePortalAccountInfo,
   updatePortalPassword,
   deletePortalAccount,
+  getPortalDefaultAddress,
+  updatePortalDefaultAddress,
+  sendPortalPaymentUpdateEmail,
   PortalAuthError,
 } from "../models/portalCustomer.server";
 import styles from "../styles/portal.module.css";
@@ -14,7 +17,15 @@ import styles from "../styles/portal.module.css";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const session = await requirePortalSession(request);
   const customer = await getPortalCustomerById(session.portalCustomerId);
-  return { name: customer?.name ?? "", email: customer?.email ?? "" };
+  const address = customer?.customerShopifyId
+    ? await getPortalDefaultAddress({ shop: session.shop, customerShopifyId: customer.customerShopifyId })
+    : null;
+  return {
+    name: customer?.name ?? "",
+    email: customer?.email ?? "",
+    hasShopifyCustomer: Boolean(customer?.customerShopifyId),
+    address,
+  };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -43,6 +54,35 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { intent, success: true };
     }
 
+    if (intent === "sendPaymentUpdateEmail") {
+      const customer = await getPortalCustomerById(session.portalCustomerId);
+      if (!customer?.customerShopifyId) {
+        return { intent, error: "No linked Shopify customer on this account." };
+      }
+      await sendPortalPaymentUpdateEmail({ shop: session.shop, customerShopifyId: customer.customerShopifyId });
+      return { intent, success: true };
+    }
+
+    if (intent === "updateAddress") {
+      const customer = await getPortalCustomerById(session.portalCustomerId);
+      if (!customer?.customerShopifyId) {
+        return { intent, error: "No linked Shopify customer on this account." };
+      }
+      const address = {
+        firstName: String(formData.get("firstName") ?? "").trim(),
+        lastName: String(formData.get("lastName") ?? "").trim(),
+        address1: String(formData.get("address1") ?? "").trim(),
+        address2: String(formData.get("address2") ?? "").trim(),
+        city: String(formData.get("city") ?? "").trim(),
+        provinceCode: String(formData.get("provinceCode") ?? "").trim(),
+        zip: String(formData.get("zip") ?? "").trim(),
+        countryCode: String(formData.get("countryCode") ?? "").trim(),
+        phone: String(formData.get("phone") ?? "").trim(),
+      };
+      await updatePortalDefaultAddress({ shop: session.shop, customerShopifyId: customer.customerShopifyId, address });
+      return { intent, success: true };
+    }
+
     if (intent === "deleteAccount") {
       await deletePortalAccount({ id: session.portalCustomerId, shop: session.shop });
       return destroyPortalSession(request);
@@ -53,15 +93,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (error instanceof PortalAuthError) {
       return { intent, error: error.message };
     }
+    if ((intent === "sendPaymentUpdateEmail" || intent === "updateAddress") && error instanceof Error) {
+      return { intent, error: error.message };
+    }
     throw error;
   }
 };
 
 export default function AccountSettings() {
-  const { name, email } = useLoaderData<typeof loader>();
+  const { name, email, hasShopifyCustomer, address } = useLoaderData<typeof loader>();
   const infoFetcher = useFetcher<typeof action>();
   const passwordFetcher = useFetcher<typeof action>();
   const deleteFetcher = useFetcher<typeof action>();
+  const paymentFetcher = useFetcher<typeof action>();
+  const addressFetcher = useFetcher<typeof action>();
 
   return (
     <>
@@ -132,6 +177,123 @@ export default function AccountSettings() {
               {passwordFetcher.state !== "idle" ? "Updating..." : "Update password"}
             </button>
           </passwordFetcher.Form>
+
+          {hasShopifyCustomer && (
+            <>
+              <hr className={styles.divider} />
+
+              <h2 className={styles.sectionHeading}>Payment method</h2>
+              {paymentFetcher.data?.intent === "sendPaymentUpdateEmail" && "success" in paymentFetcher.data && (
+                <div className={styles.success}>
+                  Check your email for a secure link to update your card.
+                </div>
+              )}
+              {paymentFetcher.data?.intent === "sendPaymentUpdateEmail" && "error" in paymentFetcher.data && (
+                <div className={styles.error}>{paymentFetcher.data.error}</div>
+              )}
+              <p style={{ color: "#8a8478", fontSize: "0.8125rem", margin: "0 0 0.75rem" }}>
+                For security, card details can only be updated through a secure link Shopify
+                emails you directly.
+              </p>
+              <paymentFetcher.Form method="post">
+                <input type="hidden" name="intent" value="sendPaymentUpdateEmail" />
+                <button
+                  className={styles.buttonPrimary}
+                  type="submit"
+                  disabled={paymentFetcher.state !== "idle"}
+                >
+                  {paymentFetcher.state !== "idle" ? "Sending..." : "Send me a payment update link"}
+                </button>
+              </paymentFetcher.Form>
+
+              <hr className={styles.divider} />
+
+              <h2 className={styles.sectionHeading}>Address</h2>
+              {addressFetcher.data?.intent === "updateAddress" && "success" in addressFetcher.data && (
+                <div className={styles.success}>Address updated.</div>
+              )}
+              {addressFetcher.data?.intent === "updateAddress" && "error" in addressFetcher.data && (
+                <div className={styles.error}>{addressFetcher.data.error}</div>
+              )}
+              <addressFetcher.Form method="post">
+                <input type="hidden" name="intent" value="updateAddress" />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                  <input
+                    className={styles.input}
+                    name="firstName"
+                    placeholder="First name"
+                    defaultValue={address?.firstName ?? ""}
+                  />
+                  <input
+                    className={styles.input}
+                    name="lastName"
+                    placeholder="Last name"
+                    defaultValue={address?.lastName ?? ""}
+                  />
+                </div>
+                <input
+                  className={styles.input}
+                  style={{ marginTop: "0.5rem" }}
+                  name="address1"
+                  placeholder="Address"
+                  defaultValue={address?.address1 ?? ""}
+                  required
+                />
+                <input
+                  className={styles.input}
+                  style={{ marginTop: "0.5rem" }}
+                  name="address2"
+                  placeholder="Apartment, suite, etc. (optional)"
+                  defaultValue={address?.address2 ?? ""}
+                />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginTop: "0.5rem" }}>
+                  <input
+                    className={styles.input}
+                    name="city"
+                    placeholder="City"
+                    defaultValue={address?.city ?? ""}
+                    required
+                  />
+                  <input
+                    className={styles.input}
+                    name="provinceCode"
+                    placeholder="Province/state code"
+                    defaultValue={address?.provinceCode ?? ""}
+                  />
+                  <input
+                    className={styles.input}
+                    name="zip"
+                    placeholder="ZIP/postal code"
+                    defaultValue={address?.zip ?? ""}
+                  />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginTop: "0.5rem" }}>
+                  <input
+                    className={styles.input}
+                    name="countryCode"
+                    placeholder="Country code (e.g. US)"
+                    defaultValue={address?.countryCodeV2 ?? ""}
+                    style={{ textTransform: "uppercase" }}
+                    required
+                  />
+                  <input
+                    className={styles.input}
+                    name="phone"
+                    placeholder="Phone (optional)"
+                    defaultValue={address?.phone ?? ""}
+                  />
+                </div>
+                <button
+                  className={styles.buttonPrimary}
+                  style={{ marginTop: "0.75rem" }}
+                  type="submit"
+                  disabled={addressFetcher.state !== "idle"}
+                >
+                  {addressFetcher.state !== "idle" ? "Saving..." : "Save address"}
+                </button>
+              </addressFetcher.Form>
+            </>
+          )}
         </div>
 
         <div>
