@@ -8,6 +8,7 @@ interface ContractLine {
   title: string;
   variantTitle?: string | null;
   quantity: number;
+  productId?: string | null;
 }
 
 function firstLineTitle(linesJson: string | null): string {
@@ -17,6 +18,16 @@ function firstLineTitle(linesJson: string | null): string {
     return lines[0]?.title ?? "Subscription";
   } catch {
     return "Subscription";
+  }
+}
+
+function firstLineProductId(linesJson: string | null): string | null {
+  if (!linesJson) return null;
+  try {
+    const lines = JSON.parse(linesJson) as ContractLine[];
+    return lines[0]?.productId ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -66,6 +77,14 @@ export async function getPortalOverview({
   };
 }
 
+const PRODUCT_HANDLES_QUERY = `#graphql
+  query PortalProductHandles($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on Product { id handle }
+    }
+  }
+`;
+
 export async function listPortalSubscriptions({
   shop,
   customerShopifyId,
@@ -78,17 +97,42 @@ export async function listPortalSubscriptions({
     orderBy: { createdAt: "desc" },
   });
 
-  return contracts.map((c) => ({
-    contractShopifyId: c.shopifyId,
-    productTitle: firstLineTitle(c.linesJson),
-    status: c.status,
-    totalAmount: c.totalAmount,
-    currencyCode: c.currencyCode,
-    nextBillingDate: c.nextBillingDate,
-    billingInterval: c.billingInterval,
-    billingIntervalCount: c.billingIntervalCount,
-    cancellationReason: c.cancellationReason,
-  }));
+  const productIds = Array.from(
+    new Set(contracts.map((c) => firstLineProductId(c.linesJson)).filter((id): id is string => id != null)),
+  );
+
+  const handleByProductId = new Map<string, string>();
+  if (productIds.length) {
+    try {
+      const { admin } = await unauthenticated.admin(shop);
+      const response = await admin.graphql(PRODUCT_HANDLES_QUERY, { variables: { ids: productIds } });
+      const body = (await response.json()) as {
+        data?: { nodes: ({ id: string; handle: string } | null)[] };
+      };
+      for (const node of body.data?.nodes ?? []) {
+        if (node) handleByProductId.set(node.id, node.handle);
+      }
+    } catch {
+      // Product links are a convenience -- if this lookup fails, the list
+      // still renders fine without a storefront link.
+    }
+  }
+
+  return contracts.map((c) => {
+    const productId = firstLineProductId(c.linesJson);
+    return {
+      contractShopifyId: c.shopifyId,
+      productTitle: firstLineTitle(c.linesJson),
+      productHandle: productId ? (handleByProductId.get(productId) ?? null) : null,
+      status: c.status,
+      totalAmount: c.totalAmount,
+      currencyCode: c.currencyCode,
+      nextBillingDate: c.nextBillingDate,
+      billingInterval: c.billingInterval,
+      billingIntervalCount: c.billingIntervalCount,
+      cancellationReason: c.cancellationReason,
+    };
+  });
 }
 
 export async function listPortalOrders({
@@ -771,289 +815,4 @@ export async function swapPortalProductVariant({
   }
 
   await syncSubscriptionContract({ graphql: admin.graphql, shop, contractId: contractShopifyId });
-}
-
-async function getContractCountry(admin: PortalAdmin, contractShopifyId: string) {
-  const response = await admin.graphql(
-    `#graphql
-      query PortalContractCountry($id: ID!) {
-        subscriptionContract(id: $id) {
-          customer { defaultAddress { countryCodeV2 } }
-        }
-      }
-    `,
-    { variables: { id: contractShopifyId } },
-  );
-  const body = (await response.json()) as {
-    data?: {
-      subscriptionContract: {
-        customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
-      } | null;
-    };
-  };
-  return body.data?.subscriptionContract?.customer?.defaultAddress?.countryCodeV2 ?? null;
-}
-
-const SELLING_PLAN_PRODUCTS_QUERY = `#graphql
-  query PortalSellingPlanProducts($ids: [ID!]!, $country: CountryCode) {
-    nodes(ids: $ids) {
-      ... on Product {
-        id
-        title
-        featuredMedia {
-          preview { image { url } }
-        }
-        variants(first: 25) {
-          edges {
-            node {
-              id
-              title
-              availableForSale
-              contextualPricing(context: { country: $country }) {
-                price { amount currencyCode }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-const CONTRACT_LINE_VARIANTS_QUERY = `#graphql
-  query PortalContractLineVariants($id: ID!) {
-    subscriptionContract(id: $id) {
-      lines(first: 10) {
-        nodes { variantId }
-      }
-    }
-  }
-`;
-
-/**
- * One-time add-on candidates for the "Add one-time item" modal. Scoped to
- * only the products this app has an active selling plan group for (per the
- * merchant's own Selling Plans screen) -- not the whole store catalog, since
- * showing unrelated products (a laptop, a t-shirt with no subscription
- * offering) as add-ons to a subscription doesn't make sense. Every variant
- * of a matching product is offered, and any variant the customer is already
- * subscribed to on this contract is flagged so the UI can disable it.
- */
-export async function searchPortalProducts({
-  shop,
-  customerShopifyId,
-  contractShopifyId,
-  query,
-}: {
-  shop: string;
-  customerShopifyId: string;
-  contractShopifyId: string;
-  query: string;
-}) {
-  await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
-
-  const groups = await db.sellingPlanGroup.findMany({
-    where: { shop },
-    select: { productIds: true },
-  });
-  const productIds = Array.from(
-    new Set(groups.flatMap((g) => JSON.parse(g.productIds) as string[])),
-  );
-
-  if (!productIds.length) {
-    return [];
-  }
-
-  const { admin } = await unauthenticated.admin(shop);
-  const country = await getContractCountry(admin, contractShopifyId);
-
-  const [productsResponse, lineResponse] = await Promise.all([
-    admin.graphql(SELLING_PLAN_PRODUCTS_QUERY, { variables: { ids: productIds, country } }),
-    admin.graphql(CONTRACT_LINE_VARIANTS_QUERY, { variables: { id: contractShopifyId } }),
-  ]);
-
-  const body = (await productsResponse.json()) as {
-    data?: {
-      nodes: ({
-        id: string;
-        title: string;
-        featuredMedia: { preview: { image: { url: string } | null } | null } | null;
-        variants: {
-          edges: {
-            node: {
-              id: string;
-              title: string;
-              availableForSale: boolean;
-              contextualPricing: { price: { amount: string; currencyCode: string } };
-            };
-          }[];
-        };
-      } | null)[];
-    };
-  };
-  const lineBody = (await lineResponse.json()) as {
-    data?: { subscriptionContract: { lines: { nodes: { variantId: string | null }[] } } | null };
-  };
-  const subscribedVariantIds = new Set(
-    (lineBody.data?.subscriptionContract?.lines.nodes ?? [])
-      .map((n) => n.variantId)
-      .filter((id): id is string => id != null),
-  );
-
-  const trimmedQuery = query.trim().toLowerCase();
-
-  return (body.data?.nodes ?? [])
-    .filter((node): node is NonNullable<typeof node> => node != null)
-    .filter((node) => !trimmedQuery || node.title.toLowerCase().includes(trimmedQuery))
-    .flatMap((node) =>
-      node.variants.edges.map((v) => ({
-        productId: node.id,
-        productTitle: node.title,
-        variantTitle: v.node.title === "Default Title" ? null : v.node.title,
-        imageUrl: node.featuredMedia?.preview?.image?.url ?? null,
-        variantId: v.node.id,
-        price: v.node.contextualPricing.price.amount,
-        currencyCode: v.node.contextualPricing.price.currencyCode,
-        availableForSale: v.node.availableForSale,
-        alreadySubscribed: subscribedVariantIds.has(v.node.id),
-      })),
-    );
-}
-
-const CYCLE_EDIT_MUTATION = `#graphql
-  mutation PortalCycleEdit($input: SubscriptionBillingCycleInput!) {
-    subscriptionBillingCycleContractEdit(billingCycleInput: $input, actor: CUSTOMER) {
-      draft { id }
-      userErrors { field message }
-    }
-  }
-`;
-
-const CYCLE_DRAFT_COMMIT_MUTATION = `#graphql
-  mutation PortalCycleDraftCommit($draftId: ID!) {
-    subscriptionBillingCycleContractDraftCommit(draftId: $draftId) {
-      contract { updatedAt }
-      userErrors { field message }
-    }
-  }
-`;
-
-/**
- * Adds a one-time (non-recurring) line to the customer's NEXT order only,
- * via a billing-cycle-scoped edit -- not the contract-level draft flow used
- * for frequency/flavor changes, which would apply to every future cycle.
- */
-export async function addPortalOneTimeItem({
-  shop,
-  customerShopifyId,
-  contractShopifyId,
-  productVariantId,
-  quantity,
-}: {
-  shop: string;
-  customerShopifyId: string;
-  contractShopifyId: string;
-  productVariantId: string;
-  quantity: number;
-}) {
-  await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
-
-  if (!Number.isInteger(quantity) || quantity < 1) {
-    throw new Error("Invalid quantity.");
-  }
-
-  const { admin } = await unauthenticated.admin(shop);
-  const nextCycle = await findNextUnbilledCycle(admin, contractShopifyId);
-  const country = await getContractCountry(admin, contractShopifyId);
-
-  const variantResponse = await admin.graphql(
-    `#graphql
-      query PortalOneTimeVariantPrice($id: ID!, $country: CountryCode) {
-        productVariant(id: $id) {
-          availableForSale
-          contextualPricing(context: { country: $country }) {
-            price { amount currencyCode }
-          }
-        }
-      }
-    `,
-    { variables: { id: productVariantId, country } },
-  );
-  const variantBody = (await variantResponse.json()) as {
-    data?: {
-      productVariant: {
-        availableForSale: boolean;
-        contextualPricing: { price: { amount: string; currencyCode: string } };
-      } | null;
-    };
-  };
-  const variant = variantBody.data?.productVariant;
-  if (!variant) {
-    throw new Error("That item is no longer available.");
-  }
-  if (!variant.availableForSale) {
-    throw new Error("That item is currently out of stock.");
-  }
-
-  const editResponse = await admin.graphql(CYCLE_EDIT_MUTATION, {
-    variables: { input: { contractId: contractShopifyId, selector: { index: nextCycle.index } } },
-  });
-  const editBody = (await editResponse.json()) as {
-    data?: {
-      subscriptionBillingCycleContractEdit: {
-        draft: { id: string } | null;
-        userErrors: { field: string[]; message: string }[];
-      };
-    };
-  };
-  const editErrors = editBody.data?.subscriptionBillingCycleContractEdit?.userErrors ?? [];
-  const draftId = editBody.data?.subscriptionBillingCycleContractEdit?.draft?.id;
-  if (editErrors.length || !draftId) {
-    throw new Error(`subscriptionBillingCycleContractEdit failed: ${JSON.stringify(editErrors)}`);
-  }
-
-  const lineAddResponse = await admin.graphql(
-    `#graphql
-      mutation PortalCycleLineAdd($draftId: ID!, $input: SubscriptionLineInput!) {
-        subscriptionDraftLineAdd(draftId: $draftId, input: $input) {
-          lineAdded { id }
-          userErrors { field message }
-        }
-      }
-    `,
-    {
-      variables: {
-        draftId,
-        input: { productVariantId, quantity, currentPrice: variant.contextualPricing.price.amount },
-      },
-    },
-  );
-  const lineAddBody = (await lineAddResponse.json()) as {
-    data?: {
-      subscriptionDraftLineAdd: {
-        lineAdded: { id: string } | null;
-        userErrors: { field: string[]; message: string }[];
-      };
-    };
-  };
-  const lineAddErrors = lineAddBody.data?.subscriptionDraftLineAdd?.userErrors ?? [];
-  if (lineAddErrors.length || !lineAddBody.data?.subscriptionDraftLineAdd?.lineAdded) {
-    throw new Error(`subscriptionDraftLineAdd failed: ${JSON.stringify(lineAddErrors)}`);
-  }
-
-  const commitResponse = await admin.graphql(CYCLE_DRAFT_COMMIT_MUTATION, { variables: { draftId } });
-  const commitBody = (await commitResponse.json()) as {
-    data?: {
-      subscriptionBillingCycleContractDraftCommit: {
-        contract: { updatedAt: string } | null;
-        userErrors: { field: string[]; message: string }[];
-      };
-    };
-  };
-  const commitErrors = commitBody.data?.subscriptionBillingCycleContractDraftCommit?.userErrors ?? [];
-  if (commitErrors.length || !commitBody.data?.subscriptionBillingCycleContractDraftCommit?.contract) {
-    throw new Error(
-      `subscriptionBillingCycleContractDraftCommit failed: ${JSON.stringify(commitErrors)}`,
-    );
-  }
 }
