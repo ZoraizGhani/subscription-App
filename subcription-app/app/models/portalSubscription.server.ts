@@ -166,7 +166,7 @@ const BILLING_CYCLES_QUERY = `#graphql
  * subscriptionBillingCycles directly for the first one that's still UNBILLED
  * and not skipped.
  */
-async function findNextUnbilledCycle(
+export async function findNextUnbilledCycle(
   admin: Awaited<ReturnType<typeof unauthenticated.admin>>["admin"],
   contractShopifyId: string,
 ) {
@@ -547,7 +547,7 @@ const DRAFT_COMMIT_MUTATION = `#graphql
   }
 `;
 
-type PortalAdmin = Awaited<ReturnType<typeof unauthenticated.admin>>["admin"];
+export type PortalAdmin = Awaited<ReturnType<typeof unauthenticated.admin>>["admin"];
 
 async function openPortalDraft(admin: PortalAdmin, contractShopifyId: string) {
   const response = await admin.graphql(CONTRACT_OPEN_DRAFT_MUTATION, {
