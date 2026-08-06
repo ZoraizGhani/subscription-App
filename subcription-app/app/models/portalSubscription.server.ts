@@ -166,16 +166,26 @@ const BILLING_CYCLES_QUERY = `#graphql
  * subscriptionBillingCycles directly for the first one that's still UNBILLED
  * and not skipped.
  */
+/**
+ * Shopify caps how far ahead it will compute cycles for a contract, and that
+ * cap depends on the contract's own interval (confirmed live: a 25-cycle
+ * window works for a 1-day-interval contract but fails with "Upcoming
+ * billing cycle selected past limit" for a longer-interval one where 25
+ * cycles would reach years into the future). There's no way to know the
+ * right window size up front, so shrink and retry on that specific error
+ * instead of assuming a fixed size is always safe.
+ */
 export async function findNextUnbilledCycle(
   admin: Awaited<ReturnType<typeof unauthenticated.admin>>["admin"],
   contractShopifyId: string,
 ) {
-  const WINDOW = 25;
   const MAX_INDEX = 500;
+  let windowSize = 25;
+  let start = 1;
 
-  for (let start = 1; start <= MAX_INDEX; start += WINDOW) {
+  while (start <= MAX_INDEX) {
     const response = await admin.graphql(BILLING_CYCLES_QUERY, {
-      variables: { id: contractShopifyId, startIndex: start, endIndex: start + WINDOW - 1 },
+      variables: { id: contractShopifyId, startIndex: start, endIndex: start + windowSize - 1 },
     });
     const body = (await response.json()) as {
       data?: {
@@ -189,8 +199,16 @@ export async function findNextUnbilledCycle(
             };
           }[];
         };
-      };
+      } | null;
+      errors?: { message: string }[];
     };
+
+    if (body.errors?.some((e) => e.message.includes("past limit"))) {
+      if (windowSize === 1) break;
+      windowSize = Math.max(1, Math.floor(windowSize / 2));
+      continue;
+    }
+
     const edges = body.data?.subscriptionBillingCycles?.edges ?? [];
     if (!edges.length) break;
 
@@ -198,6 +216,8 @@ export async function findNextUnbilledCycle(
     if (next) {
       return { index: next.node.cycleIndex, date: next.node.billingAttemptExpectedDate };
     }
+
+    start += edges.length;
   }
 
   throw new Error("Could not find an upcoming billing cycle for this subscription.");
