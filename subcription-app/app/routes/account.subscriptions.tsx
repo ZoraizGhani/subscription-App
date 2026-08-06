@@ -11,6 +11,7 @@ import {
   shipPortalOrderNow,
   updatePortalDeliveryFrequency,
   swapPortalProductVariant,
+  addPortalOneTimeItem,
   PortalOwnershipError,
 } from "../models/portalSubscription.server";
 import styles from "../styles/portal.module.css";
@@ -35,6 +36,16 @@ interface ManageOptions {
   }[];
   billingInterval: string;
   billingIntervalCount: number;
+}
+
+interface ProductSearchResult {
+  productId: string;
+  title: string;
+  imageUrl: string | null;
+  variantId: string;
+  price: string;
+  currencyCode: string;
+  availableForSale: boolean;
 }
 
 const CANCEL_REASONS = [
@@ -130,6 +141,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         contractShopifyId,
         lineId,
         productVariantId,
+      });
+      return { intent, success: true };
+    }
+
+    if (intent === "addOneTimeItem") {
+      const productVariantId = String(formData.get("productVariantId") ?? "");
+      const quantity = Number(formData.get("quantity") ?? 1);
+      await addPortalOneTimeItem({
+        shop: session.shop,
+        customerShopifyId: customer.customerShopifyId,
+        contractShopifyId,
+        productVariantId,
+        quantity,
       });
       return { intent, success: true };
     }
@@ -320,6 +344,157 @@ function ManageSubscriptionModal({
   );
 }
 
+function AddOneTimeItemModal({
+  sub,
+  onClose,
+}: {
+  sub: Subscription;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const productsFetcher = useFetcher<{ products: ProductSearchResult[] } | { error: string }>();
+  const saveFetcher = useFetcher<typeof action>();
+
+  if (productsFetcher.state === "idle" && !productsFetcher.data) {
+    productsFetcher.load(
+      `/account/subscriptions/products?contractId=${encodeURIComponent(sub.contractShopifyId)}&query=`,
+    );
+  }
+
+  const runSearch = (value: string) => {
+    setQuery(value);
+    productsFetcher.load(
+      `/account/subscriptions/products?contractId=${encodeURIComponent(sub.contractShopifyId)}&query=${encodeURIComponent(value)}`,
+    );
+  };
+
+  const products = productsFetcher.data && "products" in productsFetcher.data ? productsFetcher.data.products : [];
+  const loadError = productsFetcher.data && "error" in productsFetcher.data ? productsFetcher.data.error : null;
+  const selected = products.find((p) => p.variantId === selectedVariantId) ?? null;
+  const busy = saveFetcher.state !== "idle";
+  const added = saveFetcher.state === "idle" && saveFetcher.data && "success" in saveFetcher.data;
+
+  const submit = () => {
+    if (!selectedVariantId) return;
+    saveFetcher.submit(
+      {
+        intent: "addOneTimeItem",
+        contractShopifyId: sub.contractShopifyId,
+        productVariantId: selectedVariantId,
+        quantity: String(quantity),
+      },
+      { method: "post", action: "/account/subscriptions" },
+    );
+  };
+
+  return (
+    <div className={styles.modalOverlay}>
+      <div className={styles.modalCard} role="dialog" aria-modal="true">
+        <div className={styles.modalHeader}>
+          <span className={styles.eyebrow}>Add to next order</span>
+          <button type="button" className={styles.modalClose} onClick={onClose} aria-label="Close">
+            &times;
+          </button>
+        </div>
+        <h2 className={styles.heading} style={{ fontSize: "1.5rem", margin: "0.5rem 0 0.5rem" }}>
+          Add one-time item
+        </h2>
+        <p style={{ color: "#6b6558", fontSize: "0.875rem", margin: "0 0 1.25rem" }}>
+          Ships with your next order for {sub.productTitle} — no extra shipping fee.
+        </p>
+
+        {added && <div className={styles.success}>Added — it&apos;ll ship with your next order.</div>}
+        {saveFetcher.data && "error" in saveFetcher.data && (
+          <div className={styles.error}>{saveFetcher.data.error}</div>
+        )}
+        {loadError && <div className={styles.error}>{loadError}</div>}
+
+        {!added && (
+          <>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Search products</span>
+              <input
+                className={styles.input}
+                type="text"
+                value={query}
+                onChange={(e) => runSearch(e.target.value)}
+                placeholder="Search by product name"
+              />
+            </label>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
+              {products.length === 0 && productsFetcher.state === "idle" && !loadError && (
+                <div className={styles.emptyState}>No products found.</div>
+              )}
+              {products.map((product) => (
+                <label
+                  key={product.variantId}
+                  className={styles.reasonOption}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    opacity: product.availableForSale ? 1 : 0.5,
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                    <input
+                      type="radio"
+                      name="product"
+                      value={product.variantId}
+                      checked={selectedVariantId === product.variantId}
+                      disabled={!product.availableForSale}
+                      onChange={() => setSelectedVariantId(product.variantId)}
+                    />
+                    {product.imageUrl && (
+                      <img
+                        src={product.imageUrl}
+                        alt=""
+                        style={{ width: "2.5rem", height: "2.5rem", objectFit: "cover", borderRadius: "0.375rem" }}
+                      />
+                    )}
+                    <span>
+                      {product.title}
+                      {!product.availableForSale && " (out of stock)"}
+                    </span>
+                  </span>
+                  <span>{formatMoney(Number(product.price), product.currencyCode)}</span>
+                </label>
+              ))}
+            </div>
+
+            {selected && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "1rem" }}>
+                <span className={styles.fieldLabel}>Quantity</span>
+                <input
+                  className={styles.input}
+                  style={{ width: "5rem" }}
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                />
+              </div>
+            )}
+
+            <button
+              type="button"
+              className={styles.pillDark}
+              style={{ marginTop: "1.25rem", width: "100%" }}
+              disabled={!selectedVariantId || busy}
+              onClick={submit}
+            >
+              {busy ? "Adding..." : "Add to next shipment"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SubscriptionCard({
   sub,
   onCancel,
@@ -331,6 +506,7 @@ function SubscriptionCard({
   const busy = fetcher.state !== "idle";
   const busyIntent = busy ? fetcher.formData?.get("intent") : null;
   const [manageOpen, setManageOpen] = useState(false);
+  const [addItemOpen, setAddItemOpen] = useState(false);
 
   const runAction = (intent: "skip" | "shipNow") => {
     fetcher.submit({ intent, contractShopifyId: sub.contractShopifyId }, { method: "post" });
@@ -406,7 +582,7 @@ function SubscriptionCard({
           <button type="button" className={styles.pillDark} onClick={() => setManageOpen(true)}>
             Manage Subscription
           </button>
-          <button type="button" className={styles.pillNeutral} disabled title="Coming soon">
+          <button type="button" className={styles.pillNeutral} onClick={() => setAddItemOpen(true)}>
             + Add One-time Item
           </button>
           <button
@@ -420,6 +596,7 @@ function SubscriptionCard({
       )}
 
       {manageOpen && <ManageSubscriptionModal sub={sub} onClose={() => setManageOpen(false)} />}
+      {addItemOpen && <AddOneTimeItemModal sub={sub} onClose={() => setAddItemOpen(false)} />}
     </div>
   );
 }
