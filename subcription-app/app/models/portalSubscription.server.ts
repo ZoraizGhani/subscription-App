@@ -932,7 +932,7 @@ const CYCLE_EDIT_MUTATION = `#graphql
 const CYCLE_DRAFT_COMMIT_MUTATION = `#graphql
   mutation PortalCycleDraftCommit($draftId: ID!) {
     subscriptionBillingCycleContractDraftCommit(draftId: $draftId) {
-      contract { id }
+      contract { updatedAt }
       userErrors { field message }
     }
   }
@@ -1045,7 +1045,7 @@ export async function addPortalOneTimeItem({
   const commitBody = (await commitResponse.json()) as {
     data?: {
       subscriptionBillingCycleContractDraftCommit: {
-        contract: { id: string } | null;
+        contract: { updatedAt: string } | null;
         userErrors: { field: string[]; message: string }[];
       };
     };
