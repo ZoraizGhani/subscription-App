@@ -165,15 +165,14 @@ const BILLING_CYCLES_QUERY = `#graphql
  * trustworthy way to find the real next actionable cycle is to scan
  * subscriptionBillingCycles directly for the first one that's still UNBILLED
  * and not skipped.
- */
-/**
- * Shopify caps how far ahead it will compute cycles for a contract, and that
- * cap depends on the contract's own interval (confirmed live: a 25-cycle
+ *
+ * Shopify also caps how far ahead it will compute cycles for a contract, and
+ * that cap depends on the contract's own interval (confirmed live: a 25-cycle
  * window works for a 1-day-interval contract but fails with "Upcoming
  * billing cycle selected past limit" for a longer-interval one where 25
- * cycles would reach years into the future). There's no way to know the
- * right window size up front, so shrink and retry on that specific error
- * instead of assuming a fixed size is always safe.
+ * cycles would reach years into the future). admin.graphql() throws on that
+ * error rather than returning it in the response body, so the retry has to
+ * wrap the call itself, not inspect the parsed result.
  */
 export async function findNextUnbilledCycle(
   admin: Awaited<ReturnType<typeof unauthenticated.admin>>["admin"],
@@ -184,10 +183,7 @@ export async function findNextUnbilledCycle(
   let start = 1;
 
   while (start <= MAX_INDEX) {
-    const response = await admin.graphql(BILLING_CYCLES_QUERY, {
-      variables: { id: contractShopifyId, startIndex: start, endIndex: start + windowSize - 1 },
-    });
-    const body = (await response.json()) as {
+    let body: {
       data?: {
         subscriptionBillingCycles: {
           edges: {
@@ -202,6 +198,20 @@ export async function findNextUnbilledCycle(
       } | null;
       errors?: { message: string }[];
     };
+
+    try {
+      const response = await admin.graphql(BILLING_CYCLES_QUERY, {
+        variables: { id: contractShopifyId, startIndex: start, endIndex: start + windowSize - 1 },
+      });
+      body = await response.json();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("past limit") && windowSize > 1) {
+        windowSize = Math.max(1, Math.floor(windowSize / 2));
+        continue;
+      }
+      throw error;
+    }
 
     if (body.errors?.some((e) => e.message.includes("past limit"))) {
       if (windowSize === 1) break;
