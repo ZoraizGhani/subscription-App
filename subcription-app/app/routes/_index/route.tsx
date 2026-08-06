@@ -15,22 +15,46 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return { showForm: Boolean(login) };
 };
 
+const FEATURES = [
+  {
+    title: "Flexible selling plans",
+    detail:
+      "Set up day, week, month, or year intervals with an optional discount, right from the Selling Plans screen — no theme code required.",
+  },
+  {
+    title: "Branded customer portal",
+    detail:
+      "Subscribers sign in to their own account to view orders, skip or reschedule a delivery, swap products, or cancel — without contacting support.",
+  },
+  {
+    title: "Billing that stays in sync",
+    detail:
+      "Every renewal, skipped cycle, and failed payment is tracked automatically, so your Dashboard and Subscriptions screens always match what Shopify billed.",
+  },
+];
+
 export default function App() {
   const { showForm } = useLoaderData<typeof loader>();
 
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <span className={styles.eyebrow}>Subscription App</span>
+        <h1 className={styles.heading}>Recurring orders, run your way</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Selling plans, automatic billing sync, and a self-service customer
+          portal for your subscribers — all in one private app.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
             <label className={styles.label}>
-              <span>Shop domain</span>
-              <input className={styles.input} type="text" name="shop" />
-              <span>e.g: my-shop-domain.myshopify.com</span>
+              <span className={styles.labelText}>Shop domain</span>
+              <input
+                className={styles.input}
+                type="text"
+                name="shop"
+                placeholder="my-shop-domain.myshopify.com"
+              />
             </label>
             <button className={styles.button} type="submit">
               Log in
@@ -38,18 +62,12 @@ export default function App() {
           </Form>
         )}
         <ul className={styles.list}>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
+          {FEATURES.map((feature) => (
+            <li key={feature.title}>
+              <strong>{feature.title}</strong>
+              <p>{feature.detail}</p>
+            </li>
+          ))}
         </ul>
       </div>
     </div>
