@@ -794,25 +794,23 @@ async function getContractCountry(admin: PortalAdmin, contractShopifyId: string)
   return body.data?.subscriptionContract?.customer?.defaultAddress?.countryCodeV2 ?? null;
 }
 
-const PRODUCT_SEARCH_QUERY = `#graphql
-  query PortalProductSearch($query: String, $country: CountryCode) {
-    products(first: 10, query: $query) {
-      edges {
-        node {
-          id
-          title
-          featuredMedia {
-            preview { image { url } }
-          }
-          variants(first: 25) {
-            edges {
-              node {
-                id
-                title
-                availableForSale
-                contextualPricing(context: { country: $country }) {
-                  price { amount currencyCode }
-                }
+const SELLING_PLAN_PRODUCTS_QUERY = `#graphql
+  query PortalSellingPlanProducts($ids: [ID!]!, $country: CountryCode) {
+    nodes(ids: $ids) {
+      ... on Product {
+        id
+        title
+        featuredMedia {
+          preview { image { url } }
+        }
+        variants(first: 25) {
+          edges {
+            node {
+              id
+              title
+              availableForSale
+              contextualPricing(context: { country: $country }) {
+                price { amount currencyCode }
               }
             }
           }
@@ -833,11 +831,13 @@ const CONTRACT_LINE_VARIANTS_QUERY = `#graphql
 `;
 
 /**
- * One-time add-on candidates for the "Add one-time item" modal. Every
- * variant of a matching product is offered (not just the default one), and
- * any variant the customer is already subscribed to on this contract is
- * flagged so the UI can disable it -- adding a one-time purchase of the
- * exact thing already recurring doesn't make sense.
+ * One-time add-on candidates for the "Add one-time item" modal. Scoped to
+ * only the products this app has an active selling plan group for (per the
+ * merchant's own Selling Plans screen) -- not the whole store catalog, since
+ * showing unrelated products (a laptop, a t-shirt with no subscription
+ * offering) as add-ons to a subscription doesn't make sense. Every variant
+ * of a matching product is offered, and any variant the customer is already
+ * subscribed to on this contract is flagged so the UI can disable it.
  */
 export async function searchPortalProducts({
   shop,
@@ -852,35 +852,43 @@ export async function searchPortalProducts({
 }) {
   await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
 
+  const groups = await db.sellingPlanGroup.findMany({
+    where: { shop },
+    select: { productIds: true },
+  });
+  const productIds = Array.from(
+    new Set(groups.flatMap((g) => JSON.parse(g.productIds) as string[])),
+  );
+
+  if (!productIds.length) {
+    return [];
+  }
+
   const { admin } = await unauthenticated.admin(shop);
   const country = await getContractCountry(admin, contractShopifyId);
 
   const [productsResponse, lineResponse] = await Promise.all([
-    admin.graphql(PRODUCT_SEARCH_QUERY, { variables: { query: query.trim() || null, country } }),
+    admin.graphql(SELLING_PLAN_PRODUCTS_QUERY, { variables: { ids: productIds, country } }),
     admin.graphql(CONTRACT_LINE_VARIANTS_QUERY, { variables: { id: contractShopifyId } }),
   ]);
 
   const body = (await productsResponse.json()) as {
     data?: {
-      products: {
-        edges: {
-          node: {
-            id: string;
-            title: string;
-            featuredMedia: { preview: { image: { url: string } | null } | null } | null;
-            variants: {
-              edges: {
-                node: {
-                  id: string;
-                  title: string;
-                  availableForSale: boolean;
-                  contextualPricing: { price: { amount: string; currencyCode: string } };
-                };
-              }[];
+      nodes: ({
+        id: string;
+        title: string;
+        featuredMedia: { preview: { image: { url: string } | null } | null } | null;
+        variants: {
+          edges: {
+            node: {
+              id: string;
+              title: string;
+              availableForSale: boolean;
+              contextualPricing: { price: { amount: string; currencyCode: string } };
             };
-          };
-        }[];
-      };
+          }[];
+        };
+      } | null)[];
     };
   };
   const lineBody = (await lineResponse.json()) as {
@@ -892,19 +900,24 @@ export async function searchPortalProducts({
       .filter((id): id is string => id != null),
   );
 
-  return (body.data?.products.edges ?? []).flatMap((e) =>
-    e.node.variants.edges.map((v) => ({
-      productId: e.node.id,
-      productTitle: e.node.title,
-      variantTitle: v.node.title === "Default Title" ? null : v.node.title,
-      imageUrl: e.node.featuredMedia?.preview?.image?.url ?? null,
-      variantId: v.node.id,
-      price: v.node.contextualPricing.price.amount,
-      currencyCode: v.node.contextualPricing.price.currencyCode,
-      availableForSale: v.node.availableForSale,
-      alreadySubscribed: subscribedVariantIds.has(v.node.id),
-    })),
-  );
+  const trimmedQuery = query.trim().toLowerCase();
+
+  return (body.data?.nodes ?? [])
+    .filter((node): node is NonNullable<typeof node> => node != null)
+    .filter((node) => !trimmedQuery || node.title.toLowerCase().includes(trimmedQuery))
+    .flatMap((node) =>
+      node.variants.edges.map((v) => ({
+        productId: node.id,
+        productTitle: node.title,
+        variantTitle: v.node.title === "Default Title" ? null : v.node.title,
+        imageUrl: node.featuredMedia?.preview?.image?.url ?? null,
+        variantId: v.node.id,
+        price: v.node.contextualPricing.price.amount,
+        currencyCode: v.node.contextualPricing.price.currencyCode,
+        availableForSale: v.node.availableForSale,
+        alreadySubscribed: subscribedVariantIds.has(v.node.id),
+      })),
+    );
 }
 
 const CYCLE_EDIT_MUTATION = `#graphql
