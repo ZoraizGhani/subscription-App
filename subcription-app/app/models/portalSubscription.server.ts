@@ -489,8 +489,19 @@ export async function cancelPortalSubscription({
 const MANAGE_OPTIONS_QUERY = `#graphql
   query PortalManageOptions($id: ID!) {
     subscriptionContract(id: $id) {
+      nextBillingDate
       billingPolicy { interval intervalCount }
       customer { defaultAddress { countryCodeV2 } }
+      customerPaymentMethod {
+        instrument {
+          ... on CustomerCreditCard { brand lastDigits }
+        }
+      }
+      deliveryMethod {
+        ... on SubscriptionDeliveryMethodShipping {
+          address { address1 city provinceCode countryCodeV2 }
+        }
+      }
       lines(first: 1) {
         nodes { id productId variantId variantTitle }
       }
@@ -543,8 +554,15 @@ export async function getPortalManageOptions({
   const contractBody = (await contractResponse.json()) as {
     data?: {
       subscriptionContract: {
+        nextBillingDate: string | null;
         billingPolicy: { interval: string; intervalCount: number } | null;
         customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
+        customerPaymentMethod: {
+          instrument: { brand?: string; lastDigits?: string } | null;
+        } | null;
+        deliveryMethod: {
+          address?: { address1: string; city: string; provinceCode: string | null; countryCodeV2: string };
+        } | null;
         lines: { nodes: { id: string; productId: string | null; variantId: string | null }[] };
       } | null;
     };
@@ -555,6 +573,19 @@ export async function getPortalManageOptions({
     throw new Error("This subscription has no product line to manage.");
   }
   const country = contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
+
+  const cardInstrument = contract?.customerPaymentMethod?.instrument;
+  const paymentMethodDisplay =
+    cardInstrument?.brand && cardInstrument.lastDigits
+      ? `${cardInstrument.brand} •••• ${cardInstrument.lastDigits}`
+      : null;
+
+  const address = contract?.deliveryMethod?.address;
+  const shippingAddressDisplay = address
+    ? [address.address1, address.city, address.provinceCode, address.countryCodeV2]
+        .filter(Boolean)
+        .join(", ")
+    : null;
 
   const productResponse = await admin.graphql(PRODUCT_VARIANTS_QUERY, {
     variables: { id: line.productId, country },
@@ -591,6 +622,9 @@ export async function getPortalManageOptions({
     })),
     billingInterval: contract?.billingPolicy?.interval ?? "DAY",
     billingIntervalCount: contract?.billingPolicy?.intervalCount ?? 1,
+    nextBillingDate: contract?.nextBillingDate ?? null,
+    paymentMethodDisplay,
+    shippingAddressDisplay,
   };
 }
 

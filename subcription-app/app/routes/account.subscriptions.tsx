@@ -35,6 +35,9 @@ interface ManageOptions {
   }[];
   billingInterval: string;
   billingIntervalCount: number;
+  nextBillingDate: string | null;
+  paymentMethodDisplay: string | null;
+  shippingAddressDisplay: string | null;
 }
 
 const CANCEL_REASONS = [
@@ -236,6 +239,27 @@ function ManageSubscriptionModal({
               <div className={styles.error}>{saveFetcher.data.error}</div>
             )}
 
+            <div className={styles.metaGrid}>
+              <div>
+                <span className={styles.metaLabel}>Next delivery date</span>
+                <div className={styles.metaValue}>{formatDate(options.nextBillingDate)}</div>
+              </div>
+              <div>
+                <span className={styles.metaLabel}>Payment method</span>
+                <div className={styles.metaValue}>{options.paymentMethodDisplay ?? "—"}</div>
+              </div>
+              <div>
+                <span className={styles.metaLabel}>Shipping address</span>
+                <div className={styles.metaValue}>{options.shippingAddressDisplay ?? "—"}</div>
+              </div>
+            </div>
+            <p style={{ color: "#8a8478", fontSize: "0.8125rem", margin: "-0.5rem 0 1.25rem" }}>
+              To change your payment method or shipping address, contact support — that&apos;s not
+              self-service here yet.
+            </p>
+
+            <hr className={styles.divider} style={{ margin: "0 0 1.25rem" }} />
+
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Delivery frequency</span>
               <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -271,7 +295,7 @@ function ManageSubscriptionModal({
 
             {options.variants.length > 1 && (
               <div className={styles.field}>
-                <span className={styles.fieldLabel}>Select option</span>
+                <span className={styles.fieldLabel}>Select flavor(s)</span>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   {options.variants.map((variant) => (
                     <label
