@@ -36,6 +36,7 @@ const SUBSCRIPTION_CONTRACT_QUERY = `#graphql
           title
           variantTitle
           variantId
+          productId
           quantity
           sellingPlanId
           sellingPlanName
@@ -54,6 +55,7 @@ interface ContractLine {
   title: string;
   variantTitle: string | null;
   variantId: string | null;
+  productId: string | null;
   quantity: number;
   sellingPlanId: string | null;
   sellingPlanName: string | null;
