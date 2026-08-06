@@ -40,12 +40,14 @@ interface ManageOptions {
 
 interface ProductSearchResult {
   productId: string;
-  title: string;
+  productTitle: string;
+  variantTitle: string | null;
   imageUrl: string | null;
   variantId: string;
   price: string;
   currencyCode: string;
   availableForSale: boolean;
+  alreadySubscribed: boolean;
 }
 
 const CANCEL_REASONS = [
@@ -428,41 +430,47 @@ function AddOneTimeItemModal({
               {products.length === 0 && productsFetcher.state === "idle" && !loadError && (
                 <div className={styles.emptyState}>No products found.</div>
               )}
-              {products.map((product) => (
-                <label
-                  key={product.variantId}
-                  className={styles.reasonOption}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    opacity: product.availableForSale ? 1 : 0.5,
-                  }}
-                >
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                    <input
-                      type="radio"
-                      name="product"
-                      value={product.variantId}
-                      checked={selectedVariantId === product.variantId}
-                      disabled={!product.availableForSale}
-                      onChange={() => setSelectedVariantId(product.variantId)}
-                    />
-                    {product.imageUrl && (
-                      <img
-                        src={product.imageUrl}
-                        alt=""
-                        style={{ width: "2.5rem", height: "2.5rem", objectFit: "cover", borderRadius: "0.375rem" }}
+              {products.map((product) => {
+                const disabled = !product.availableForSale || product.alreadySubscribed;
+                return (
+                  <label
+                    key={product.variantId}
+                    className={styles.reasonOption}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      opacity: disabled ? 0.5 : 1,
+                    }}
+                  >
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      <input
+                        type="radio"
+                        name="product"
+                        value={product.variantId}
+                        checked={selectedVariantId === product.variantId}
+                        disabled={disabled}
+                        onChange={() => setSelectedVariantId(product.variantId)}
                       />
-                    )}
-                    <span>
-                      {product.title}
-                      {!product.availableForSale && " (out of stock)"}
+                      {product.imageUrl && (
+                        <img
+                          src={product.imageUrl}
+                          alt=""
+                          style={{ width: "2.5rem", height: "2.5rem", objectFit: "cover", borderRadius: "0.375rem" }}
+                        />
+                      )}
+                      <span>
+                        {product.productTitle}
+                        {product.variantTitle && ` — ${product.variantTitle}`}
+                        {product.alreadySubscribed
+                          ? " (already in this subscription)"
+                          : !product.availableForSale && " (out of stock)"}
+                      </span>
                     </span>
-                  </span>
-                  <span>{formatMoney(Number(product.price), product.currencyCode)}</span>
-                </label>
-              ))}
+                    <span>{formatMoney(Number(product.price), product.currencyCode)}</span>
+                  </label>
+                );
+              })}
             </div>
 
             {selected && (

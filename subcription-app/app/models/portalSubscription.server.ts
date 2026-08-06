@@ -804,10 +804,11 @@ const PRODUCT_SEARCH_QUERY = `#graphql
           featuredMedia {
             preview { image { url } }
           }
-          variants(first: 1) {
+          variants(first: 25) {
             edges {
               node {
                 id
+                title
                 availableForSale
                 contextualPricing(context: { country: $country }) {
                   price { amount currencyCode }
@@ -821,10 +822,22 @@ const PRODUCT_SEARCH_QUERY = `#graphql
   }
 `;
 
+const CONTRACT_LINE_VARIANTS_QUERY = `#graphql
+  query PortalContractLineVariants($id: ID!) {
+    subscriptionContract(id: $id) {
+      lines(first: 10) {
+        nodes { variantId }
+      }
+    }
+  }
+`;
+
 /**
- * One-time add-on candidates for the "Add one-time item" modal. Only the
- * product's default variant is offered -- picking a specific variant isn't
- * exposed in this flow, matching the simple add-on list in the reference design.
+ * One-time add-on candidates for the "Add one-time item" modal. Every
+ * variant of a matching product is offered (not just the default one), and
+ * any variant the customer is already subscribed to on this contract is
+ * flagged so the UI can disable it -- adding a one-time purchase of the
+ * exact thing already recurring doesn't make sense.
  */
 export async function searchPortalProducts({
   shop,
@@ -842,10 +855,12 @@ export async function searchPortalProducts({
   const { admin } = await unauthenticated.admin(shop);
   const country = await getContractCountry(admin, contractShopifyId);
 
-  const response = await admin.graphql(PRODUCT_SEARCH_QUERY, {
-    variables: { query: query.trim() || null, country },
-  });
-  const body = (await response.json()) as {
+  const [productsResponse, lineResponse] = await Promise.all([
+    admin.graphql(PRODUCT_SEARCH_QUERY, { variables: { query: query.trim() || null, country } }),
+    admin.graphql(CONTRACT_LINE_VARIANTS_QUERY, { variables: { id: contractShopifyId } }),
+  ]);
+
+  const body = (await productsResponse.json()) as {
     data?: {
       products: {
         edges: {
@@ -857,6 +872,7 @@ export async function searchPortalProducts({
               edges: {
                 node: {
                   id: string;
+                  title: string;
                   availableForSale: boolean;
                   contextualPricing: { price: { amount: string; currencyCode: string } };
                 };
@@ -867,22 +883,28 @@ export async function searchPortalProducts({
       };
     };
   };
+  const lineBody = (await lineResponse.json()) as {
+    data?: { subscriptionContract: { lines: { nodes: { variantId: string | null }[] } } | null };
+  };
+  const subscribedVariantIds = new Set(
+    (lineBody.data?.subscriptionContract?.lines.nodes ?? [])
+      .map((n) => n.variantId)
+      .filter((id): id is string => id != null),
+  );
 
-  return (body.data?.products.edges ?? [])
-    .map((e) => {
-      const variant = e.node.variants.edges[0]?.node;
-      if (!variant) return null;
-      return {
-        productId: e.node.id,
-        title: e.node.title,
-        imageUrl: e.node.featuredMedia?.preview?.image?.url ?? null,
-        variantId: variant.id,
-        price: variant.contextualPricing.price.amount,
-        currencyCode: variant.contextualPricing.price.currencyCode,
-        availableForSale: variant.availableForSale,
-      };
-    })
-    .filter((p): p is NonNullable<typeof p> => p !== null);
+  return (body.data?.products.edges ?? []).flatMap((e) =>
+    e.node.variants.edges.map((v) => ({
+      productId: e.node.id,
+      productTitle: e.node.title,
+      variantTitle: v.node.title === "Default Title" ? null : v.node.title,
+      imageUrl: e.node.featuredMedia?.preview?.image?.url ?? null,
+      variantId: v.node.id,
+      price: v.node.contextualPricing.price.amount,
+      currencyCode: v.node.contextualPricing.price.currencyCode,
+      availableForSale: v.node.availableForSale,
+      alreadySubscribed: subscribedVariantIds.has(v.node.id),
+    })),
+  );
 }
 
 const CYCLE_EDIT_MUTATION = `#graphql
