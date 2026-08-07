@@ -172,7 +172,9 @@ export interface CustomerDetail {
 const CUSTOMER_PROFILE_QUERY = `#graphql
   query AdminCustomerProfile($id: ID!) {
     customer(id: $id) {
-      phone
+      defaultPhoneNumber {
+        phoneNumber
+      }
       tags
       note
       defaultAddress {
@@ -197,7 +199,7 @@ const CUSTOMER_PROFILE_QUERY = `#graphql
 `;
 
 interface RawCustomerProfile {
-  phone: string | null;
+  defaultPhoneNumber: { phoneNumber: string | null } | null;
   tags: string[];
   note: string | null;
   defaultAddress: {
@@ -270,7 +272,7 @@ export async function getCustomerDetail({
     const body = (await response.json()) as { data?: { customer: RawCustomerProfile | null } };
     const customer = body.data?.customer;
     if (customer) {
-      phone = customer.phone;
+      phone = customer.defaultPhoneNumber?.phoneNumber ?? null;
       tags = customer.tags ?? [];
       note = customer.note;
       const address = customer.defaultAddress;

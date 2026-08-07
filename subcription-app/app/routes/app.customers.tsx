@@ -91,7 +91,7 @@ export default function Customers() {
                 return (
                   <s-table-row key={customer.customerShopifyId} clickDelegate={linkId}>
                     <s-table-cell>
-                      <s-link id={linkId} href={`/app/customers/${numericId}`}>
+                      <s-link id={linkId} href={`/app/customers/${numericId}`} tone="neutral">
                         {customer.name}
                       </s-link>
                     </s-table-cell>
