@@ -85,15 +85,23 @@ export default function Customers() {
               <s-table-header>Since</s-table-header>
             </s-table-header-row>
             <s-table-body>
-              {customers.map((customer) => (
-                <s-table-row key={customer.customerShopifyId}>
-                  <s-table-cell>{customer.name}</s-table-cell>
-                  <s-table-cell>{customer.email}</s-table-cell>
-                  <s-table-cell>{customer.subscriptionCount}</s-table-cell>
-                  <s-table-cell>{formatMoney(customer.lifetimeValue, currencyCode)}</s-table-cell>
-                  <s-table-cell>{formatDate(customer.since)}</s-table-cell>
-                </s-table-row>
-              ))}
+              {customers.map((customer) => {
+                const numericId = customer.customerShopifyId.split("/").pop();
+                const linkId = `customer-link-${numericId}`;
+                return (
+                  <s-table-row key={customer.customerShopifyId} clickDelegate={linkId}>
+                    <s-table-cell>
+                      <s-link id={linkId} href={`/app/customers/${numericId}`}>
+                        {customer.name}
+                      </s-link>
+                    </s-table-cell>
+                    <s-table-cell>{customer.email}</s-table-cell>
+                    <s-table-cell>{customer.subscriptionCount}</s-table-cell>
+                    <s-table-cell>{formatMoney(customer.lifetimeValue, currencyCode)}</s-table-cell>
+                    <s-table-cell>{formatDate(customer.since)}</s-table-cell>
+                  </s-table-row>
+                );
+              })}
             </s-table-body>
           </s-table>
         )}

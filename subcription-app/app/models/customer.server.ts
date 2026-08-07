@@ -1,3 +1,5 @@
+import type { AdminGraphqlClient } from "@shopify/shopify-app-react-router/server";
+
 import db from "../db.server";
 
 export interface SubscribedCustomer {
@@ -105,4 +107,235 @@ export async function listSubscribedCustomers({
 
   results.sort((a, b) => b.since.getTime() - a.since.getTime());
   return results;
+}
+
+const INTERVAL_SHORT: Record<string, string> = { DAY: "d", WEEK: "w", MONTH: "mo", YEAR: "yr" };
+
+function firstLineTitle(linesJson: string | null): string {
+  if (!linesJson) return "Subscription";
+  try {
+    const lines = JSON.parse(linesJson) as { title?: string }[];
+    return lines[0]?.title ?? "Subscription";
+  } catch {
+    return "Subscription";
+  }
+}
+
+export interface CustomerSubscriptionRow {
+  contractShopifyId: string;
+  contractNumber: string;
+  productTitle: string;
+  status: string;
+  frequencyLabel: string;
+  nextBillingDate: Date | null;
+  totalAmount: number | null;
+  currencyCode: string;
+  cancellationReason: string | null;
+  createdAt: Date;
+}
+
+export interface CustomerBillingAttemptRow {
+  id: string;
+  status: string;
+  amount: number | null;
+  currencyCode: string | null;
+  errorMessage: string | null;
+  attemptedAt: Date;
+}
+
+export interface CustomerOrderRow {
+  orderShopifyId: string;
+  orderName: string | null;
+  processedAt: Date | null;
+  totalPrice: number | null;
+  currencyCode: string | null;
+  productTitle: string | null;
+}
+
+export interface CustomerDetail {
+  customerShopifyId: string;
+  name: string;
+  email: string;
+  since: Date;
+  lifetimeValue: number;
+  subscriptionCount: number;
+  phone: string | null;
+  tags: string[];
+  note: string | null;
+  defaultAddress: string | null;
+  paymentMethods: string[];
+  subscriptions: CustomerSubscriptionRow[];
+  billingHistory: CustomerBillingAttemptRow[];
+  orders: CustomerOrderRow[];
+}
+
+const CUSTOMER_PROFILE_QUERY = `#graphql
+  query AdminCustomerProfile($id: ID!) {
+    customer(id: $id) {
+      phone
+      tags
+      note
+      defaultAddress {
+        address1
+        address2
+        city
+        provinceCode
+        zip
+        countryCodeV2
+      }
+      paymentMethods(first: 5, showRevoked: false) {
+        edges {
+          node {
+            instrument {
+              ... on CustomerCreditCard { brand lastDigits }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+interface RawCustomerProfile {
+  phone: string | null;
+  tags: string[];
+  note: string | null;
+  defaultAddress: {
+    address1: string | null;
+    address2: string | null;
+    city: string | null;
+    provinceCode: string | null;
+    zip: string | null;
+    countryCodeV2: string | null;
+  } | null;
+  paymentMethods: {
+    edges: { node: { instrument: { brand?: string; lastDigits?: string } | null } }[];
+  };
+}
+
+/**
+ * Everything the admin Customer detail screen needs for one subscriber:
+ * their contracts, recent recurring orders, and billing attempts from our
+ * mirrors, plus profile fields (address, tags, note, payment methods) read
+ * live from Shopify since those aren't mirrored anywhere. Returns null when
+ * this shop has no contract for that customer -- the caller should 404.
+ */
+export async function getCustomerDetail({
+  shop,
+  customerShopifyId,
+  graphql,
+}: {
+  shop: string;
+  customerShopifyId: string;
+  graphql: AdminGraphqlClient;
+}): Promise<CustomerDetail | null> {
+  const contracts = await db.subscriptionContract.findMany({
+    where: { shop, customerShopifyId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (contracts.length === 0) {
+    return null;
+  }
+
+  const contractIds = contracts.map((c) => c.shopifyId);
+
+  const [orders, billingAttempts] = await Promise.all([
+    db.subscriptionOrder.findMany({
+      where: { shop, contractShopifyId: { in: contractIds } },
+      orderBy: { processedAt: "desc" },
+      take: 20,
+    }),
+    db.billingAttempt.findMany({
+      where: { shop, contractShopifyId: { in: contractIds } },
+      orderBy: { attemptedAt: "desc" },
+      take: 20,
+    }),
+  ]);
+
+  const lifetimeValue = orders.reduce((sum, order) => sum + (order.totalPrice ?? 0), 0);
+  const since = contracts.reduce(
+    (earliest, c) => (c.createdAt < earliest ? c.createdAt : earliest),
+    contracts[0].createdAt,
+  );
+
+  let phone: string | null = null;
+  let tags: string[] = [];
+  let note: string | null = null;
+  let defaultAddress: string | null = null;
+  let paymentMethods: string[] = [];
+
+  try {
+    const response = await graphql(CUSTOMER_PROFILE_QUERY, { variables: { id: customerShopifyId } });
+    const body = (await response.json()) as { data?: { customer: RawCustomerProfile | null } };
+    const customer = body.data?.customer;
+    if (customer) {
+      phone = customer.phone;
+      tags = customer.tags ?? [];
+      note = customer.note;
+      const address = customer.defaultAddress;
+      defaultAddress = address
+        ? [address.address1, address.address2, address.city, address.provinceCode, address.zip, address.countryCodeV2]
+            .filter(Boolean)
+            .join(", ")
+        : null;
+      paymentMethods = (customer.paymentMethods.edges ?? [])
+        .map((edge) => edge.node.instrument)
+        .filter((instrument): instrument is { brand?: string; lastDigits?: string } => instrument != null)
+        .map((instrument) =>
+          instrument.brand && instrument.lastDigits ? `${instrument.brand} •••• ${instrument.lastDigits}` : "On file",
+        );
+    }
+  } catch {
+    // Live profile fields are a convenience -- if the customer was deleted
+    // from Shopify or the call fails, the mirrored subscription data below
+    // still renders fine without them.
+  }
+
+  const productTitleByContract = new Map(contracts.map((c) => [c.shopifyId, firstLineTitle(c.linesJson)]));
+
+  return {
+    customerShopifyId,
+    name: contracts[0].customerName ?? "Unknown",
+    email: contracts[0].customerEmail ?? "",
+    since,
+    lifetimeValue,
+    subscriptionCount: contracts.length,
+    phone,
+    tags,
+    note,
+    defaultAddress,
+    paymentMethods,
+    subscriptions: contracts.map((c) => ({
+      contractShopifyId: c.shopifyId,
+      contractNumber: `#${c.shopifyId.split("/").pop()}`,
+      productTitle: firstLineTitle(c.linesJson),
+      status: c.status,
+      frequencyLabel:
+        c.billingIntervalCount != null
+          ? `Every ${c.billingIntervalCount}${INTERVAL_SHORT[c.billingInterval ?? ""] ?? ""}`
+          : "--",
+      nextBillingDate: c.nextBillingDate,
+      totalAmount: c.totalAmount,
+      currencyCode: c.currencyCode,
+      cancellationReason: c.cancellationReason,
+      createdAt: c.createdAt,
+    })),
+    billingHistory: billingAttempts.map((attempt) => ({
+      id: attempt.id,
+      status: attempt.status,
+      amount: attempt.amount,
+      currencyCode: attempt.currencyCode,
+      errorMessage: attempt.errorMessage,
+      attemptedAt: attempt.attemptedAt,
+    })),
+    orders: orders.map((order) => ({
+      orderShopifyId: order.orderShopifyId,
+      orderName: order.orderName,
+      processedAt: order.processedAt,
+      totalPrice: order.totalPrice,
+      currencyCode: order.currencyCode,
+      productTitle: order.contractShopifyId ? productTitleByContract.get(order.contractShopifyId) ?? null : null,
+    })),
+  };
 }
