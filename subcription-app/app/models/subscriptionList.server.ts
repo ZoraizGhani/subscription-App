@@ -110,3 +110,117 @@ export async function listSubscriptionContracts({
 
   return { rows, counts };
 }
+
+export interface SubscriptionLineItem {
+  title: string;
+  variantTitle: string | null;
+  quantity: number;
+}
+
+export interface SubscriptionBillingAttemptRow {
+  id: string;
+  status: string;
+  amount: number | null;
+  currencyCode: string | null;
+  errorMessage: string | null;
+  attemptedAt: Date;
+}
+
+export interface SubscriptionOrderRow {
+  orderShopifyId: string;
+  orderName: string | null;
+  processedAt: Date | null;
+  totalPrice: number | null;
+  currencyCode: string | null;
+}
+
+export interface SubscriptionContractDetail {
+  contractShopifyId: string;
+  contractNumber: string;
+  status: string;
+  customerShopifyId: string | null;
+  customerName: string;
+  customerEmail: string;
+  currencyCode: string;
+  nextBillingDate: Date | null;
+  frequencyLabel: string;
+  totalAmount: number | null;
+  lastPaymentStatus: string | null;
+  createdAt: Date;
+  pausedAt: Date | null;
+  cancelledAt: Date | null;
+  cancellationReason: string | null;
+  lines: SubscriptionLineItem[];
+  billingHistory: SubscriptionBillingAttemptRow[];
+  orders: SubscriptionOrderRow[];
+}
+
+/**
+ * Everything the admin Subscription detail screen needs for one contract,
+ * read entirely from our webhook-synced mirrors -- no live Admin API call,
+ * since the mirror already carries line items, billing history, and order
+ * history for a single contract. Returns null when the contract doesn't
+ * belong to this shop, so the caller can 404.
+ */
+export async function getSubscriptionContractDetail({
+  shop,
+  contractShopifyId,
+}: {
+  shop: string;
+  contractShopifyId: string;
+}): Promise<SubscriptionContractDetail | null> {
+  const contract = await db.subscriptionContract.findUnique({ where: { shopifyId: contractShopifyId } });
+  if (!contract || contract.shop !== shop) {
+    return null;
+  }
+
+  const [orders, billingAttempts] = await Promise.all([
+    db.subscriptionOrder.findMany({ where: { shop, contractShopifyId }, orderBy: { processedAt: "desc" } }),
+    db.billingAttempt.findMany({ where: { shop, contractShopifyId }, orderBy: { attemptedAt: "desc" } }),
+  ]);
+
+  const lines = contract.linesJson
+    ? (JSON.parse(contract.linesJson) as { title?: string; variantTitle?: string | null; quantity?: number }[])
+    : [];
+
+  return {
+    contractShopifyId: contract.shopifyId,
+    contractNumber: `#${contract.shopifyId.split("/").pop()}`,
+    status: contract.status,
+    customerShopifyId: contract.customerShopifyId,
+    customerName: contract.customerName ?? "Unknown",
+    customerEmail: contract.customerEmail ?? "",
+    currencyCode: contract.currencyCode,
+    nextBillingDate: contract.nextBillingDate,
+    frequencyLabel:
+      contract.billingIntervalCount != null
+        ? `Every ${contract.billingIntervalCount}${INTERVAL_SHORT[contract.billingInterval ?? ""] ?? ""}`
+        : "--",
+    totalAmount: contract.totalAmount,
+    lastPaymentStatus: contract.lastPaymentStatus,
+    createdAt: contract.createdAt,
+    pausedAt: contract.pausedAt,
+    cancelledAt: contract.cancelledAt,
+    cancellationReason: contract.cancellationReason,
+    lines: lines.map((line) => ({
+      title: line.title ?? "Subscription",
+      variantTitle: line.variantTitle ?? null,
+      quantity: line.quantity ?? 1,
+    })),
+    billingHistory: billingAttempts.map((attempt) => ({
+      id: attempt.id,
+      status: attempt.status,
+      amount: attempt.amount,
+      currencyCode: attempt.currencyCode,
+      errorMessage: attempt.errorMessage,
+      attemptedAt: attempt.attemptedAt,
+    })),
+    orders: orders.map((order) => ({
+      orderShopifyId: order.orderShopifyId,
+      orderName: order.orderName,
+      processedAt: order.processedAt,
+      totalPrice: order.totalPrice,
+      currencyCode: order.currencyCode,
+    })),
+  };
+}

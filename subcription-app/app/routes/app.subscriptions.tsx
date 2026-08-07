@@ -78,60 +78,70 @@ export default function Subscriptions() {
   return (
     <s-page heading="Subscriptions">
       <s-section heading="Manage">
-        <s-stack direction="inline" gap="base" alignItems="center">
-          {STATUS_TABS.map((tab) => (
-            <s-button
-              key={tab.key || "all"}
-              variant={status === tab.key ? "primary" : "secondary"}
-              onClick={() => selectStatus(tab.key)}
-            >
-              {tab.label} ({counts[tab.countKey]})
-            </s-button>
-          ))}
+        <s-stack direction="block" gap="large">
+          <s-stack direction="inline" gap="base" alignItems="center">
+            {STATUS_TABS.map((tab) => (
+              <s-button
+                key={tab.key || "all"}
+                variant={status === tab.key ? "primary" : "secondary"}
+                onClick={() => selectStatus(tab.key)}
+              >
+                {tab.label} ({counts[tab.countKey]})
+              </s-button>
+            ))}
+          </s-stack>
+
+          <s-search-field
+            label="Search"
+            labelAccessibilityVisibility="exclusive"
+            placeholder="Search by customer or contract #"
+            defaultValue={search}
+            onInput={handleSearchInput}
+          />
+
+          {rows.length === 0 ? (
+            <s-paragraph color="subdued">
+              {search || status
+                ? "No subscriptions match this filter."
+                : "No subscriptions yet -- this list populates once a customer completes a subscription checkout."}
+            </s-paragraph>
+          ) : (
+            <s-table>
+              <s-table-header-row>
+                <s-table-header>Contract</s-table-header>
+                <s-table-header>Customer</s-table-header>
+                <s-table-header>Product</s-table-header>
+                <s-table-header>Frequency</s-table-header>
+                <s-table-header>Next order</s-table-header>
+                <s-table-header>MRR</s-table-header>
+                <s-table-header>Status</s-table-header>
+              </s-table-header-row>
+              <s-table-body>
+                {rows.map((row) => {
+                  const numericId = row.contractShopifyId.split("/").pop();
+                  const linkId = `contract-link-${numericId}`;
+                  return (
+                    <s-table-row key={row.contractShopifyId} clickDelegate={linkId}>
+                      <s-table-cell>
+                        <s-link id={linkId} href={`/app/subscriptions/${numericId}`} tone="neutral">
+                          {row.contractNumber}
+                        </s-link>
+                      </s-table-cell>
+                      <s-table-cell>{row.customerName}</s-table-cell>
+                      <s-table-cell>{row.productTitle}</s-table-cell>
+                      <s-table-cell>{row.frequencyLabel}</s-table-cell>
+                      <s-table-cell>{formatDate(row.nextBillingDate)}</s-table-cell>
+                      <s-table-cell>{formatMoney(row.mrr, currencyCode)}</s-table-cell>
+                      <s-table-cell>
+                        <s-badge tone={STATUS_TONE[row.status] ?? "neutral"}>{row.status}</s-badge>
+                      </s-table-cell>
+                    </s-table-row>
+                  );
+                })}
+              </s-table-body>
+            </s-table>
+          )}
         </s-stack>
-
-        <s-search-field
-          label="Search"
-          labelAccessibilityVisibility="exclusive"
-          placeholder="Search by customer or contract #"
-          defaultValue={search}
-          onInput={handleSearchInput}
-        />
-
-        {rows.length === 0 ? (
-          <s-paragraph color="subdued">
-            {search || status
-              ? "No subscriptions match this filter."
-              : "No subscriptions yet -- this list populates once a customer completes a subscription checkout."}
-          </s-paragraph>
-        ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>Contract</s-table-header>
-              <s-table-header>Customer</s-table-header>
-              <s-table-header>Product</s-table-header>
-              <s-table-header>Frequency</s-table-header>
-              <s-table-header>Next order</s-table-header>
-              <s-table-header>MRR</s-table-header>
-              <s-table-header>Status</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {rows.map((row) => (
-                <s-table-row key={row.contractShopifyId}>
-                  <s-table-cell>{row.contractNumber}</s-table-cell>
-                  <s-table-cell>{row.customerName}</s-table-cell>
-                  <s-table-cell>{row.productTitle}</s-table-cell>
-                  <s-table-cell>{row.frequencyLabel}</s-table-cell>
-                  <s-table-cell>{formatDate(row.nextBillingDate)}</s-table-cell>
-                  <s-table-cell>{formatMoney(row.mrr, currencyCode)}</s-table-cell>
-                  <s-table-cell>
-                    <s-badge tone={STATUS_TONE[row.status] ?? "neutral"}>{row.status}</s-badge>
-                  </s-table-cell>
-                </s-table-row>
-              ))}
-            </s-table-body>
-          </s-table>
-        )}
       </s-section>
     </s-page>
   );
