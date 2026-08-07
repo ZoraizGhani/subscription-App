@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 
 import { unauthenticated } from "../shopify.server";
 import db from "../db.server";
-import { sendEmail } from "./email.server";
+import { sendEmail, renderPasswordResetEmail } from "./email.server";
 
 const SALT_ROUNDS = 10;
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
@@ -125,6 +125,25 @@ function hashResetToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+const SHOP_NAME_QUERY = `#graphql
+  query PortalShopName {
+    shop { name }
+  }
+`;
+
+/** Falls back to the raw shop domain if the Admin API call fails -- shop
+ * name is cosmetic (email branding), never worth failing the reset over. */
+async function getShopName(shop: string): Promise<string> {
+  try {
+    const { admin } = await unauthenticated.admin(shop);
+    const response = await admin.graphql(SHOP_NAME_QUERY);
+    const body = (await response.json()) as { data?: { shop: { name: string } } };
+    return body.data?.shop.name ?? shop;
+  } catch {
+    return shop;
+  }
+}
+
 /**
  * Starts a password reset for the given email, if a portal account exists
  * for it. Deliberately never reveals whether the account exists (mirrors
@@ -158,10 +177,11 @@ export async function requestPortalPasswordReset({
   });
 
   const resetUrl = `${appUrl}/account/reset-password?token=${rawToken}`;
+  const shopName = await getShopName(shop);
   await sendEmail({
     to: account.email,
-    subject: "Reset your password",
-    html: `<p>Someone requested a password reset for your account.</p><p><a href="${resetUrl}">Reset your password</a></p><p>This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>`,
+    subject: `Reset your password – ${shopName}`,
+    html: renderPasswordResetEmail({ shopName, resetUrl }),
   });
 }
 
