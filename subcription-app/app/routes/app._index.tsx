@@ -1,5 +1,5 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { Form, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { authenticate } from "../shopify.server";
@@ -87,9 +87,9 @@ export default function Dashboard() {
   return (
     <div className={styles.page}>
       <div className={styles.topBar}>
-        <form className={styles.searchForm} method="get" action="/app/subscriptions">
+        <Form className={styles.searchForm} method="get" action="/app/subscriptions">
           <input className={styles.search} type="search" name="q" placeholder="Search customers, orders, contract #..." />
-        </form>
+        </Form>
         <div className={styles.spacer} />
         {metrics.failedPayments > 0 && (
           <span className={styles.failedBadge}>{metrics.failedPayments} FAILED PAYMENTS</span>
