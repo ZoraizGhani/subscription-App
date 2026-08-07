@@ -199,8 +199,30 @@ model PortalCustomer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  resetTokens PortalPasswordResetToken[]
+
   @@unique([shop, email])
   @@index([customerShopifyId])
+}
+
+// One-time token backing the "forgot password" email flow. Only a hash of the
+// token is stored -- like a password, the raw value must never be
+// recoverable from the database, only comparable against what a link
+// supplies. Consumed (or expired) tokens are left in place with `usedAt` set
+// rather than deleted, so a replayed link can be told apart from one that
+// never existed.
+model PortalPasswordResetToken {
+  id     String @id @default(cuid())
+  tokenHash String @unique
+
+  portalCustomer   PortalCustomer @relation(fields: [portalCustomerId], references: [id], onDelete: Cascade)
+  portalCustomerId String
+
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([portalCustomerId])
 }
 
 model BillingAttempt {

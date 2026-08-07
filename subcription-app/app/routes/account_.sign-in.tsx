@@ -71,6 +71,9 @@ export default function PortalSignIn() {
           </Form>
 
           <div className={styles.authFooter}>
+            <Link to={`/account/forgot-password?shop=${encodeURIComponent(shop)}`}>Forgot password?</Link>
+          </div>
+          <div className={styles.authFooter}>
             No account? <Link to={`/account/create?shop=${encodeURIComponent(shop)}`}>Create one</Link>
           </div>
         </div>

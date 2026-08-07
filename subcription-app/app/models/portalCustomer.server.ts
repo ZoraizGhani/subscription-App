@@ -1,9 +1,13 @@
+import crypto from "node:crypto";
+
 import bcrypt from "bcryptjs";
 
 import { unauthenticated } from "../shopify.server";
 import db from "../db.server";
+import { sendEmail } from "./email.server";
 
 const SALT_ROUNDS = 10;
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 export class PortalAuthError extends Error {}
 
@@ -115,6 +119,79 @@ export async function updatePortalPassword({
   }
   const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
   await db.portalCustomer.update({ where: { id }, data: { passwordHash } });
+}
+
+function hashResetToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/**
+ * Starts a password reset for the given email, if a portal account exists
+ * for it. Deliberately never reveals whether the account exists (mirrors
+ * verifyPortalLogin's generic "incorrect email or password" -- same
+ * anti-enumeration reasoning applies to "forgot password").
+ */
+export async function requestPortalPasswordReset({
+  shop,
+  email,
+  appUrl,
+}: {
+  shop: string;
+  email: string;
+  appUrl: string;
+}) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const account = await db.portalCustomer.findUnique({
+    where: { shop_email: { shop, email: normalizedEmail } },
+  });
+  if (!account) {
+    return;
+  }
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  await db.portalPasswordResetToken.create({
+    data: {
+      tokenHash: hashResetToken(rawToken),
+      portalCustomerId: account.id,
+      expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+    },
+  });
+
+  const resetUrl = `${appUrl}/account/reset-password?token=${rawToken}`;
+  await sendEmail({
+    to: account.email,
+    subject: "Reset your password",
+    html: `<p>Someone requested a password reset for your account.</p><p><a href="${resetUrl}">Reset your password</a></p><p>This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>`,
+  });
+}
+
+/**
+ * Completes a password reset. Looks the token up by its hash (never the raw
+ * value) and rejects it if already used or past expiry, then marks it used
+ * in the same operation it's consumed so a link can't be replayed.
+ */
+export async function resetPortalPassword({
+  token,
+  newPassword,
+}: {
+  token: string;
+  newPassword: string;
+}) {
+  const tokenHash = hashResetToken(token);
+  const resetToken = await db.portalPasswordResetToken.findUnique({ where: { tokenHash } });
+
+  if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date()) {
+    throw new PortalAuthError("This reset link is invalid or has expired.");
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+  const [, account] = await db.$transaction([
+    db.portalPasswordResetToken.update({ where: { id: resetToken.id }, data: { usedAt: new Date() } }),
+    db.portalCustomer.update({ where: { id: resetToken.portalCustomerId }, data: { passwordHash } }),
+  ]);
+
+  return account;
 }
 
 const DELETE_CANCEL_MUTATION = `#graphql
