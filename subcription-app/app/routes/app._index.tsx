@@ -9,20 +9,21 @@ import {
   getNeedsAttention,
   getRenewalsDueThisWeek,
 } from "../models/dashboard.server";
+import styles from "../styles/dashboard.module.css";
 
-const STATUS_TONE: Record<string, "success" | "warning" | "critical" | "neutral"> = {
-  ACTIVE: "success",
-  PAUSED: "warning",
-  CANCELLED: "critical",
-  FAILED: "critical",
-  EXPIRED: "neutral",
+const STATUS_PILL: Record<string, string> = {
+  ACTIVE: styles.statusActive,
+  PAUSED: styles.statusWarning,
+  CANCELLED: styles.statusCritical,
+  FAILED: styles.statusCritical,
+  EXPIRED: styles.statusNeutral,
 };
 
-// Reuses this app's existing critical-red status color (see STATUS_TONE.CANCELLED
-// elsewhere) for the "cancelled" series, paired with near-black for "new" --
+// Reuses this app's existing critical-red status color (see STATUS_PILL.CANCELLED
+// above) for the "cancelled" series, paired with near-black for "new" --
 // deliberately a neutral-baseline + status-highlight pairing rather than two
 // arbitrary categorical hues, since "cancelled" already carries that meaning
-// everywhere else in this app.
+// everywhere else in this app. Validated for CVD/contrast separately.
 const CHART_COLORS = { created: "#1a1a1a", cancelled: "#b91c1c" };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -35,223 +36,220 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     getNeedsAttention({ shop }),
     getRenewalsDueThisWeek({ shop }),
     admin.graphql(`#graphql
-      query ShopCurrency {
-        shop { currencyCode }
+      query ShopInfo {
+        shop { name currencyCode }
       }
     `),
   ]);
-  const shopData = (await shopResponse.json()) as { data?: { shop: { currencyCode: string } } };
+  const shopData = (await shopResponse.json()) as { data?: { shop: { name: string; currencyCode: string } } };
   const currencyCode = shopData.data?.shop.currencyCode ?? "USD";
+  const shopName = shopData.data?.shop.name ?? shop;
 
-  return { metrics, series, needsAttention, renewals, currencyCode };
+  return { metrics, series, needsAttention, renewals, currencyCode, shopName };
 };
 
 function formatMoney(amount: number | null, currencyCode: string) {
   if (amount == null) return "--";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: currencyCode }).format(amount);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: currencyCode, maximumFractionDigits: 0 }).format(
+    amount,
+  );
 }
 
 function formatDate(value: Date | string) {
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function Delta({
-  value,
-  unit,
-  positiveIsGood,
-}: {
-  value: number | null;
-  unit: "pct" | "pt";
-  positiveIsGood: boolean;
-}) {
+function initialsOf(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function Delta({ value, unit, positiveIsGood }: { value: number | null; unit: "pct" | "pt"; positiveIsGood: boolean }) {
   if (value == null || Math.abs(value) < 0.05) {
-    return <s-text color="subdued">— flat</s-text>;
+    return <span className={styles.deltaFlat}>— flat</span>;
   }
   const isPositive = value > 0;
   const isGood = isPositive === positiveIsGood;
   const arrow = isPositive ? "↑" : "↓";
   const formatted = `${arrow} ${Math.abs(value).toFixed(1)}${unit === "pct" ? "%" : "pt"}`;
-  return <s-text tone={isGood ? "success" : "critical"}>{unit === "pct" ? `${formatted} MoM` : formatted}</s-text>;
-}
-
-function StatTile({
-  label,
-  value,
-  delta,
-}: {
-  label: string;
-  value: string;
-  delta: React.ReactNode;
-}) {
   return (
-    <div
-      style={{
-        flex: "1 1 180px",
-        border: "1px solid #e5e5e5",
-        borderRadius: "8px",
-        padding: "16px",
-      }}
-    >
-      <div style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.04em", color: "#8a8a8a", textTransform: "uppercase" }}>
-        {label}
-      </div>
-      <div style={{ fontSize: "28px", fontWeight: 600, margin: "6px 0" }}>{value}</div>
-      <div style={{ fontSize: "13px" }}>{delta}</div>
-    </div>
+    <span className={isGood ? styles.deltaGood : styles.deltaBad}>{unit === "pct" ? `${formatted} MoM` : formatted}</span>
   );
 }
 
 export default function Dashboard() {
-  const { metrics, series, needsAttention, renewals, currencyCode } = useLoaderData<typeof loader>();
+  const { metrics, series, needsAttention, renewals, currencyCode, shopName } = useLoaderData<typeof loader>();
 
   const maxFlow = Math.max(1, ...series.flatMap((m) => [m.created, m.cancelled]));
 
   return (
-    <s-page heading="Subscriptions dashboard">
-      <s-section heading="Overview">
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <StatTile
-            label="MRR"
-            value={formatMoney(metrics.mrr, currencyCode)}
-            delta={<Delta value={metrics.mrrDeltaPct} unit="pct" positiveIsGood />}
-          />
-          <StatTile
-            label="Active subs"
-            value={String(metrics.activeSubs)}
-            delta={<Delta value={metrics.activeSubsDeltaPct} unit="pct" positiveIsGood />}
-          />
-          <StatTile
-            label="Churn (30d)"
-            value={`${metrics.churn30d.toFixed(1)}%`}
-            delta={<Delta value={metrics.churnDeltaPts} unit="pt" positiveIsGood={false} />}
-          />
-          <StatTile
-            label="Avg LTV"
-            value={formatMoney(metrics.avgLtv, currencyCode)}
-            delta={<Delta value={metrics.avgLtvDeltaPct} unit="pct" positiveIsGood />}
-          />
-          <StatTile
-            label="Failed payments"
-            value={String(metrics.failedPayments)}
-            delta={
-              metrics.failedPayments > 0 ? (
-                <s-text tone="critical">needs action</s-text>
-              ) : (
-                <s-text color="subdued">all clear</s-text>
-              )
-            }
-          />
-        </div>
-      </s-section>
+    <div className={styles.page}>
+      <div className={styles.topBar}>
+        <input className={styles.search} placeholder="Search customers, orders, contract #..." readOnly />
+        <div className={styles.spacer} />
+        {metrics.failedPayments > 0 && (
+          <span className={styles.failedBadge}>{metrics.failedPayments} FAILED PAYMENTS</span>
+        )}
+        <div className={styles.avatar}>{initialsOf(shopName)}</div>
+      </div>
 
-      <s-section heading="New vs. cancelled — last 6 months">
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}>
-            <span
-              style={{
-                display: "inline-block",
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                backgroundColor: CHART_COLORS.created,
-              }}
-            />
-            New
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}>
-            <span
-              style={{
-                display: "inline-block",
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                backgroundColor: CHART_COLORS.cancelled,
-              }}
-            />
-            Cancelled
+      <div className={styles.eyebrow}>Overview</div>
+      <div className={styles.headingRow}>
+        <h1 className={styles.heading}>Subscriptions dashboard</h1>
+        <div className={styles.headingActions}>
+          <span className={styles.rangeSelect}>Today ▾</span>
+        </div>
+      </div>
+
+      <div className={styles.statGrid}>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>MRR</div>
+          <div className={styles.statValue}>{formatMoney(metrics.mrr, currencyCode)}</div>
+          <div className={styles.statDelta}>
+            <Delta value={metrics.mrrDeltaPct} unit="pct" positiveIsGood />
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "24px", height: "160px" }}>
-          {series.map((month) => (
-            <div key={month.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: "4px", height: "120px" }}>
-                <div
-                  title={`${month.label}: ${month.created} new`}
-                  style={{
-                    width: "18px",
-                    height: `${Math.max(4, (month.created / maxFlow) * 120)}px`,
-                    backgroundColor: CHART_COLORS.created,
-                    borderRadius: "4px 4px 0 0",
-                  }}
-                />
-                <div
-                  title={`${month.label}: ${month.cancelled} cancelled`}
-                  style={{
-                    width: "18px",
-                    height: `${Math.max(4, (month.cancelled / maxFlow) * 120)}px`,
-                    backgroundColor: CHART_COLORS.cancelled,
-                    borderRadius: "4px 4px 0 0",
-                  }}
-                />
-              </div>
-              <span style={{ fontSize: "12px", color: "#8a8a8a" }}>{month.label}</span>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>Active subs</div>
+          <div className={styles.statValue}>{metrics.activeSubs.toLocaleString()}</div>
+          <div className={styles.statDelta}>
+            <Delta value={metrics.activeSubsDeltaPct} unit="pct" positiveIsGood />
+          </div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>Churn (30d)</div>
+          <div className={styles.statValue}>{metrics.churn30d.toFixed(1)}%</div>
+          <div className={styles.statDelta}>
+            <Delta value={metrics.churnDeltaPts} unit="pt" positiveIsGood={false} />
+          </div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>Avg LTV</div>
+          <div className={styles.statValue}>{formatMoney(metrics.avgLtv, currencyCode)}</div>
+          <div className={styles.statDelta}>
+            <Delta value={metrics.avgLtvDeltaPct} unit="pct" positiveIsGood />
+          </div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>Failed payments</div>
+          <div className={styles.statValue}>{metrics.failedPayments}</div>
+          <div className={styles.statDelta}>
+            {metrics.failedPayments > 0 ? (
+              <span className={styles.deltaAction}>needs action</span>
+            ) : (
+              <span className={styles.deltaFlat}>all clear</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.panelsRow}>
+        <div className={styles.card}>
+          <div className={styles.cardHeadingRow}>
+            <h2 className={styles.cardHeading}>New vs. cancelled — last 6 months</h2>
+            <div className={styles.legend}>
+              <span className={styles.legendItem}>
+                <span className={styles.legendDot} style={{ backgroundColor: CHART_COLORS.created }} />
+                New
+              </span>
+              <span className={styles.legendItem}>
+                <span className={styles.legendDot} style={{ backgroundColor: CHART_COLORS.cancelled }} />
+                Cancelled
+              </span>
             </div>
-          ))}
-        </div>
-      </s-section>
-
-      <s-section slot="aside" heading="Needs attention">
-        {needsAttention.length === 0 ? (
-          <s-paragraph color="subdued">Nothing needs review right now.</s-paragraph>
-        ) : (
-          <s-stack direction="block" gap="base">
-            {needsAttention.map((row) => (
-              <div
-                key={row.contractShopifyId}
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600 }}>{row.customerName}</div>
-                  <div style={{ fontSize: "12px", color: "#8a8a8a" }}>
-                    {row.contractNumber} • Payment declined
-                  </div>
+          </div>
+          <div className={styles.chartArea}>
+            {series.map((month) => (
+              <div key={month.label} className={styles.barGroup}>
+                <div className={styles.barPair}>
+                  <div
+                    className={styles.bar}
+                    title={`${month.label}: ${month.created} new`}
+                    style={{
+                      height: `${Math.max(4, (month.created / maxFlow) * 120)}px`,
+                      backgroundColor: CHART_COLORS.created,
+                    }}
+                  />
+                  <div
+                    className={styles.bar}
+                    title={`${month.label}: ${month.cancelled} cancelled`}
+                    style={{
+                      height: `${Math.max(4, (month.cancelled / maxFlow) * 120)}px`,
+                      backgroundColor: CHART_COLORS.cancelled,
+                    }}
+                  />
                 </div>
-                <s-link href={`/app/subscriptions/${row.contractShopifyId.split("/").pop()}`}>Review</s-link>
+                <span className={styles.barMonthLabel}>{month.label}</span>
               </div>
             ))}
-          </s-stack>
-        )}
-      </s-section>
+          </div>
+        </div>
 
-      <s-section heading="Renewals due this week">
-        {renewals.length === 0 ? (
-          <s-paragraph color="subdued">No renewals due in the next 7 days.</s-paragraph>
-        ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>Customer</s-table-header>
-              <s-table-header>Product</s-table-header>
-              <s-table-header>Renewal date</s-table-header>
-              <s-table-header>Amount</s-table-header>
-              <s-table-header>Status</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {renewals.map((row) => (
-                <s-table-row key={row.contractShopifyId}>
-                  <s-table-cell>{row.customerName}</s-table-cell>
-                  <s-table-cell>{row.productTitle}</s-table-cell>
-                  <s-table-cell>{formatDate(row.nextBillingDate)}</s-table-cell>
-                  <s-table-cell>{formatMoney(row.amount, row.currencyCode)}</s-table-cell>
-                  <s-table-cell>
-                    <s-badge tone={STATUS_TONE[row.status] ?? "neutral"}>{row.status}</s-badge>
-                  </s-table-cell>
-                </s-table-row>
+        <div className={styles.card}>
+          <div className={styles.cardHeadingRow}>
+            <h2 className={styles.cardHeading}>Needs attention</h2>
+          </div>
+          {needsAttention.length === 0 ? (
+            <p className={styles.emptyState}>Nothing needs review right now.</p>
+          ) : (
+            <div className={styles.attentionList}>
+              {needsAttention.map((row) => (
+                <div key={row.contractShopifyId} className={styles.attentionRow}>
+                  <div>
+                    <div className={styles.attentionName}>{row.customerName}</div>
+                    <div className={styles.attentionMeta}>{row.contractNumber} • Payment declined</div>
+                  </div>
+                  <a className={styles.reviewLink} href={`/app/subscriptions/${row.contractShopifyId.split("/").pop()}`}>
+                    Review
+                  </a>
+                </div>
               ))}
-            </s-table-body>
-          </s-table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.renewalsSection}>
+        <div className={styles.cardHeadingRow}>
+          <h2 className={styles.cardHeading}>Renewals due this week</h2>
+          <a className={styles.viewAllLink} href="/app/subscriptions">
+            View all →
+          </a>
+        </div>
+        {renewals.length === 0 ? (
+          <p className={styles.emptyState}>No renewals due in the next 7 days.</p>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Renewal date</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {renewals.map((row) => (
+                <tr key={row.contractShopifyId}>
+                  <td>{row.customerName}</td>
+                  <td>{row.productTitle}</td>
+                  <td>{formatDate(row.nextBillingDate)}</td>
+                  <td>{formatMoney(row.amount, row.currencyCode)}</td>
+                  <td>
+                    <span className={`${styles.statusPill} ${STATUS_PILL[row.status] ?? styles.statusNeutral}`}>
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-      </s-section>
-    </s-page>
+      </div>
+    </div>
   );
 }
 

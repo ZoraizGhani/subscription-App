@@ -1,0 +1,364 @@
+/* Pixel-match layout for the embedded Dashboard's content area only. Plain
+   HTML/CSS by design, matching the same approach as portal.module.css --
+   Shopify's own admin nav still wraps this (see app.tsx's <s-app-nav>), this
+   file only owns what's inside the page body. Reuses the same cream/ink/serif
+   tokens already established in portal.module.css for visual consistency. */
+
+.page {
+  background: #faf9f5;
+  color: #1a1a1a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 24px 32px 48px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.search {
+  flex: 1;
+  max-width: 480px;
+  padding: 10px 16px;
+  border: 1px solid #e7e2d8;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.875rem;
+  color: #1a1a1a;
+}
+
+.search::placeholder {
+  color: #9a948a;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.failedBadge {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #e9dcb8;
+  color: #7a5c1e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a8478;
+  margin-bottom: 4px;
+}
+
+.headingRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.heading {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-size: 2.25rem;
+  margin: 0;
+}
+
+.headingActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rangeSelect {
+  padding: 8px 14px;
+  border: 1px solid #e7e2d8;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.8125rem;
+  color: #1a1a1a;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .statGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.statCard {
+  background: #ffffff;
+  border: 1px solid #e7e2d8;
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.statLabel {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9a948a;
+  margin-bottom: 10px;
+}
+
+.statValue {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.75rem;
+  margin-bottom: 8px;
+}
+
+.statDelta {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.deltaGood {
+  color: #1e7d3c;
+}
+
+.deltaBad {
+  color: #b91c1c;
+}
+
+.deltaFlat {
+  color: #9a948a;
+}
+
+.deltaAction {
+  color: #b45309;
+}
+
+.panelsRow {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .panelsRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e7e2d8;
+  border-radius: 10px;
+  padding: 24px;
+}
+
+.cardHeadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cardHeading {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #6b6459;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.chartArea {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(16px, 4vw, 40px);
+  height: 160px;
+  padding-top: 8px;
+}
+
+.barGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.barPair {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 120px;
+}
+
+.bar {
+  width: 18px;
+  border-radius: 4px 4px 0 0;
+}
+
+.barMonthLabel {
+  font-size: 0.75rem;
+  color: #9a948a;
+}
+
+.attentionList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.attentionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #efeae0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  gap: 12px;
+}
+
+.attentionName {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  margin-bottom: 2px;
+}
+
+.attentionMeta {
+  font-size: 0.75rem;
+  color: #9a948a;
+}
+
+.reviewLink {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.renewalsSection {
+  margin-top: 8px;
+}
+
+.viewAllLink {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-decoration: none;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9a948a;
+  padding: 12px 8px;
+  border-bottom: 1px solid #e7e2d8;
+}
+
+.table td {
+  padding: 16px 8px;
+  border-bottom: 1px solid #f1ede4;
+  font-size: 0.9375rem;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.statusPill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.statusActive {
+  background: #e4f2e7;
+  color: #1e7d3c;
+}
+
+.statusWarning {
+  background: #fbeecb;
+  color: #92620d;
+}
+
+.statusCritical {
+  background: #fbe4e1;
+  color: #b91c1c;
+}
+
+.statusNeutral {
+  background: #eeece7;
+  color: #6b6459;
+}
+
+.emptyState {
+  color: #9a948a;
+  font-size: 0.9375rem;
+}
