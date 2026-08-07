@@ -1,5 +1,5 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, Link, useLoaderData } from "react-router";
+import { Form, Link, useLoaderData, useSearchParams } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { authenticate } from "../shopify.server";
@@ -7,7 +7,8 @@ import {
   getDashboardMetrics,
   getNewVsCancelledSeries,
   getNeedsAttention,
-  getRenewalsDueThisWeek,
+  getUpcomingRenewals,
+  type FlowBucketUnit,
 } from "../models/dashboard.server";
 import styles from "../styles/dashboard.module.css";
 
@@ -26,15 +27,44 @@ const STATUS_PILL: Record<string, string> = {
 // everywhere else in this app. Validated for CVD/contrast separately.
 const CHART_COLORS = { created: "#1a1a1a", cancelled: "#b91c1c" };
 
+type RangeKey = "today" | "weekly" | "monthly" | "yearly";
+
+/**
+ * Drives every time-boxed widget on the page from one selector. `windowDays`
+ * sets both the stat-card comparison period and the renewals lookahead;
+ * `chartUnit`/`chartCount` set the trend chart's bucketing. "Needs attention"
+ * is deliberately NOT driven by this -- it's a snapshot of contracts that are
+ * FAILED right now, not a historical window, so a range picker doesn't apply
+ * to it the same way.
+ */
+const RANGE_CONFIG: Record<
+  RangeKey,
+  { label: string; windowDays: number; chartUnit: FlowBucketUnit; chartCount: number; chartSpanLabel: string; renewalsLabel: string }
+> = {
+  today: { label: "Today", windowDays: 1, chartUnit: "day", chartCount: 7, chartSpanLabel: "last 7 days", renewalsLabel: "today" },
+  weekly: { label: "Weekly", windowDays: 7, chartUnit: "week", chartCount: 8, chartSpanLabel: "last 8 weeks", renewalsLabel: "this week" },
+  monthly: { label: "Monthly", windowDays: 30, chartUnit: "month", chartCount: 6, chartSpanLabel: "last 6 months", renewalsLabel: "this month" },
+  yearly: { label: "Yearly", windowDays: 365, chartUnit: "month", chartCount: 12, chartSpanLabel: "last 12 months", renewalsLabel: "this year" },
+};
+
+function isRangeKey(value: string | null): value is RangeKey {
+  return value === "today" || value === "weekly" || value === "monthly" || value === "yearly";
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const { shop } = session;
 
+  const url = new URL(request.url);
+  const rangeParam = url.searchParams.get("range");
+  const range: RangeKey = isRangeKey(rangeParam) ? rangeParam : "monthly";
+  const config = RANGE_CONFIG[range];
+
   const [metrics, series, needsAttention, renewals, shopResponse] = await Promise.all([
-    getDashboardMetrics({ shop }),
-    getNewVsCancelledSeries({ shop, months: 6 }),
+    getDashboardMetrics({ shop, windowDays: config.windowDays }),
+    getNewVsCancelledSeries({ shop, unit: config.chartUnit, count: config.chartCount }),
     getNeedsAttention({ shop }),
-    getRenewalsDueThisWeek({ shop }),
+    getUpcomingRenewals({ shop, windowDays: config.windowDays }),
     admin.graphql(`#graphql
       query ShopInfo {
         shop { name currencyCode }
@@ -45,7 +75,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const currencyCode = shopData.data?.shop.currencyCode ?? "USD";
   const shopName = shopData.data?.shop.name ?? shop;
 
-  return { metrics, series, needsAttention, renewals, currencyCode, shopName };
+  return { metrics, series, needsAttention, renewals, currencyCode, shopName, range };
 };
 
 function formatMoney(amount: number | null, currencyCode: string) {
@@ -75,12 +105,14 @@ function Delta({ value, unit, positiveIsGood }: { value: number | null; unit: "p
   const arrow = isPositive ? "↑" : "↓";
   const formatted = `${arrow} ${Math.abs(value).toFixed(1)}${unit === "pct" ? "%" : "pt"}`;
   return (
-    <span className={isGood ? styles.deltaGood : styles.deltaBad}>{unit === "pct" ? `${formatted} MoM` : formatted}</span>
+    <span className={isGood ? styles.deltaGood : styles.deltaBad}>{unit === "pct" ? `${formatted} vs prior period` : formatted}</span>
   );
 }
 
 export default function Dashboard() {
-  const { metrics, series, needsAttention, renewals, currencyCode, shopName } = useLoaderData<typeof loader>();
+  const { metrics, series, needsAttention, renewals, currencyCode, shopName, range } = useLoaderData<typeof loader>();
+  const [searchParams] = useSearchParams();
+  const config = RANGE_CONFIG[range];
 
   const maxFlow = Math.max(1, ...series.flatMap((m) => [m.created, m.cancelled]));
 
@@ -101,7 +133,25 @@ export default function Dashboard() {
       <div className={styles.headingRow}>
         <h1 className={styles.heading}>Subscriptions dashboard</h1>
         <div className={styles.headingActions}>
-          <span className={styles.rangeSelect}>Today ▾</span>
+          <Form method="get">
+            {Array.from(searchParams.entries())
+              .filter(([key]) => key !== "range")
+              .map(([key, value]) => (
+                <input key={key} type="hidden" name={key} value={value} />
+              ))}
+            <select
+              className={styles.rangeSelect}
+              name="range"
+              defaultValue={range}
+              onChange={(event) => event.currentTarget.form?.requestSubmit()}
+            >
+              {Object.entries(RANGE_CONFIG).map(([key, cfg]) => (
+                <option key={key} value={key}>
+                  {cfg.label}
+                </option>
+              ))}
+            </select>
+          </Form>
         </div>
       </div>
 
@@ -121,8 +171,8 @@ export default function Dashboard() {
           </div>
         </div>
         <div className={styles.statCard}>
-          <div className={styles.statLabel}>Churn (30d)</div>
-          <div className={styles.statValue}>{metrics.churn30d.toFixed(1)}%</div>
+          <div className={styles.statLabel}>Churn ({config.windowDays}d)</div>
+          <div className={styles.statValue}>{metrics.churnRate.toFixed(1)}%</div>
           <div className={styles.statDelta}>
             <Delta value={metrics.churnDeltaPts} unit="pt" positiveIsGood={false} />
           </div>
@@ -150,7 +200,7 @@ export default function Dashboard() {
       <div className={styles.panelsRow}>
         <div className={styles.card}>
           <div className={styles.cardHeadingRow}>
-            <h2 className={styles.cardHeading}>New vs. cancelled — last 6 months</h2>
+            <h2 className={styles.cardHeading}>New vs. cancelled — {config.chartSpanLabel}</h2>
             <div className={styles.legend}>
               <span className={styles.legendItem}>
                 <span className={styles.legendDot} style={{ backgroundColor: CHART_COLORS.created }} />
@@ -163,27 +213,27 @@ export default function Dashboard() {
             </div>
           </div>
           <div className={styles.chartArea}>
-            {series.map((month) => (
-              <div key={month.label} className={styles.barGroup}>
+            {series.map((bucket, index) => (
+              <div key={`${bucket.label}-${index}`} className={styles.barGroup}>
                 <div className={styles.barPair}>
                   <div
                     className={styles.bar}
-                    title={`${month.label}: ${month.created} new`}
+                    title={`${bucket.label}: ${bucket.created} new`}
                     style={{
-                      height: `${Math.max(4, (month.created / maxFlow) * 120)}px`,
+                      height: `${Math.max(4, (bucket.created / maxFlow) * 120)}px`,
                       backgroundColor: CHART_COLORS.created,
                     }}
                   />
                   <div
                     className={styles.bar}
-                    title={`${month.label}: ${month.cancelled} cancelled`}
+                    title={`${bucket.label}: ${bucket.cancelled} cancelled`}
                     style={{
-                      height: `${Math.max(4, (month.cancelled / maxFlow) * 120)}px`,
+                      height: `${Math.max(4, (bucket.cancelled / maxFlow) * 120)}px`,
                       backgroundColor: CHART_COLORS.cancelled,
                     }}
                   />
                 </div>
-                <span className={styles.barMonthLabel}>{month.label}</span>
+                <span className={styles.barMonthLabel}>{bucket.label}</span>
               </div>
             ))}
           </div>
@@ -215,13 +265,13 @@ export default function Dashboard() {
 
       <div className={styles.renewalsSection}>
         <div className={styles.cardHeadingRow}>
-          <h2 className={styles.cardHeading}>Renewals due this week</h2>
+          <h2 className={styles.cardHeading}>Renewals due {config.renewalsLabel}</h2>
           <Link className={styles.viewAllLink} to="/app/subscriptions">
             View all →
           </Link>
         </div>
         {renewals.length === 0 ? (
-          <p className={styles.emptyState}>No renewals due in the next 7 days.</p>
+          <p className={styles.emptyState}>No renewals due {config.renewalsLabel}.</p>
         ) : (
           <table className={styles.table}>
             <thead>

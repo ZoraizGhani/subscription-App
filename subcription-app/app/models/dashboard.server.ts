@@ -32,7 +32,7 @@ export interface DashboardMetrics {
   mrrDeltaPct: number | null;
   activeSubs: number;
   activeSubsDeltaPct: number | null;
-  churn30d: number;
+  churnRate: number;
   churnDeltaPts: number | null;
   avgLtv: number;
   avgLtvDeltaPct: number | null;
@@ -40,17 +40,27 @@ export interface DashboardMetrics {
 }
 
 /**
- * "30/60 days ago" figures are reconstructed from createdAt/cancelledAt on the
+ * "N days ago" figures are reconstructed from createdAt/cancelledAt on the
  * mirror, not from stored historical snapshots (none exist) -- a contract
  * counts as active-as-of a past date if it existed and hadn't been cancelled
  * yet by then. Paused/resumed history isn't tracked at all, so this slightly
  * overcounts past-active contracts that are paused today. Good enough for a
  * trend arrow, not precise accounting.
+ *
+ * `windowDays` sets both what "current" period means and how far back the
+ * prior comparison period reaches (e.g. windowDays=7 compares this week
+ * against the 7 days before that).
  */
-export async function getDashboardMetrics({ shop }: { shop: string }): Promise<DashboardMetrics> {
+export async function getDashboardMetrics({
+  shop,
+  windowDays = 30,
+}: {
+  shop: string;
+  windowDays?: number;
+}): Promise<DashboardMetrics> {
   const now = new Date();
-  const cutoff30 = new Date(now.getTime() - 30 * DAY_MS);
-  const cutoff60 = new Date(now.getTime() - 60 * DAY_MS);
+  const cutoff30 = new Date(now.getTime() - windowDays * DAY_MS);
+  const cutoff60 = new Date(now.getTime() - windowDays * 2 * DAY_MS);
 
   const allContracts = await db.subscriptionContract.findMany({
     where: { shop },
@@ -98,7 +108,7 @@ export async function getDashboardMetrics({ shop }: { shop: string }): Promise<D
     (c) => c.cancelledAt && c.cancelledAt > cutoff60 && c.cancelledAt <= cutoff30,
   ).length;
 
-  const churn30d = activeAsOf30.length > 0 ? (cancelledLast30 / activeAsOf30.length) * 100 : 0;
+  const churnRate = activeAsOf30.length > 0 ? (cancelledLast30 / activeAsOf30.length) * 100 : 0;
   const churnPrior = activeAsOf60.length > 0 ? (cancelledPrior30 / activeAsOf60.length) * 100 : 0;
 
   const revenueByCustomer = (asOf?: Date) => {
@@ -126,8 +136,8 @@ export async function getDashboardMetrics({ shop }: { shop: string }): Promise<D
     mrrDeltaPct: percentDelta(mrr, mrr30),
     activeSubs: activeNow.length,
     activeSubsDeltaPct: percentDelta(activeNow.length, activeAsOf30.length),
-    churn30d,
-    churnDeltaPts: churn30d - churnPrior,
+    churnRate,
+    churnDeltaPts: churnRate - churnPrior,
     avgLtv,
     avgLtvDeltaPct: percentDelta(avgLtv, avgLtv30),
     failedPayments,
@@ -140,17 +150,44 @@ export interface MonthlyFlow {
   cancelled: number;
 }
 
-/** Buckets contract creations and cancellations into calendar months, oldest
- * first, for the last `months` months including the current one. */
+export type FlowBucketUnit = "day" | "week" | "month";
+
+function bucketStart(date: Date, unit: FlowBucketUnit, offsetFromNow: number, now: Date): Date {
+  if (unit === "day") {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return new Date(start.getTime() - offsetFromNow * DAY_MS);
+  }
+  if (unit === "week") {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return new Date(start.getTime() - offsetFromNow * 7 * DAY_MS);
+  }
+  return new Date(now.getFullYear(), now.getMonth() - offsetFromNow, 1);
+}
+
+function bucketLabel(date: Date, unit: FlowBucketUnit): string {
+  if (unit === "month") return date.toLocaleDateString("en-US", { month: "short" });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function bucketIndex(date: Date, windowStart: Date, unit: FlowBucketUnit): number {
+  if (unit === "day") return Math.floor((date.getTime() - windowStart.getTime()) / DAY_MS);
+  if (unit === "week") return Math.floor((date.getTime() - windowStart.getTime()) / (7 * DAY_MS));
+  return (date.getFullYear() - windowStart.getFullYear()) * 12 + (date.getMonth() - windowStart.getMonth());
+}
+
+/** Buckets contract creations and cancellations into `count` buckets of
+ * `unit` size, oldest first, ending with the current (partial) bucket. */
 export async function getNewVsCancelledSeries({
   shop,
-  months = 6,
+  unit = "month",
+  count = 6,
 }: {
   shop: string;
-  months?: number;
+  unit?: FlowBucketUnit;
+  count?: number;
 }): Promise<MonthlyFlow[]> {
   const now = new Date();
-  const windowStart = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  const windowStart = bucketStart(now, unit, count - 1, now);
 
   const contracts = await db.subscriptionContract.findMany({
     where: {
@@ -161,24 +198,16 @@ export async function getNewVsCancelledSeries({
   });
 
   const buckets: MonthlyFlow[] = [];
-  for (let i = months - 1; i >= 0; i -= 1) {
-    const bucketDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    buckets.push({
-      label: bucketDate.toLocaleDateString("en-US", { month: "short" }),
-      created: 0,
-      cancelled: 0,
-    });
+  for (let i = count - 1; i >= 0; i -= 1) {
+    buckets.push({ label: bucketLabel(bucketStart(now, unit, i, now), unit), created: 0, cancelled: 0 });
   }
 
-  const monthIndex = (date: Date) =>
-    (date.getFullYear() - windowStart.getFullYear()) * 12 + (date.getMonth() - windowStart.getMonth());
-
   for (const contract of contracts) {
-    const createdIdx = monthIndex(contract.createdAt);
-    if (createdIdx >= 0 && createdIdx < months) buckets[createdIdx].created += 1;
+    const createdIdx = bucketIndex(contract.createdAt, windowStart, unit);
+    if (createdIdx >= 0 && createdIdx < count) buckets[createdIdx].created += 1;
     if (contract.cancelledAt) {
-      const cancelledIdx = monthIndex(contract.cancelledAt);
-      if (cancelledIdx >= 0 && cancelledIdx < months) buckets[cancelledIdx].cancelled += 1;
+      const cancelledIdx = bucketIndex(contract.cancelledAt, windowStart, unit);
+      if (cancelledIdx >= 0 && cancelledIdx < count) buckets[cancelledIdx].cancelled += 1;
     }
   }
 
@@ -216,12 +245,18 @@ export interface RenewalRow {
   status: string;
 }
 
-export async function getRenewalsDueThisWeek({ shop }: { shop: string }): Promise<RenewalRow[]> {
+export async function getUpcomingRenewals({
+  shop,
+  windowDays = 7,
+}: {
+  shop: string;
+  windowDays?: number;
+}): Promise<RenewalRow[]> {
   const now = new Date();
-  const weekFromNow = new Date(now.getTime() + 7 * DAY_MS);
+  const windowEnd = new Date(now.getTime() + windowDays * DAY_MS);
 
   const contracts = await db.subscriptionContract.findMany({
-    where: { shop, status: "ACTIVE", nextBillingDate: { gte: now, lte: weekFromNow } },
+    where: { shop, status: "ACTIVE", nextBillingDate: { gte: now, lte: windowEnd } },
     orderBy: { nextBillingDate: "asc" },
     take: 10,
   });
