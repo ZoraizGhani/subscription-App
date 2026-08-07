@@ -11,14 +11,17 @@
     if (root.dataset.subscriptionWidgetInitialized) return;
     root.dataset.subscriptionWidgetInitialized = "true";
 
+    const hasSubscription = root.dataset.hasSubscription === "true";
+
     const productJson = root.querySelector("[data-subscription-widget-product]");
     const product = JSON.parse(productJson.textContent);
+    const settingsJson = root.querySelector("[data-subscription-widget-settings]");
+    const settings = JSON.parse(settingsJson.textContent);
 
     const optionEls = Array.from(root.querySelectorAll("[data-option-index]"));
     const quantityInput = root.querySelector("[data-quantity-input]");
     const decreaseBtn = root.querySelector("[data-quantity-decrease]");
     const increaseBtn = root.querySelector("[data-quantity-increase]");
-    const planInputs = Array.from(root.querySelectorAll("[data-plan-option]"));
     const submitBtn = root.querySelector("[data-add-to-cart]");
     const statusEl = root.querySelector("[data-status]");
 
@@ -26,7 +29,7 @@
 
     function selectedOptionValues() {
       return optionEls.map((optionEl) => {
-        const selected = optionEl.querySelector(".subscription-widget__option-value.is-selected");
+        const selected = optionEl.querySelector("[data-option-value].is-selected");
         return selected ? selected.dataset.optionValue : null;
       });
     }
@@ -40,34 +43,20 @@
       );
     }
 
-    function updatePrices() {
-      const variant = currentVariant();
-
-      planInputs.forEach((input) => {
-        const priceEl = input.closest(".subscription-widget__plan").querySelector("[data-plan-price]");
-        if (!input.value) {
-          priceEl.textContent = formatMoney(variant.price, moneyFormat);
-          return;
-        }
-        const planId = Number(input.value);
-        const allocation = (variant.selling_plan_allocations || []).find(
-          (a) => a.selling_plan_id === planId || (a.selling_plan && a.selling_plan.id === planId),
-        );
-        priceEl.textContent = formatMoney(
-          allocation ? allocation.price : variant.price,
-          moneyFormat,
-        );
-      });
+    function planAllocation(variant, planId) {
+      return (variant.selling_plan_allocations || []).find(
+        (a) => a.selling_plan_id === planId || (a.selling_plan && a.selling_plan.id === planId),
+      );
     }
 
     optionEls.forEach((optionEl) => {
-      optionEl.querySelectorAll(".subscription-widget__option-value").forEach((btn) => {
+      optionEl.querySelectorAll("[data-option-value]").forEach((btn) => {
         btn.addEventListener("click", () => {
           optionEl
-            .querySelectorAll(".subscription-widget__option-value")
+            .querySelectorAll("[data-option-value]")
             .forEach((sibling) => sibling.classList.remove("is-selected"));
           btn.classList.add("is-selected");
-          updatePrices();
+          render();
         });
       });
     });
@@ -81,19 +70,109 @@
       });
     }
 
+    let render = () => {};
+
+    if (hasSubscription) {
+      const planSelect = root.querySelector("[data-plan-select]");
+      const modeInputs = Array.from(root.querySelectorAll("[data-plan-mode]"));
+      const discountPercentEl = root.querySelector("[data-discount-percent]");
+      const comparePriceEl = root.querySelector("[data-compare-price]");
+      const planPriceEl = root.querySelector("[data-plan-price]");
+      const priceUnitEl = root.querySelector("[data-price-unit]");
+      const bestValueBadgeEl = root.querySelector("[data-best-value-badge]");
+      const onetimePriceEl = root.querySelector("[data-onetime-price]");
+
+      if (priceUnitEl && settings.priceUnitSuffix) {
+        priceUnitEl.textContent = `/ ${settings.priceUnitSuffix}`;
+        priceUnitEl.hidden = false;
+      }
+
+      function currentMode() {
+        const checked = modeInputs.find((input) => input.checked);
+        return checked ? checked.value : "subscribe";
+      }
+
+      function setMode(mode) {
+        modeInputs.forEach((input) => {
+          input.checked = input.value === mode;
+        });
+      }
+
+      planSelect.addEventListener("change", () => {
+        setMode("subscribe");
+        render();
+      });
+      modeInputs.forEach((input) => input.addEventListener("change", render));
+
+      render = function render() {
+        const variant = currentVariant();
+        const mode = currentMode();
+
+        // Best-value badge reflects whichever plan genuinely has the deepest
+        // discount for THIS variant, not a fixed plan -- discounts can vary
+        // by tier and some variants may not have every plan's allocation.
+        let bestDiscount = 0;
+        Array.from(planSelect.options).forEach((option) => {
+          const allocation = planAllocation(variant, Number(option.value));
+          if (!allocation || !variant.price) return;
+          const discount = Math.round((1 - allocation.price / variant.price) * 100);
+          if (discount > bestDiscount) bestDiscount = discount;
+        });
+
+        const selectedPlanId = Number(planSelect.value);
+        const selectedAllocation = planAllocation(variant, selectedPlanId);
+        const selectedPrice = selectedAllocation ? selectedAllocation.price : variant.price;
+        const selectedDiscount =
+          selectedAllocation && variant.price
+            ? Math.round((1 - selectedAllocation.price / variant.price) * 100)
+            : 0;
+
+        discountPercentEl.textContent = selectedDiscount > 0 ? `${selectedDiscount}%` : "";
+        planPriceEl.textContent = formatMoney(selectedPrice, moneyFormat);
+        if (selectedDiscount > 0) {
+          comparePriceEl.textContent = formatMoney(variant.price, moneyFormat);
+          comparePriceEl.hidden = false;
+        } else {
+          comparePriceEl.hidden = true;
+        }
+
+        if (bestValueBadgeEl) {
+          const showBadge = settings.showBestValueBadge && bestDiscount > 0 && selectedDiscount === bestDiscount;
+          bestValueBadgeEl.hidden = !showBadge;
+        }
+
+        if (onetimePriceEl) {
+          onetimePriceEl.textContent = formatMoney(variant.price, moneyFormat);
+        }
+
+        if (mode === "subscribe") {
+          const intervalLabel = planSelect.selectedOptions[0] ? planSelect.selectedOptions[0].textContent : "";
+          submitBtn.textContent = `${settings.subscribeButtonLabel} — ${formatMoney(selectedPrice, moneyFormat)} / ${intervalLabel}`;
+        } else {
+          submitBtn.textContent = `${settings.oneTimeButtonLabel} — ${formatMoney(variant.price, moneyFormat)}`;
+        }
+      };
+    } else {
+      render = function render() {
+        const variant = currentVariant();
+        submitBtn.textContent = `${settings.fallbackButtonLabel} — ${formatMoney(variant.price, moneyFormat)}`;
+      };
+    }
+
     submitBtn.addEventListener("click", async () => {
       const variant = currentVariant();
-      const selectedPlan = planInputs.find((input) => input.checked);
       const quantity = quantityInput ? Math.max(1, Number(quantityInput.value)) : 1;
+      const planSelect = hasSubscription ? root.querySelector("[data-plan-select]") : null;
+      const modeInputs = hasSubscription ? Array.from(root.querySelectorAll("[data-plan-mode]")) : [];
+      const mode = modeInputs.find((input) => input.checked);
+      const isSubscribing = hasSubscription && mode && mode.value === "subscribe";
 
       const payload = {
         items: [
           {
             id: variant.id,
             quantity,
-            ...(selectedPlan && selectedPlan.value
-              ? { selling_plan: Number(selectedPlan.value) }
-              : {}),
+            ...(isSubscribing && planSelect ? { selling_plan: Number(planSelect.value) } : {}),
           },
         ],
       };
@@ -120,7 +199,7 @@
       }
     });
 
-    updatePrices();
+    render();
   }
 
   function initAll() {
