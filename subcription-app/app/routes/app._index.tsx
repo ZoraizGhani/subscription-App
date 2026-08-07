@@ -1,5 +1,5 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, useLoaderData } from "react-router";
+import { Form, Link, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { authenticate } from "../shopify.server";
@@ -203,9 +203,9 @@ export default function Dashboard() {
                     <div className={styles.attentionName}>{row.customerName}</div>
                     <div className={styles.attentionMeta}>{row.contractNumber} • Payment declined</div>
                   </div>
-                  <a className={styles.reviewLink} href={`/app/subscriptions/${row.contractShopifyId.split("/").pop()}`}>
+                  <Link className={styles.reviewLink} to={`/app/subscriptions/${row.contractShopifyId.split("/").pop()}`}>
                     Review
-                  </a>
+                  </Link>
                 </div>
               ))}
             </div>
@@ -216,9 +216,9 @@ export default function Dashboard() {
       <div className={styles.renewalsSection}>
         <div className={styles.cardHeadingRow}>
           <h2 className={styles.cardHeading}>Renewals due this week</h2>
-          <a className={styles.viewAllLink} href="/app/subscriptions">
+          <Link className={styles.viewAllLink} to="/app/subscriptions">
             View all →
-          </a>
+          </Link>
         </div>
         {renewals.length === 0 ? (
           <p className={styles.emptyState}>No renewals due in the next 7 days.</p>
