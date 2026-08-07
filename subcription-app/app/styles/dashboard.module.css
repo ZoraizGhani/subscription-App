@@ -18,9 +18,14 @@
   margin-bottom: 32px;
 }
 
-.search {
+.searchForm {
   flex: 1;
   max-width: 480px;
+}
+
+.search {
+  width: 100%;
+  box-sizing: border-box;
   padding: 10px 16px;
   border: 1px solid #e7e2d8;
   border-radius: 8px;

@@ -87,7 +87,9 @@ export default function Dashboard() {
   return (
     <div className={styles.page}>
       <div className={styles.topBar}>
-        <input className={styles.search} placeholder="Search customers, orders, contract #..." readOnly />
+        <form className={styles.searchForm} method="get" action="/app/subscriptions">
+          <input className={styles.search} type="search" name="q" placeholder="Search customers, orders, contract #..." />
+        </form>
         <div className={styles.spacer} />
         {metrics.failedPayments > 0 && (
           <span className={styles.failedBadge}>{metrics.failedPayments} FAILED PAYMENTS</span>
