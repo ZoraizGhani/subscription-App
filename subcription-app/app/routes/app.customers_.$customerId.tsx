@@ -54,6 +54,9 @@ export default function CustomerDetail() {
       <s-link slot="breadcrumb-actions" href="/app/customers">
         Customers
       </s-link>
+      <s-button slot="secondary-actions" href="/app/customers" icon="arrow-left">
+        Back to customers
+      </s-button>
 
       <s-section heading="Overview">
         <s-stack direction="block" gap="base">
