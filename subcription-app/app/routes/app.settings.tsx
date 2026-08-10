@@ -1,50 +1,12 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Link, useLoaderData } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
+import { redirect } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 
 import { authenticate } from "../shopify.server";
-import { getShopSettings } from "../models/settings.server";
 
+// No settings form lives on this index yet -- Selling plans is the only real
+// settings screen built so far, so land here directly instead of showing a
+// placeholder page in between.
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const settings = await getShopSettings(session.shop);
-
-  return { settings };
-};
-
-export default function Settings() {
-  const { settings } = useLoaderData<typeof loader>();
-
-  return (
-    <s-page heading="Settings">
-      <s-section heading="Selling plans">
-        <s-paragraph>
-          Configure the 30/45/60-day Subscribe &amp; Save tiers for a product.
-        </s-paragraph>
-        <Link to="/app/settings/selling-plans">Manage selling plans</Link>
-      </s-section>
-
-      <s-section heading="Not built yet">
-        <s-paragraph>
-          Build the rest of this form from the Settings frame in Figma. The
-          ShopSettings row for this shop already exists and is loaded below; add an
-          action that writes back through updateShopSettings.
-        </s-paragraph>
-        <s-box
-          padding="base"
-          borderWidth="base"
-          borderRadius="base"
-          background="subdued"
-        >
-          <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-            <code>{JSON.stringify(settings, null, 2)}</code>
-          </pre>
-        </s-box>
-      </s-section>
-    </s-page>
-  );
-}
-
-export const headers: HeadersFunction = (headersArgs) => {
-  return boundary.headers(headersArgs);
+  await authenticate.admin(request);
+  throw redirect("/app/settings/selling-plans");
 };
