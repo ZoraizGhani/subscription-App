@@ -31,6 +31,48 @@ function firstLineProductId(linesJson: string | null): string | null {
   }
 }
 
+const ORDER_FULFILLMENT_STATUS_QUERY = `#graphql
+  query PortalOrderFulfillmentStatus($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on Order { id displayFulfillmentStatus }
+    }
+  }
+`;
+
+/**
+ * Fulfillment status isn't mirrored anywhere -- Shopify is the only source
+ * for it, so it's always fetched live. A failure here (or an order Shopify
+ * no longer has) just leaves those orders' status blank rather than breaking
+ * whichever page called this.
+ */
+async function getOrderFulfillmentStatuses({
+  shop,
+  orderShopifyIds,
+}: {
+  shop: string;
+  orderShopifyIds: string[];
+}): Promise<Map<string, string>> {
+  const fulfillmentStatusByOrder = new Map<string, string>();
+  if (orderShopifyIds.length === 0) return fulfillmentStatusByOrder;
+
+  try {
+    const { admin } = await unauthenticated.admin(shop);
+    const response = await admin.graphql(ORDER_FULFILLMENT_STATUS_QUERY, {
+      variables: { ids: orderShopifyIds },
+    });
+    const body = (await response.json()) as {
+      data?: { nodes: ({ id: string; displayFulfillmentStatus: string } | null)[] };
+    };
+    for (const node of body.data?.nodes ?? []) {
+      if (node) fulfillmentStatusByOrder.set(node.id, node.displayFulfillmentStatus);
+    }
+  } catch {
+    // Live status is a convenience -- the caller still renders fine without it.
+  }
+
+  return fulfillmentStatusByOrder;
+}
+
 export async function getPortalOverview({
   shop,
   customerShopifyId,
@@ -43,10 +85,20 @@ export async function getPortalOverview({
     orderBy: { createdAt: "desc" },
   });
 
-  const orders = await db.subscriptionOrder.findMany({
-    where: { shop, contractShopifyId: { in: contracts.map((c) => c.shopifyId) } },
-    orderBy: { processedAt: "desc" },
-    take: 5,
+  const contractIds = contracts.map((c) => c.shopifyId);
+
+  const [orders, lifetimeOrderCount] = await Promise.all([
+    db.subscriptionOrder.findMany({
+      where: { shop, contractShopifyId: { in: contractIds } },
+      orderBy: { processedAt: "desc" },
+      take: 5,
+    }),
+    db.subscriptionOrder.count({ where: { shop, contractShopifyId: { in: contractIds } } }),
+  ]);
+
+  const fulfillmentStatusByOrder = await getOrderFulfillmentStatuses({
+    shop,
+    orderShopifyIds: orders.map((o) => o.orderShopifyId),
   });
 
   const activeContracts = contracts.filter((c) => c.status === "ACTIVE");
@@ -58,7 +110,7 @@ export async function getPortalOverview({
   return {
     activeCount: activeContracts.length,
     nextChargeDate: nextCharge ?? null,
-    lifetimeOrders: orders.length,
+    lifetimeOrders: lifetimeOrderCount,
     activeSubscription: activeContracts[0]
       ? {
           contractShopifyId: activeContracts[0].shopifyId,
@@ -73,6 +125,7 @@ export async function getPortalOverview({
       processedAt: o.processedAt,
       totalPrice: o.totalPrice,
       currencyCode: o.currencyCode,
+      fulfillmentStatus: fulfillmentStatusByOrder.get(o.orderShopifyId) ?? null,
     })),
   };
 }
@@ -135,14 +188,6 @@ export async function listPortalSubscriptions({
   });
 }
 
-const ORDER_FULFILLMENT_STATUS_QUERY = `#graphql
-  query PortalOrderFulfillmentStatus($ids: [ID!]!) {
-    nodes(ids: $ids) {
-      ... on Order { id displayFulfillmentStatus }
-    }
-  }
-`;
-
 export async function listPortalOrders({
   shop,
   customerShopifyId,
@@ -163,28 +208,10 @@ export async function listPortalOrders({
     orderBy: { processedAt: "desc" },
   });
 
-  // Fulfillment status isn't mirrored anywhere -- Shopify is the only source
-  // for it, so it's fetched live. A failure here (or an order Shopify no
-  // longer has) just leaves that row's status blank rather than breaking the
-  // whole order history.
-  const fulfillmentStatusByOrder = new Map<string, string>();
-  if (orders.length) {
-    try {
-      const { admin } = await unauthenticated.admin(shop);
-      const response = await admin.graphql(ORDER_FULFILLMENT_STATUS_QUERY, {
-        variables: { ids: orders.map((o) => o.orderShopifyId) },
-      });
-      const body = (await response.json()) as {
-        data?: { nodes: ({ id: string; displayFulfillmentStatus: string } | null)[] };
-      };
-      for (const node of body.data?.nodes ?? []) {
-        if (node) fulfillmentStatusByOrder.set(node.id, node.displayFulfillmentStatus);
-      }
-    } catch {
-      // Live status is a convenience -- the order history still renders fine
-      // without it.
-    }
-  }
+  const fulfillmentStatusByOrder = await getOrderFulfillmentStatuses({
+    shop,
+    orderShopifyIds: orders.map((o) => o.orderShopifyId),
+  });
 
   return orders.map((o) => ({
     orderShopifyId: o.orderShopifyId,

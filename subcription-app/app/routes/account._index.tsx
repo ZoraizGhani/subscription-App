@@ -16,6 +16,22 @@ function formatMoney(amount: number | null, currency: string | null) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "USD" }).format(amount);
 }
 
+// Mirrors Shopify's own OrderDisplayFulfillmentStatus enum -- these are the
+// exact values Order.displayFulfillmentStatus can return, so every case is
+// covered rather than falling through to a generic label.
+const FULFILLMENT_STATUS: Record<string, { label: string; className: keyof typeof styles }> = {
+  FULFILLED: { label: "Fulfilled", className: "badgeActive" },
+  PARTIALLY_FULFILLED: { label: "Partially fulfilled", className: "badgePaused" },
+  IN_PROGRESS: { label: "In progress", className: "badgePaused" },
+  ON_HOLD: { label: "On hold", className: "badgePaused" },
+  PENDING_FULFILLMENT: { label: "Pending", className: "badgeNeutral" },
+  SCHEDULED: { label: "Scheduled", className: "badgeNeutral" },
+  OPEN: { label: "Open", className: "badgeNeutral" },
+  UNFULFILLED: { label: "Unfulfilled", className: "badgeNeutral" },
+  RESTOCKED: { label: "Restocked", className: "badgeCancelled" },
+  REQUEST_DECLINED: { label: "Request declined", className: "badgeCancelled" },
+};
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const session = await requirePortalSession(request);
   const customer = await getPortalCustomerById(session.portalCustomerId);
@@ -111,7 +127,13 @@ export default function AccountOverview() {
                     <td>{formatDate(order.processedAt)}</td>
                     <td>{formatMoney(order.totalPrice, order.currencyCode)}</td>
                     <td>
-                      <span className={styles.badgeNeutral}>Delivered</span>
+                      {order.fulfillmentStatus && FULFILLMENT_STATUS[order.fulfillmentStatus] ? (
+                        <span className={styles[FULFILLMENT_STATUS[order.fulfillmentStatus].className]}>
+                          {FULFILLMENT_STATUS[order.fulfillmentStatus].label}
+                        </span>
+                      ) : (
+                        <span className={styles.badgeNeutral}>—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
