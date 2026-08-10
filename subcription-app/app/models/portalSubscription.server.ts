@@ -135,6 +135,14 @@ export async function listPortalSubscriptions({
   });
 }
 
+const ORDER_FULFILLMENT_STATUS_QUERY = `#graphql
+  query PortalOrderFulfillmentStatus($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on Order { id displayFulfillmentStatus }
+    }
+  }
+`;
+
 export async function listPortalOrders({
   shop,
   customerShopifyId,
@@ -155,6 +163,29 @@ export async function listPortalOrders({
     orderBy: { processedAt: "desc" },
   });
 
+  // Fulfillment status isn't mirrored anywhere -- Shopify is the only source
+  // for it, so it's fetched live. A failure here (or an order Shopify no
+  // longer has) just leaves that row's status blank rather than breaking the
+  // whole order history.
+  const fulfillmentStatusByOrder = new Map<string, string>();
+  if (orders.length) {
+    try {
+      const { admin } = await unauthenticated.admin(shop);
+      const response = await admin.graphql(ORDER_FULFILLMENT_STATUS_QUERY, {
+        variables: { ids: orders.map((o) => o.orderShopifyId) },
+      });
+      const body = (await response.json()) as {
+        data?: { nodes: ({ id: string; displayFulfillmentStatus: string } | null)[] };
+      };
+      for (const node of body.data?.nodes ?? []) {
+        if (node) fulfillmentStatusByOrder.set(node.id, node.displayFulfillmentStatus);
+      }
+    } catch {
+      // Live status is a convenience -- the order history still renders fine
+      // without it.
+    }
+  }
+
   return orders.map((o) => ({
     orderShopifyId: o.orderShopifyId,
     orderName: o.orderName,
@@ -162,6 +193,7 @@ export async function listPortalOrders({
     totalPrice: o.totalPrice,
     currencyCode: o.currencyCode,
     productTitle: o.contractShopifyId ? titleByContract.get(o.contractShopifyId) : null,
+    fulfillmentStatus: fulfillmentStatusByOrder.get(o.orderShopifyId) ?? null,
   }));
 }
 
