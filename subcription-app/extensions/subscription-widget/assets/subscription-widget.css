@@ -168,19 +168,45 @@
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem 1.125rem;
-  border: 1px solid #d1d1d1;
-  border-radius: 0.625rem;
+  border: 1px solid #e7e2d8;
+  border-radius: 0.75rem;
   margin-bottom: 0.625rem;
+  background: #fff;
   cursor: pointer;
 }
 
 .subscription-widget__plan-card:has(input:checked) {
-  border-color: var(--subscription-widget-accent);
-  box-shadow: 0 0 0 1px var(--subscription-widget-accent);
+  border-color: #d6d0c2;
 }
+
+/* --- Custom radio: plain outline, filled dot only when checked --- */
 
 .subscription-widget__plan-card-radio {
   padding-top: 0.1875rem;
+}
+
+.subscription-widget__plan-card-radio input {
+  appearance: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  border: 1.5px solid #b8b2a4;
+  border-radius: 50%;
+  display: block;
+  cursor: pointer;
+  position: relative;
+}
+
+.subscription-widget__plan-card-radio input:checked {
+  border-color: var(--subscription-widget-accent);
+}
+
+.subscription-widget__plan-card-radio input:checked::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--subscription-widget-accent);
 }
 
 .subscription-widget__plan-card-body {
@@ -201,6 +227,14 @@
 .subscription-widget__plan-card-title {
   font-size: 0.9375rem;
   font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* One-time purchase reads as the secondary option: same layout, lighter weight. */
+[data-plan-card="onetime"] .subscription-widget__plan-card-title,
+[data-plan-card="onetime"] .subscription-widget__price-now {
+  font-weight: 400;
+  color: #4a463e;
 }
 
 .subscription-widget__badge {
@@ -210,9 +244,6 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: #1e7d3c;
-  background: #e4f2e7;
-  padding: 0.1875rem 0.5rem;
-  border-radius: 999px;
 }
 
 .subscription-widget__badge[hidden] {
@@ -225,8 +256,14 @@
   gap: 0.5rem;
 }
 
+.subscription-widget__price-now {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
 .subscription-widget__price-compare {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: #9a948a;
   text-decoration: line-through;
 }
@@ -236,33 +273,38 @@
   display: none;
 }
 
-.subscription-widget__price-now {
-  font-size: 1rem;
-  font-weight: 700;
-}
-
 .subscription-widget__price-unit {
   font-size: 0.8125rem;
-  color: #6b6459;
+  color: #9a948a;
 }
 
 .subscription-widget__deliver-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-top: 0.125rem;
 }
 
 .subscription-widget__deliver-label {
-  font-size: 0.8125rem;
-  color: #6b6459;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9a948a;
 }
 
 .subscription-widget__deliver-select {
-  padding: 0.375rem 0.625rem;
-  border: 1px solid #d1d1d1;
+  appearance: none;
+  padding: 0.3rem 1.5rem 0.3rem 0.75rem;
+  border: 1px solid #d6d0c2;
   border-radius: 0.375rem;
-  background: #fff;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b6459' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 0.6rem center;
   font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
 }
 
 /* --- Benefits list --- */
