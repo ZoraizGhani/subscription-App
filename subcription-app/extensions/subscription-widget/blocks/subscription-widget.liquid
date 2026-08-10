@@ -2,10 +2,11 @@
   Self-contained purchase widget: image-swatch variant picker, quantity, a
   Subscribe & Save vs one-time-purchase choice, and its own add-to-cart button.
 
-  If the product has no selling plan group at all, the whole subscription
-  layout (plan cards, delivery cadence, discount badge) is skipped entirely
-  and a plain variant-picker + quantity + "Add to cart" is rendered instead --
-  there's nothing to subscribe to, so the widget shouldn't pretend otherwise.
+  If the product has no selling plan group at all, this block renders nothing
+  at all -- no fallback buy box of its own. The theme's own default variant
+  picker / add-to-cart button (already on the page) is what shows for those
+  products; this widget only takes over the purchase UI when there's actually
+  something to subscribe to.
 
   Every label/heading/button-copy string below comes from block.settings (set
   per-instance in the theme editor) rather than being hardcoded, so merchants
@@ -15,46 +16,47 @@
   selling-plan data in subscription-widget.js -- never hardcoded.
 
   Because this renders its own buy button, merchants should remove or hide the
-  theme's default variant picker / buy buttons block on templates where this
-  widget is used, to avoid two separate purchase forms on the same page.
+  theme's default variant picker / buy buttons block specifically on products
+  that DO have a subscription, to avoid two purchase forms on the same page --
+  for products with no subscription, both can coexist since this block stays
+  empty for them.
 {% endcomment %}
 
-{%- assign current_variant = product.selected_or_first_available_variant -%}
 {%- assign selling_plan_group = product.selling_plan_groups.first -%}
 {%- assign has_subscription = false -%}
 {%- if selling_plan_group and selling_plan_group.selling_plans.size > 0 -%}
   {%- assign has_subscription = true -%}
 {%- endif -%}
 
-<div
-  class="subscription-widget"
-  style="--subscription-widget-accent: {{ block.settings.accent_color }};"
-  data-subscription-widget
-  data-has-subscription="{{ has_subscription }}"
-  data-section-id="{{ section.id }}"
-  {{ block.shopify_attributes }}
->
-  <script type="application/json" data-subscription-widget-product>
-    {{ product | json }}
-  </script>
-  <script type="application/json" data-subscription-widget-settings>
-    {
-      "subscribeTitle": {{ block.settings.subscribe_title | json }},
-      "oneTimeLabel": {{ block.settings.one_time_label | json }},
-      "subscribeButtonLabel": {{ block.settings.subscribe_button_label | json }},
-      "oneTimeButtonLabel": {{ block.settings.one_time_button_label | json }},
-      "fallbackButtonLabel": {{ block.settings.fallback_button_label | json }},
-      "priceUnitSuffix": {{ block.settings.price_unit_suffix | json }},
-      "bestValueBadgeText": {{ block.settings.best_value_badge_text | json }},
-      "showBestValueBadge": {{ block.settings.show_best_value_badge | json }}
-    }
-  </script>
+{%- if has_subscription -%}
+  {%- assign current_variant = product.selected_or_first_available_variant -%}
 
-  {%- if block.settings.reassurance_text != blank -%}
-    <p class="subscription-widget__reassurance">{{ block.settings.reassurance_text }}</p>
-  {%- endif -%}
+  <div
+    class="subscription-widget"
+    style="--subscription-widget-accent: {{ block.settings.accent_color }};"
+    data-subscription-widget
+    data-has-subscription="true"
+    data-section-id="{{ section.id }}"
+    {{ block.shopify_attributes }}
+  >
+    <script type="application/json" data-subscription-widget-product>
+      {{ product | json }}
+    </script>
+    <script type="application/json" data-subscription-widget-settings>
+      {
+        "subscribeTitle": {{ block.settings.subscribe_title | json }},
+        "oneTimeLabel": {{ block.settings.one_time_label | json }},
+        "subscribeButtonLabel": {{ block.settings.subscribe_button_label | json }},
+        "oneTimeButtonLabel": {{ block.settings.one_time_button_label | json }},
+        "priceUnitSuffix": {{ block.settings.price_unit_suffix | json }},
+        "bestValueBadgeText": {{ block.settings.best_value_badge_text | json }},
+        "showBestValueBadge": {{ block.settings.show_best_value_badge | json }}
+      }
+    </script>
 
-  {%- if has_subscription -%}
+    {%- if block.settings.reassurance_text != blank -%}
+      <p class="subscription-widget__reassurance">{{ block.settings.reassurance_text }}</p>
+    {%- endif -%}
 
     {%- if product.has_only_default_variant == false -%}
       {%- assign first_option = product.options_with_values.first -%}
@@ -175,47 +177,15 @@
       {{ block.settings.subscribe_button_label }}
     </button>
 
-  {%- else -%}
+    <p class="subscription-widget__status" data-status role="status" aria-live="polite"></p>
+  </div>
 
-    {%- if product.has_only_default_variant == false -%}
-      {%- for option in product.options_with_values -%}
-        <div class="subscription-widget__section" data-option-index="{{ forloop.index0 }}">
-          <p class="subscription-widget__section-label">{{ option.name }}</p>
-          <div class="subscription-widget__option-values">
-            {%- for value in option.values -%}
-              <button
-                type="button"
-                class="subscription-widget__option-value{% if value == current_variant.options[forloop.parentloop.index0] %} is-selected{% endif %}"
-                data-option-value="{{ value | escape }}"
-              >
-                {{ value }}
-              </button>
-            {%- endfor -%}
-          </div>
-        </div>
-      {%- endfor -%}
-    {%- endif -%}
-
-    <div class="subscription-widget__section">
-      <p class="subscription-widget__quantity-label">{{ block.settings.quantity_label }}</p>
-      <div class="subscription-widget__quantity">
-        <button type="button" data-quantity-decrease aria-label="Decrease quantity">&minus;</button>
-        <input type="number" min="1" value="1" data-quantity-input aria-label="Quantity">
-        <button type="button" data-quantity-increase aria-label="Increase quantity">+</button>
-      </div>
-    </div>
-
-    <button type="button" class="subscription-widget__submit" data-add-to-cart>
-      {{ block.settings.fallback_button_label }} — {{ current_variant.price | money }}
-    </button>
-
-  {%- endif -%}
-
-  <p class="subscription-widget__status" data-status role="status" aria-live="polite"></p>
-</div>
-
-<script src="{{ 'subscription-widget.js' | asset_url }}" defer></script>
-<link rel="stylesheet" href="{{ 'subscription-widget.css' | asset_url }}">
+  <script src="{{ 'subscription-widget.js' | asset_url }}" defer></script>
+  <link rel="stylesheet" href="{{ 'subscription-widget.css' | asset_url }}">
+{%- else -%}
+  {%- comment -%} Nothing to subscribe to -- stays empty so the theme's own buy box is what shows. Keeps a hook so the block is still selectable in the theme editor. {%- endcomment -%}
+  <div data-subscription-widget-inactive {{ block.shopify_attributes }}></div>
+{%- endif -%}
 
 {% schema %}
 {
@@ -232,7 +202,7 @@
     { "type": "checkbox", "id": "show_one_time_option", "label": "Show one-time purchase option", "default": true },
     { "type": "text", "id": "one_time_label", "label": "One-time purchase label", "default": "One-time purchase" },
     { "type": "text", "id": "deliver_every_label", "label": "Delivery cadence label", "default": "Deliver every" },
-    { "type": "text", "id": "price_unit_suffix", "label": "Price unit suffix (e.g. \"pouch\", \"bottle\") -- leave blank to hide", "default": "" },
+    { "type": "text", "id": "price_unit_suffix", "label": "Price unit suffix (e.g. \"pouch\", \"bottle\") -- leave blank to hide" },
     { "type": "checkbox", "id": "show_best_value_badge", "label": "Show \"best value\" badge on the best-discount plan", "default": true },
     { "type": "text", "id": "best_value_badge_text", "label": "Best value badge text", "default": "Best value" },
 
@@ -244,7 +214,6 @@
     { "type": "header", "content": "Buttons & reassurance copy" },
     { "type": "text", "id": "subscribe_button_label", "label": "Subscribe button label", "default": "Subscribe" },
     { "type": "text", "id": "one_time_button_label", "label": "One-time purchase button label", "default": "Add to cart" },
-    { "type": "text", "id": "fallback_button_label", "label": "Add to cart button label (no subscription available)", "default": "Add to cart" },
     { "type": "text", "id": "reassurance_text", "label": "Reassurance line (leave blank to hide)", "default": "Charged at each delivery · Manage anytime in your account" },
 
     { "type": "header", "content": "Appearance" },
