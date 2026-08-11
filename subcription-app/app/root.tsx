@@ -14,6 +14,14 @@ export default function App() {
           rel="stylesheet"
           href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
         />
+        {/* Customer portal typography (account/*) -- Geist + Instrument Serif,
+            not used by the embedded admin screens above. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700;900&family=Instrument+Serif&display=swap"
+        />
         <Meta />
         <Links />
       </head>

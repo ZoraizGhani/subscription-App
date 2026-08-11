@@ -48,11 +48,15 @@ export default function PortalSignIn() {
   return (
     <div className={styles.page}>
       <div className={styles.authWrap}>
-        <div className={styles.authLogo}>Account</div>
-        <div className={styles.authCard}>
-          <span className={styles.eyebrow}>My account</span>
-          <h1 className={`${styles.heading} ${styles.authTitle}`}>Sign in</h1>
+        <div className={styles.authLogo}>
+          <span className={styles.authLogoMark}>CLRTY</span>
+          <span className={styles.authLogoSub}>Supplements</span>
+        </div>
 
+        <span className={styles.authEyebrow}>My account</span>
+        <h1 className={`${styles.heading} ${styles.authTitle}`}>Sign in</h1>
+
+        <div className={styles.authCard}>
           {actionData?.error && <div className={styles.error}>{actionData.error}</div>}
 
           <Form method="post">
@@ -65,17 +69,20 @@ export default function PortalSignIn() {
               <span className={styles.fieldLabel}>Password</span>
               <input className={styles.input} type="password" name="password" required />
             </label>
+            <Link
+              className={styles.forgotLink}
+              to={`/account/forgot-password?shop=${encodeURIComponent(shop)}`}
+            >
+              Forgot password?
+            </Link>
             <button className={styles.buttonPrimary} type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Signing in..." : "Sign in"}
             </button>
           </Form>
+        </div>
 
-          <div className={styles.authFooter}>
-            <Link to={`/account/forgot-password?shop=${encodeURIComponent(shop)}`}>Forgot password?</Link>
-          </div>
-          <div className={styles.authFooter}>
-            No account? <Link to={`/account/create?shop=${encodeURIComponent(shop)}`}>Create one</Link>
-          </div>
+        <div className={styles.authFooter}>
+          No account? <Link to={`/account/create?shop=${encodeURIComponent(shop)}`}>Create one</Link>
         </div>
       </div>
     </div>

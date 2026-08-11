@@ -48,11 +48,15 @@ export default function PortalResetPassword() {
   return (
     <div className={styles.page}>
       <div className={styles.authWrap}>
-        <div className={styles.authLogo}>Account</div>
-        <div className={styles.authCard}>
-          <span className={styles.eyebrow}>My account</span>
-          <h1 className={`${styles.heading} ${styles.authTitle}`}>Choose a new password</h1>
+        <div className={styles.authLogo}>
+          <span className={styles.authLogoMark}>CLRTY</span>
+          <span className={styles.authLogoSub}>Supplements</span>
+        </div>
 
+        <span className={styles.authEyebrow}>My account</span>
+        <h1 className={`${styles.heading} ${styles.authTitle}`}>Choose a new password</h1>
+
+        <div className={styles.authCard}>
           {actionData?.error && <div className={styles.error}>{actionData.error}</div>}
 
           {token ? (
