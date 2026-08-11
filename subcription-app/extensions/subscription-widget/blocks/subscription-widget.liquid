@@ -76,11 +76,11 @@
               class="subscription-widget__swatch{% if value == current_variant.options[0] %} is-selected{% endif %}"
               data-option-value="{{ value | escape }}"
             >
+              <span class="subscription-widget__swatch-check" aria-hidden="true">✓</span>
               <span class="subscription-widget__swatch-image">
                 {%- if swatch_image -%}
                   {{ swatch_image | image_url: width: 160 | image_tag: loading: "lazy", alt: value, widths: "80,160" }}
                 {%- endif -%}
-                <span class="subscription-widget__swatch-check" aria-hidden="true">✓</span>
               </span>
               <span class="subscription-widget__swatch-name">{{ value }}</span>
             </button>
