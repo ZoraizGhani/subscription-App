@@ -314,6 +314,7 @@
   line-height: 1;
   color: #1e1e1e;
   margin-top: 0.5rem;
+  white-space: nowrap;
 }
 
 .card {

@@ -11,6 +11,11 @@ function formatDate(value: string | Date | null) {
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function formatShortDate(value: string | Date | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function formatMoney(amount: number | null, currency: string | null) {
   if (amount == null) return "—";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "USD" }).format(amount);
@@ -72,7 +77,7 @@ export default function AccountOverview() {
             </div>
             <div className={styles.statCard}>
               <span className={styles.statLabel}>Next charge</span>
-              <div className={styles.statValue}>{formatDate(overview.nextChargeDate)}</div>
+              <div className={styles.statValue}>{formatShortDate(overview.nextChargeDate)}</div>
             </div>
             <div className={styles.statCard}>
               <span className={styles.statLabel}>Lifetime orders</span>
