@@ -227,6 +227,7 @@
 /* --- Custom radio: plain outline, filled dot only when checked --- */
 
 .subscription-widget__plan-card-radio {
+  position: relative;
   padding-top: 0.1875rem;
 }
 
@@ -239,19 +240,26 @@
   border-radius: 50%;
   display: block;
   cursor: pointer;
-  position: relative;
 }
 
 .subscription-widget__plan-card-radio input:checked {
   border-color: var(--subscription-widget-accent);
 }
 
-.subscription-widget__plan-card-radio input:checked::after {
-  content: "";
+.subscription-widget__plan-card-radio-dot {
+  display: none;
   position: absolute;
-  inset: 2px;
+  top: calc(0.1875rem + 2px);
+  left: 2px;
+  width: 0.75rem;
+  height: 0.75rem;
   border-radius: 50%;
   background: var(--subscription-widget-accent);
+  pointer-events: none;
+}
+
+.subscription-widget__plan-card-radio input:checked ~ .subscription-widget__plan-card-radio-dot {
+  display: block;
 }
 
 .subscription-widget__plan-card-body {
@@ -280,9 +288,10 @@
 .subscription-widget__badge {
   flex-shrink: 0;
   padding: 0.25rem 0.5rem;
+  border: 1px solid #bbf7d0;
   border-radius: 0.25rem;
-  background: #f0fdf4;
-  font-size: 0.5625rem;
+  background: #dcfce7;
+  font-size: 0.625rem;
   font-weight: 600;
   line-height: 1.5;
   letter-spacing: 0.05em;
