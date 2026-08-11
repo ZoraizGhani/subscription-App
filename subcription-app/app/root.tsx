@@ -22,6 +22,9 @@ export default function App() {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700;900&family=Instrument+Serif&display=swap"
         />
+        {/* Browsers default <body> to an 8px margin -- without this reset it
+            shows as an unwanted gap around every page's own background. */}
+        <style>{"body { margin: 0; }"}</style>
         <Meta />
         <Links />
       </head>
