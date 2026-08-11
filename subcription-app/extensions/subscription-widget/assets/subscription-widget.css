@@ -211,11 +211,6 @@
 .subscription-widget__plan-cards {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 0.625rem 1.25rem 1.25rem;
-  border: 1px solid #1a1a1a;
-  border-radius: 0.125rem;
-  background: #fdfdfd;
 }
 
 .subscription-widget__plan-card {
