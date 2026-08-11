@@ -529,13 +529,6 @@ export async function shipPortalOrderNow({
   const { admin } = await unauthenticated.admin(shop);
   const nextCycle = await findNextUnbilledCycle(admin, contractShopifyId);
 
-  const hoursUntilDue = (new Date(nextCycle.date).getTime() - Date.now()) / (1000 * 60 * 60);
-  if (hoursUntilDue > 24) {
-    throw new Error(
-      "Ship Now only works within 24 hours of your next scheduled charge -- it's too early to charge this order yet.",
-    );
-  }
-
   const chargeResponse = await admin.graphql(SHIP_NOW_MUTATION, {
     variables: { id: contractShopifyId, selector: { index: nextCycle.index } },
   });
