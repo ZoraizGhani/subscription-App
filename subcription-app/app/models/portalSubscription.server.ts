@@ -713,7 +713,7 @@ export async function getPortalManageOptions({
   customerShopifyId: string;
   contractShopifyId: string;
 }) {
-  await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
+  const ownedContract = await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
 
   const { admin } = await unauthenticated.admin(shop);
   const contractResponse = await admin.graphql(MANAGE_OPTIONS_QUERY, {
@@ -799,6 +799,11 @@ export async function getPortalManageOptions({
   };
   const product = productBody.data?.product;
 
+  // Same correction as the subscriptions list -- contract.nextBillingDate
+  // from the GraphQL response above can't be trusted once a cycle's been
+  // charged out-of-band (see findNextUnbilledCycle's doc comment).
+  const correctedDate = await correctedNextBillingDate({ admin, contract: ownedContract });
+
   return {
     lineId: line.id,
     currentVariantId: line.variantId,
@@ -812,7 +817,7 @@ export async function getPortalManageOptions({
     })),
     billingInterval: contract?.billingPolicy?.interval ?? "DAY",
     billingIntervalCount: contract?.billingPolicy?.intervalCount ?? 1,
-    nextBillingDate: contract?.nextBillingDate ?? null,
+    nextBillingDate: correctedDate,
     paymentMethodDisplay,
     paymentMethods,
     shippingAddressDisplay,
