@@ -109,12 +109,17 @@
     {%- endif -%}
 
     <div class="subscription-widget__section">
-      <p class="subscription-widget__quantity-label">{{ block.settings.quantity_label }}</p>
-      <div class="subscription-widget__quantity">
-        <button type="button" data-quantity-decrease aria-label="Decrease quantity">&minus;</button>
-        <input type="number" min="1" value="1" data-quantity-input aria-label="Quantity">
-        <button type="button" data-quantity-increase aria-label="Increase quantity">+</button>
+      <div class="subscription-widget__quantity-row">
+        <p class="subscription-widget__quantity-label">{{ block.settings.quantity_label }}</p>
+        <div class="subscription-widget__quantity">
+          <button type="button" data-quantity-decrease aria-label="Decrease quantity">&minus;</button>
+          <input type="number" min="1" value="1" data-quantity-input aria-label="Quantity">
+          <button type="button" data-quantity-increase aria-label="Increase quantity">+</button>
+        </div>
       </div>
+      {%- if block.settings.mix_flavors_note != blank -%}
+        <p class="subscription-widget__mix-note">{{ block.settings.mix_flavors_note }}</p>
+      {%- endif -%}
     </div>
 
     <div class="subscription-widget__section">
@@ -195,6 +200,7 @@
     { "type": "header", "content": "Flavor / variant section" },
     { "type": "text", "id": "flavor_section_label", "label": "Flavor section heading", "default": "1. Select flavor(s)" },
     { "type": "text", "id": "quantity_label", "label": "Quantity label", "default": "Quantity Selector" },
+    { "type": "text", "id": "mix_flavors_note", "label": "Mix-flavors note (leave blank to hide)", "default": "Mix flavors freely — 1 pouch selected, same price per pouch either way." },
 
     { "type": "header", "content": "Plan section" },
     { "type": "text", "id": "plan_section_label", "label": "Plan section heading", "default": "2. Choose your plan" },

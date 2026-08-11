@@ -141,6 +141,12 @@
 
 /* --- Quantity stepper --- */
 
+.subscription-widget__quantity-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .subscription-widget__quantity {
   display: inline-flex;
   align-items: center;
@@ -189,6 +195,15 @@
 .subscription-widget__quantity input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+.subscription-widget__mix-note {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: #6b7280;
 }
 
 /* --- Plan cards --- */
