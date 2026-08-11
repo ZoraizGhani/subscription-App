@@ -13,7 +13,12 @@ function formatDate(value: string | Date | null) {
 
 function formatShortDate(value: string | Date | null) {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const date = new Date(value);
+  const includeYear = date.getFullYear() !== new Date().getFullYear();
+  return date.toLocaleDateString(
+    "en-US",
+    includeYear ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" },
+  );
 }
 
 function formatMoney(amount: number | null, currency: string | null) {
@@ -97,7 +102,17 @@ export default function AccountOverview() {
           {overview.activeSubscription ? (
             <div className={styles.card} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                <div className={styles.productThumb}>CLRTY</div>
+                <div className={styles.productThumb}>
+                  {overview.activeSubscription.productImageUrl ? (
+                    <img
+                      src={overview.activeSubscription.productImageUrl}
+                      alt={overview.activeSubscription.productTitle}
+                      className={styles.productThumbImg}
+                    />
+                  ) : (
+                    "CLRTY"
+                  )}
+                </div>
                 <div>
                   <div className={styles.productTitle}>{overview.activeSubscription.productTitle}</div>
                   <div className={styles.productMeta}>

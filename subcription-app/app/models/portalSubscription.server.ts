@@ -73,6 +73,14 @@ async function getOrderFulfillmentStatuses({
   return fulfillmentStatusByOrder;
 }
 
+const PRODUCT_IMAGE_QUERY = `#graphql
+  query PortalProductImage($id: ID!) {
+    product(id: $id) {
+      featuredImage { url altText }
+    }
+  }
+`;
+
 export async function getPortalOverview({
   shop,
   customerShopifyId,
@@ -104,6 +112,7 @@ export async function getPortalOverview({
   const activeContracts = contracts.filter((c) => c.status === "ACTIVE");
 
   let correctedDates = new Map<string, Date | null>();
+  let activeProductImageUrl: string | null = null;
   try {
     const { admin } = await unauthenticated.admin(shop);
     correctedDates = new Map(
@@ -111,9 +120,19 @@ export async function getPortalOverview({
         activeContracts.map(async (c) => [c.shopifyId, await correctedNextBillingDate({ admin, contract: c })] as const),
       ),
     );
+
+    const activeProductId = activeContracts[0] ? firstLineProductId(activeContracts[0].linesJson) : null;
+    if (activeProductId) {
+      const response = await admin.graphql(PRODUCT_IMAGE_QUERY, { variables: { id: activeProductId } });
+      const body = (await response.json()) as {
+        data?: { product: { featuredImage: { url: string } | null } | null };
+      };
+      activeProductImageUrl = body.data?.product?.featuredImage?.url ?? null;
+    }
   } catch {
-    // Live correction is a best-effort accuracy improvement -- if the admin
-    // client itself can't be obtained, fall through to the mirrored dates.
+    // Live correction/image lookup is a best-effort accuracy improvement --
+    // if the admin client itself can't be obtained, fall through to the
+    // mirrored dates and no image.
   }
 
   const nextCharge = activeContracts
@@ -129,6 +148,7 @@ export async function getPortalOverview({
       ? {
           contractShopifyId: activeContracts[0].shopifyId,
           productTitle: firstLineTitle(activeContracts[0].linesJson),
+          productImageUrl: activeProductImageUrl,
           nextBillingDate: correctedDates.get(activeContracts[0].shopifyId) ?? activeContracts[0].nextBillingDate,
           status: activeContracts[0].status,
         }
