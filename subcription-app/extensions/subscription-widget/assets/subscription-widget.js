@@ -1,7 +1,9 @@
 (function () {
   function formatMoney(cents, format) {
-    // Falls back to a plain decimal if the shop's money format isn't available
-    // on window (older themes don't always expose Shopify.money_format).
+    // `format` normally comes from shop.money_format (passed in via the
+    // settings JSON, always available server-side); window.Shopify.money_format
+    // is only a last-resort fallback since not every theme sets that legacy
+    // global. Falls back to a plain decimal if neither is available.
     const amount = (cents / 100).toFixed(2);
     if (!format) return amount;
     return format.replace(/\{\{\s*amount\s*\}\}/, amount);
@@ -32,7 +34,7 @@
     const bestValueBadgeEl = root.querySelector("[data-best-value-badge]");
     const onetimePriceEl = root.querySelector("[data-onetime-price]");
 
-    const moneyFormat = window.Shopify && window.Shopify.money_format;
+    const moneyFormat = settings.moneyFormat || (window.Shopify && window.Shopify.money_format);
 
     if (priceUnitEl && settings.priceUnitSuffix) {
       priceUnitEl.textContent = `/ ${settings.priceUnitSuffix}`;
@@ -76,17 +78,6 @@
       const variant = currentVariant();
       const mode = currentMode();
 
-      // Best-value badge reflects whichever plan genuinely has the deepest
-      // discount for THIS variant, not a fixed plan -- discounts can vary by
-      // tier and some variants may not have every plan's allocation.
-      let bestDiscount = 0;
-      Array.from(planSelect.options).forEach((option) => {
-        const allocation = planAllocation(variant, Number(option.value));
-        if (!allocation || !variant.price) return;
-        const discount = Math.round((1 - allocation.price / variant.price) * 100);
-        if (discount > bestDiscount) bestDiscount = discount;
-      });
-
       const selectedPlanId = Number(planSelect.value);
       const selectedAllocation = planAllocation(variant, selectedPlanId);
       const selectedPrice = selectedAllocation ? selectedAllocation.price : variant.price;
@@ -105,7 +96,9 @@
       }
 
       if (bestValueBadgeEl) {
-        const showBadge = settings.showBestValueBadge && bestDiscount > 0 && selectedDiscount === bestDiscount;
+        // Subscribe & Save is the only discounted plan on this widget, so any
+        // real discount on it is by definition the best deal available.
+        const showBadge = settings.showBestValueBadge && selectedDiscount > 0;
         bestValueBadgeEl.hidden = !showBadge;
       }
 
