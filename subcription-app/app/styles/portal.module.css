@@ -226,12 +226,6 @@
   font-size: 1.75rem;
 }
 
-.brandSub {
-  composes: authLogoSub;
-  font-size: 0.625rem;
-  margin-top: 0.1875rem;
-}
-
 .nav {
   display: flex;
   flex-direction: column;
@@ -501,21 +495,25 @@
 
 /* --- Site header: logo bar, full width, above the nav bar --- */
 
-.siteHeader {
-  display: flex;
-  justify-content: center;
-  padding: 1.25rem 2rem;
-  background: #fff;
-  border-bottom: 1px solid rgba(93, 95, 95, 0.18);
-}
+/* --- Top bar (storefront-style nav on logged-in pages) --- */
 
-.siteHeaderLogo {
+.topbarLogo {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
 }
 
-/* --- Top bar (storefront-style nav on logged-in pages) --- */
+.topbarBrandMark {
+  composes: authLogoMark;
+  font-size: 1.125rem;
+}
+
+.topbarBrandSub {
+  composes: authLogoSub;
+  font-size: 0.5rem;
+  letter-spacing: 0.2em;
+  margin-top: 0.125rem;
+}
 
 .topbar {
   display: grid;

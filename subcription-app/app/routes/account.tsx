@@ -68,15 +68,11 @@ export default function AccountLayout() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.siteHeader}>
-        <div className={styles.siteHeaderLogo}>
-          <span className={styles.brandMark}>CLRTY</span>
-          <span className={styles.brandSub}>Supplements</span>
-        </div>
-      </div>
-
       <div className={styles.topbar}>
-        <span aria-hidden="true" />
+        <div className={styles.topbarLogo}>
+          <span className={styles.topbarBrandMark}>CLRTY</span>
+          <span className={styles.topbarBrandSub}>Supplements</span>
+        </div>
         <div className={styles.topbarNav}>
           <span>Shop</span>
           <span>Science</span>
