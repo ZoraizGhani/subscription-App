@@ -55,7 +55,7 @@ export default function AccountOverview() {
   return (
     <>
       <span className={styles.eyebrow}>Welcome back</span>
-      <h1 className={styles.heading} style={{ fontSize: "2rem", margin: "0.25rem 0 1.5rem" }}>
+      <h1 className={styles.heading} style={{ fontSize: "3rem", lineHeight: 1, margin: "0.25rem 0 1.5rem" }}>
         {firstName}
       </h1>
 
@@ -80,32 +80,33 @@ export default function AccountOverview() {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <h2 className={styles.heading} style={{ fontSize: "1.375rem", margin: "0 0 1rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 1rem" }}>
+            <h2 className={styles.heading} style={{ fontSize: "1.875rem", lineHeight: "2.25rem", margin: 0 }}>
               Active subscription
             </h2>
-            <Link to="/account/subscriptions">View all &rarr;</Link>
+            <Link to="/account/subscriptions" className={styles.viewAllLink}>
+              View all &rarr;
+            </Link>
           </div>
 
           {overview.activeSubscription ? (
-            <div className={styles.card}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div className={styles.card} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                <div className={styles.productThumb}>CLRTY</div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: "1.0625rem" }}>
-                    {overview.activeSubscription.productTitle}
-                  </div>
-                  <div style={{ color: "#6b6558", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+                  <div className={styles.productTitle}>{overview.activeSubscription.productTitle}</div>
+                  <div className={styles.productMeta}>
                     Next delivery &bull; {formatDate(overview.activeSubscription.nextBillingDate)}
                   </div>
                 </div>
-                <span className={styles.badgeActive}>Active</span>
               </div>
+              <span className={styles.badgeDot}>Active</span>
             </div>
           ) : (
             <div className={styles.emptyState}>No active subscription right now.</div>
           )}
 
-          <h2 className={styles.heading} style={{ fontSize: "1.375rem", margin: "2rem 0 1rem" }}>
+          <h2 className={styles.heading} style={{ fontSize: "1.875rem", lineHeight: "2.25rem", margin: "2rem 0 1rem" }}>
             Recent orders
           </h2>
           {overview.recentOrders.length === 0 ? (

@@ -297,27 +297,86 @@
 
 .statCard {
   background: #fff;
-  border: 1px solid #e7e2d8;
+  border: 1px solid #e5e3db;
   border-radius: 0.5rem;
-  padding: 1.25rem;
+  padding: 2rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .statLabel {
-  composes: eyebrow;
+  font-family: "Geist", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #6b7280;
 }
 
 .statValue {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin-top: 0.375rem;
+  font-family: "Geist", sans-serif;
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #1e1e1e;
+  margin-top: 0.5rem;
 }
 
 .card {
   background: #fff;
-  border: 1px solid #e7e2d8;
+  border: 1px solid #e5e3db;
   border-radius: 0.5rem;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.productThumb {
+  width: 4rem;
+  height: 4rem;
+  flex-shrink: 0;
+  border: 1px solid #e5e3db;
+  border-radius: 0.375rem;
+  background: #f3f1e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Geist", sans-serif;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8a8478;
+}
+
+.productTitle {
+  font-family: "Geist", sans-serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.5556;
+  color: #1e1e1e;
+}
+
+.productMeta {
+  font-family: "Geist", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.viewAllLink {
+  font-family: "Inter", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4286;
+  color: #1e1e1e;
+  text-decoration: none;
+}
+
+.viewAllLink:hover {
+  text-decoration: underline;
 }
 
 .table {
@@ -327,54 +386,84 @@
 
 .table th {
   text-align: left;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-family: "Geist", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #8a8478;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #e7e2d8;
+  color: #6b7280;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e3db;
 }
 
 .table td {
-  padding: 0.75rem;
+  padding: 1rem 0.75rem;
   border-bottom: 1px solid #f0ede4;
-  font-size: 0.9375rem;
+  font-family: "Geist", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: #1e1e1e;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #e5e3db;
+  border-radius: 9999px;
+  font-family: "Geist", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 .badgeActive {
   composes: badge;
-  background: #e5f3e5;
-  color: #2a7a2a;
+  color: #5a6d59;
 }
 
 .badgePaused {
   composes: badge;
-  background: #fdf0dc;
   color: #9a6a10;
 }
 
 .badgeCancelled {
   composes: badge;
-  background: #fbeceb;
   color: #a02b1f;
 }
 
 .badgeNeutral {
   composes: badge;
-  background: #f0ede4;
-  color: #6b6558;
+  color: #6b7280;
+}
+
+.badgeDot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #c4c7c7;
+  border-radius: 9999px;
+  font-family: "Liberation Mono", "Courier New", monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #5a6d59;
+}
+
+.badgeDot::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: currentColor;
 }
 
 .buttonSecondary {
