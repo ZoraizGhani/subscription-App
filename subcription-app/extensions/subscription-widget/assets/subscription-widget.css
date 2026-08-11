@@ -36,8 +36,10 @@
 
 .subscription-widget__quantity-label {
   margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.0714;
+  letter-spacing: 0;
   color: #1a1a1a;
 }
 
@@ -142,19 +144,33 @@
 .subscription-widget__quantity {
   display: inline-flex;
   align-items: center;
-  border: 1px solid #d1d1d1;
+  border: 1px solid #1a1a1a;
   border-radius: 999px;
   width: fit-content;
+  overflow: hidden;
 }
 
 .subscription-widget__quantity button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 2.5rem;
-  height: 2.5rem;
+  height: 1.8125rem;
+  padding: 0;
   border: none;
-  border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  font-size: 1.125rem;
+  font-size: 1.375rem;
+  line-height: 1;
+  color: #1a1a1a;
+}
+
+.subscription-widget__quantity button[data-quantity-decrease] {
+  border-right: 1px solid #1a1a1a;
+}
+
+.subscription-widget__quantity button[data-quantity-increase] {
+  border-left: 1px solid #1a1a1a;
 }
 
 .subscription-widget__quantity input {
@@ -162,8 +178,17 @@
   text-align: center;
   border: none;
   background: none;
-  height: 2.5rem;
-  font-size: 0.9375rem;
+  height: 1.8125rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  -moz-appearance: textfield;
+}
+
+.subscription-widget__quantity input::-webkit-outer-spin-button,
+.subscription-widget__quantity input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* --- Plan cards --- */
