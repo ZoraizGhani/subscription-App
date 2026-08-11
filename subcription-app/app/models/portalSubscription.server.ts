@@ -102,8 +102,22 @@ export async function getPortalOverview({
   });
 
   const activeContracts = contracts.filter((c) => c.status === "ACTIVE");
+
+  let correctedDates = new Map<string, Date | null>();
+  try {
+    const { admin } = await unauthenticated.admin(shop);
+    correctedDates = new Map(
+      await Promise.all(
+        activeContracts.map(async (c) => [c.shopifyId, await correctedNextBillingDate({ admin, contract: c })] as const),
+      ),
+    );
+  } catch {
+    // Live correction is a best-effort accuracy improvement -- if the admin
+    // client itself can't be obtained, fall through to the mirrored dates.
+  }
+
   const nextCharge = activeContracts
-    .map((c) => c.nextBillingDate)
+    .map((c) => correctedDates.get(c.shopifyId) ?? c.nextBillingDate)
     .filter((d): d is Date => d != null)
     .sort((a, b) => a.getTime() - b.getTime())[0];
 
@@ -115,7 +129,7 @@ export async function getPortalOverview({
       ? {
           contractShopifyId: activeContracts[0].shopifyId,
           productTitle: firstLineTitle(activeContracts[0].linesJson),
-          nextBillingDate: activeContracts[0].nextBillingDate,
+          nextBillingDate: correctedDates.get(activeContracts[0].shopifyId) ?? activeContracts[0].nextBillingDate,
           status: activeContracts[0].status,
         }
       : null,
@@ -155,9 +169,11 @@ export async function listPortalSubscriptions({
   );
 
   const handleByProductId = new Map<string, string>();
-  if (productIds.length) {
-    try {
-      const { admin } = await unauthenticated.admin(shop);
+  let correctedDates = new Map<string, Date | null>();
+  try {
+    const { admin } = await unauthenticated.admin(shop);
+
+    if (productIds.length) {
       const response = await admin.graphql(PRODUCT_HANDLES_QUERY, { variables: { ids: productIds } });
       const body = (await response.json()) as {
         data?: { nodes: ({ id: string; handle: string } | null)[] };
@@ -165,10 +181,22 @@ export async function listPortalSubscriptions({
       for (const node of body.data?.nodes ?? []) {
         if (node) handleByProductId.set(node.id, node.handle);
       }
-    } catch {
-      // Product links are a convenience -- if this lookup fails, the list
-      // still renders fine without a storefront link.
     }
+
+    // Shopify's own contract.nextBillingDate doesn't reliably advance once a
+    // cycle has been charged out-of-band (e.g. via Ship Now) -- see
+    // findNextUnbilledCycle's doc comment. Recompute it live for active
+    // contracts so "next shipment" doesn't show a stale, already-billed date.
+    correctedDates = new Map(
+      await Promise.all(
+        contracts
+          .filter((c) => c.status === "ACTIVE")
+          .map(async (c) => [c.shopifyId, await correctedNextBillingDate({ admin, contract: c })] as const),
+      ),
+    );
+  } catch {
+    // Best-effort accuracy improvements -- if the admin client itself can't
+    // be obtained, the list still renders fine with the mirrored data.
   }
 
   return contracts.map((c) => {
@@ -180,7 +208,7 @@ export async function listPortalSubscriptions({
       status: c.status,
       totalAmount: c.totalAmount,
       currencyCode: c.currencyCode,
-      nextBillingDate: c.nextBillingDate,
+      nextBillingDate: correctedDates.get(c.shopifyId) ?? c.nextBillingDate,
       billingInterval: c.billingInterval,
       billingIntervalCount: c.billingIntervalCount,
       cancellationReason: c.cancellationReason,
@@ -334,6 +362,41 @@ export async function findNextUnbilledCycle(
   }
 
   throw new Error("Could not find an upcoming billing cycle for this subscription.");
+}
+
+/**
+ * Read-model version of the same correction skipPortalNextOrder/shipPortalOrderNow
+ * already apply after their own mutations: resolves the contract's TRUE next
+ * unbilled cycle via a live scan (see findNextUnbilledCycle's doc comment for
+ * why the mirrored/raw field can't be trusted), and self-heals the Postgres
+ * mirror if it's out of sync so later reads don't have to re-scan. Only
+ * meaningful for ACTIVE contracts; anything else just echoes back its stored
+ * date since there's no "next actionable cycle" to resolve. Never throws --
+ * a scan failure (rate limit, contract just changed state, etc.) falls back
+ * to the possibly-stale mirrored date rather than breaking the page.
+ */
+async function correctedNextBillingDate({
+  admin,
+  contract,
+}: {
+  admin: Awaited<ReturnType<typeof unauthenticated.admin>>["admin"];
+  contract: { shopifyId: string; status: string; nextBillingDate: Date | null };
+}): Promise<Date | null> {
+  if (contract.status !== "ACTIVE") return contract.nextBillingDate;
+
+  try {
+    const real = await findNextUnbilledCycle(admin, contract.shopifyId);
+    const realDate = new Date(real.date);
+    if (!contract.nextBillingDate || realDate.getTime() !== contract.nextBillingDate.getTime()) {
+      await db.subscriptionContract.update({
+        where: { shopifyId: contract.shopifyId },
+        data: { nextBillingDate: realDate },
+      });
+    }
+    return realDate;
+  } catch {
+    return contract.nextBillingDate;
+  }
 }
 
 const SKIP_CYCLE_MUTATION = `#graphql
