@@ -126,10 +126,10 @@
     <div class="subscription-widget__section">
       <p class="subscription-widget__section-label">{{ block.settings.plan_section_label }}</p>
 
+      <div class="subscription-widget__plan-cards">
       <label class="subscription-widget__plan-card" data-plan-card="subscribe">
         <span class="subscription-widget__plan-card-radio">
           <input type="radio" name="subscription-widget-mode-{{ block.id }}" value="subscribe" checked data-plan-mode="subscribe">
-          <span class="subscription-widget__plan-card-radio-dot" aria-hidden="true"></span>
         </span>
         <span class="subscription-widget__plan-card-body">
           <span class="subscription-widget__plan-card-top">
@@ -159,7 +159,6 @@
         <label class="subscription-widget__plan-card" data-plan-card="onetime">
           <span class="subscription-widget__plan-card-radio">
             <input type="radio" name="subscription-widget-mode-{{ block.id }}" value="onetime" data-plan-mode="onetime">
-            <span class="subscription-widget__plan-card-radio-dot" aria-hidden="true"></span>
           </span>
           <span class="subscription-widget__plan-card-body">
             <span class="subscription-widget__plan-card-top">
@@ -171,6 +170,7 @@
           </span>
         </label>
       {%- endif -%}
+      </div>
 
       {%- if block.settings.benefit_1 != blank or block.settings.benefit_2 != blank or block.settings.benefit_3 != blank -%}
         <ul class="subscription-widget__benefits">

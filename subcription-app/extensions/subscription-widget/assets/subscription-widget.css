@@ -208,6 +208,16 @@
 
 /* --- Plan cards --- */
 
+.subscription-widget__plan-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.625rem 1.25rem 1.25rem;
+  border: 1px solid #1a1a1a;
+  border-radius: 0.125rem;
+  background: #fdfdfd;
+}
+
 .subscription-widget__plan-card {
   display: flex;
   align-items: flex-start;
@@ -215,7 +225,6 @@
   padding: 0.625rem 1.25rem 1.25rem;
   border: 1px solid #e2e2e2;
   border-radius: 0.125rem;
-  margin-bottom: 1rem;
   background: #fdfdfd;
   cursor: pointer;
 }
@@ -224,15 +233,15 @@
   border-color: #1a1a1a;
 }
 
-/* --- Custom radio: plain outline, filled dot only when checked --- */
+/* --- Custom radio: thin outline, thick ring border only when checked --- */
 
 .subscription-widget__plan-card-radio {
-  position: relative;
   padding-top: 0.1875rem;
 }
 
 .subscription-widget__plan-card-radio input {
   appearance: none;
+  box-sizing: border-box;
   width: 1rem;
   height: 1rem;
   margin: 0;
@@ -243,23 +252,8 @@
 }
 
 .subscription-widget__plan-card-radio input:checked {
+  border-width: 4px;
   border-color: var(--subscription-widget-accent);
-}
-
-.subscription-widget__plan-card-radio-dot {
-  display: none;
-  position: absolute;
-  top: calc(0.1875rem + 2px);
-  left: 2px;
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 50%;
-  background: var(--subscription-widget-accent);
-  pointer-events: none;
-}
-
-.subscription-widget__plan-card-radio input:checked ~ .subscription-widget__plan-card-radio-dot {
-  display: block;
 }
 
 .subscription-widget__plan-card-body {
