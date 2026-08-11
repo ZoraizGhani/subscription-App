@@ -399,6 +399,29 @@ async function correctedNextBillingDate({
   }
 }
 
+/**
+ * Re-scans for the cycle that should now be next after skipping/charging
+ * `previousIndex`. Shopify doesn't always finish recomputing cycle
+ * availability synchronously with the mutation response -- scanning again
+ * immediately can occasionally land one cycle further out than it should
+ * (confirmed live: a skip of cycle 6 briefly reported cycle 8 as next,
+ * skipping straight past the legitimately still-unbilled cycle 7). Retries a
+ * few times with a short delay whenever the result isn't the immediate next
+ * index, rather than trusting the first scan unconditionally.
+ */
+async function findImmediateNextCycle(
+  admin: Awaited<ReturnType<typeof unauthenticated.admin>>["admin"],
+  contractShopifyId: string,
+  previousIndex: number,
+) {
+  let cycle = await findNextUnbilledCycle(admin, contractShopifyId);
+  for (let attempt = 0; attempt < 3 && cycle.index !== previousIndex + 1; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    cycle = await findNextUnbilledCycle(admin, contractShopifyId);
+  }
+  return cycle;
+}
+
 const SKIP_CYCLE_MUTATION = `#graphql
   mutation PortalSkipBillingCycle($input: SubscriptionBillingCycleInput!) {
     subscriptionBillingCycleSkip(billingCycleInput: $input) {
@@ -439,7 +462,7 @@ export async function skipPortalNextOrder({
     throw new Error(`subscriptionBillingCycleSkip failed: ${JSON.stringify(userErrors)}`);
   }
 
-  const refreshedCycle = await findNextUnbilledCycle(admin, contractShopifyId);
+  const refreshedCycle = await findImmediateNextCycle(admin, contractShopifyId, nextCycle.index);
   await db.subscriptionContract.update({
     where: { shopifyId: contract.shopifyId },
     data: { nextBillingDate: new Date(refreshedCycle.date) },
@@ -533,7 +556,7 @@ export async function shipPortalOrderNow({
     }
   }
 
-  const refreshedCycle = await findNextUnbilledCycle(admin, contractShopifyId);
+  const refreshedCycle = await findImmediateNextCycle(admin, contractShopifyId, nextCycle.index);
   await db.subscriptionContract.update({
     where: { shopifyId: contractShopifyId },
     data: { nextBillingDate: new Date(refreshedCycle.date) },
