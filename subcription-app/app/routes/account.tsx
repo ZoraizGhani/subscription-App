@@ -68,7 +68,15 @@ export default function AccountLayout() {
 
   return (
     <div className={styles.page}>
+      <div className={styles.siteHeader}>
+        <div className={styles.siteHeaderLogo}>
+          <span className={styles.brandMark}>CLRTY</span>
+          <span className={styles.brandSub}>Supplements</span>
+        </div>
+      </div>
+
       <div className={styles.topbar}>
+        <span aria-hidden="true" />
         <div className={styles.topbarNav}>
           <span>Shop</span>
           <span>Science</span>
@@ -84,10 +92,6 @@ export default function AccountLayout() {
 
       <div className={styles.shell}>
         <aside className={styles.sidebar}>
-          <div className={styles.brand}>
-            <span className={styles.brandMark}>CLRTY</span>
-            <span className={styles.brandSub}>Supplements</span>
-          </div>
           <nav className={styles.nav}>
             <NavLink
               to="/account"
