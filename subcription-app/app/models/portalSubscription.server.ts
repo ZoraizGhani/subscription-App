@@ -11,24 +11,22 @@ interface ContractLine {
   productId?: string | null;
 }
 
-function firstLineTitle(linesJson: string | null): string {
-  if (!linesJson) return "Subscription";
-  try {
-    const lines = JSON.parse(linesJson) as ContractLine[];
-    return lines[0]?.title ?? "Subscription";
-  } catch {
-    return "Subscription";
-  }
-}
-
-function firstLineProductId(linesJson: string | null): string | null {
+function firstLine(linesJson: string | null): ContractLine | null {
   if (!linesJson) return null;
   try {
     const lines = JSON.parse(linesJson) as ContractLine[];
-    return lines[0]?.productId ?? null;
+    return lines[0] ?? null;
   } catch {
     return null;
   }
+}
+
+function firstLineTitle(linesJson: string | null): string {
+  return firstLine(linesJson)?.title ?? "Subscription";
+}
+
+function firstLineProductId(linesJson: string | null): string | null {
+  return firstLine(linesJson)?.productId ?? null;
 }
 
 const ORDER_FULFILLMENT_STATUS_QUERY = `#graphql
@@ -172,6 +170,32 @@ const PRODUCT_HANDLES_QUERY = `#graphql
   }
 `;
 
+const CONTRACT_SUMMARY_QUERY = `#graphql
+  query PortalContractSummaries($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on SubscriptionContract {
+        id
+        customerPaymentMethod {
+          instrument {
+            ... on CustomerCreditCard { brand lastDigits }
+          }
+        }
+        deliveryMethod {
+          ... on SubscriptionDeliveryMethodShipping {
+            address { city }
+          }
+        }
+      }
+    }
+  }
+`;
+
+interface ContractSummaryNode {
+  id: string;
+  customerPaymentMethod: { instrument: { brand?: string; lastDigits?: string } | null } | null;
+  deliveryMethod: { address?: { city: string | null } } | null;
+}
+
 export async function listPortalSubscriptions({
   shop,
   customerShopifyId,
@@ -189,6 +213,7 @@ export async function listPortalSubscriptions({
   );
 
   const handleByProductId = new Map<string, string>();
+  const summaryByContractId = new Map<string, { shipToDisplay: string | null; paymentMethodDisplay: string | null }>();
   let correctedDates = new Map<string, Date | null>();
   try {
     const { admin } = await unauthenticated.admin(shop);
@@ -200,6 +225,23 @@ export async function listPortalSubscriptions({
       };
       for (const node of body.data?.nodes ?? []) {
         if (node) handleByProductId.set(node.id, node.handle);
+      }
+    }
+
+    // Ship-to/payment summaries are only shown for active contracts, so only
+    // fetch what the UI will actually render.
+    const activeContractIds = contracts.filter((c) => c.status === "ACTIVE").map((c) => c.shopifyId);
+    if (activeContractIds.length) {
+      const response = await admin.graphql(CONTRACT_SUMMARY_QUERY, { variables: { ids: activeContractIds } });
+      const body = (await response.json()) as { data?: { nodes: (ContractSummaryNode | null)[] } };
+      for (const node of body.data?.nodes ?? []) {
+        if (!node) continue;
+        const instrument = node.customerPaymentMethod?.instrument;
+        summaryByContractId.set(node.id, {
+          shipToDisplay: node.deliveryMethod?.address?.city ?? null,
+          paymentMethodDisplay:
+            instrument?.brand && instrument.lastDigits ? `${instrument.brand} •••• ${instrument.lastDigits}` : null,
+        });
       }
     }
 
@@ -220,11 +262,14 @@ export async function listPortalSubscriptions({
   }
 
   return contracts.map((c) => {
-    const productId = firstLineProductId(c.linesJson);
+    const line = firstLine(c.linesJson);
+    const summary = summaryByContractId.get(c.shopifyId);
     return {
       contractShopifyId: c.shopifyId,
-      productTitle: firstLineTitle(c.linesJson),
-      productHandle: productId ? (handleByProductId.get(productId) ?? null) : null,
+      productTitle: line?.title ?? "Subscription",
+      productHandle: line?.productId ? (handleByProductId.get(line.productId) ?? null) : null,
+      quantity: line?.quantity ?? null,
+      variantTitle: line?.variantTitle ?? null,
       status: c.status,
       totalAmount: c.totalAmount,
       currencyCode: c.currencyCode,
@@ -232,6 +277,8 @@ export async function listPortalSubscriptions({
       billingInterval: c.billingInterval,
       billingIntervalCount: c.billingIntervalCount,
       cancellationReason: c.cancellationReason,
+      shipToDisplay: summary?.shipToDisplay ?? null,
+      paymentMethodDisplay: summary?.paymentMethodDisplay ?? null,
     };
   });
 }

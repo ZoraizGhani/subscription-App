@@ -581,10 +581,18 @@
 /* --- Pill action buttons (row of actions on a subscription card) --- */
 
 .pillButton {
-  padding: 0.625rem 1.25rem;
-  border-radius: 999px;
-  font-size: 0.8125rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border-radius: 9999px;
+  font-family: "Geist", sans-serif;
+  font-size: 0.625rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -592,15 +600,15 @@
 .pillNeutral {
   composes: pillButton;
   background: #fff;
-  color: #1a1a1a;
-  border: 1px solid #d8d2c4;
+  color: #1d1d1d;
+  border: 1px solid #e8e4dd;
 }
 
 .pillDark {
   composes: pillButton;
-  background: #1a1a1a;
+  background: #1d1d1d;
   color: #fff;
-  border: 1px solid #1a1a1a;
+  border: 1px solid #1d1d1d;
 }
 
 .pillButton:disabled {
@@ -611,40 +619,159 @@
 /* --- Subscription card --- */
 
 .subCard {
-  composes: card;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  border: 1px solid #e8e4dd;
+  border-radius: 0.5rem;
+  background: #fbf9f6;
+  margin-bottom: 1.5rem;
 }
 
 .subHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid #f0ede4;
-  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
+.subContract {
+  display: block;
+  font-family: "Geist", sans-serif;
+  font-size: 0.65rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #757575;
+}
+
+.subTitle {
+  composes: heading;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  color: #1d1d1d;
+  margin-top: 0.25rem;
+}
+
+.subPriceLabel {
+  display: block;
+  text-align: right;
+  font-family: "Geist", sans-serif;
+  font-size: 0.65rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #757575;
 }
 
 .subPrice {
   text-align: right;
+  font-family: "Geist", sans-serif;
   font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #000;
+  margin-top: 0.25rem;
+}
+
+.subDivider {
+  border: none;
+  border-top: 1px solid #e8e4dd;
+  margin: 0;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: fit-content;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.625rem;
   font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+}
+
+.statusPill::before {
+  content: "";
+  width: 0.375rem;
+  height: 0.375rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.statusActive {
+  composes: statusPill;
+  background: #bddaa1;
+  color: #3b5d44;
+}
+
+.statusFailed {
+  composes: statusPill;
+  background: #f5c2c2;
+  color: #7a2222;
+}
+
+.statusCancelled {
+  composes: statusPill;
+  background: #e5e3db;
+  color: #4a463e;
 }
 
 .metaGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
   gap: 1.25rem;
-  margin-bottom: 1.25rem;
 }
 
 .metaLabel {
-  composes: eyebrow;
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.375rem;
+  font-family: "Geist", sans-serif;
+  font-size: 0.65rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #757575;
 }
 
 .metaValue {
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-family: "Geist", sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #000;
+}
+
+.metaSubtext {
+  display: block;
+  margin-top: 0.125rem;
+  font-family: "Geist", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.333;
+  color: #757575;
+}
+
+.shipPayRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  font-family: "Geist", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.333;
+  color: #1d1d1d;
 }
 
 .actionsRow {
@@ -652,8 +779,6 @@
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
-  padding-top: 1.25rem;
-  border-top: 1px solid #f0ede4;
 }
 
 .actionsRow > .cancelLink {
@@ -661,12 +786,21 @@
 }
 
 .cancelLink {
-  color: #a02b1f;
-  font-size: 0.875rem;
-  text-decoration: underline;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.625rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #757575;
+  text-decoration: none;
   background: none;
   border: none;
   cursor: pointer;
+}
+
+.cancelLink:hover {
+  text-decoration: underline;
 }
 
 /* --- Modal --- */

@@ -214,12 +214,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 };
 
-const STATUS_BADGE: Record<string, string> = {
-  ACTIVE: styles.badgeActive,
-  PAUSED: styles.badgePaused,
-  CANCELLED: styles.badgeCancelled,
-  EXPIRED: styles.badgeNeutral,
-  FAILED: styles.badgeCancelled,
+const STATUS_PILL: Record<string, string> = {
+  ACTIVE: styles.statusActive,
+  PAUSED: styles.statusCancelled,
+  CANCELLED: styles.statusCancelled,
+  EXPIRED: styles.statusCancelled,
+  FAILED: styles.statusFailed,
 };
 
 function ManageSubscriptionModal({
@@ -582,8 +582,8 @@ function SubscriptionCard({
     <div className={styles.subCard}>
       <div className={styles.subHeader}>
         <div>
-          <span className={styles.eyebrow}>Contract #{sub.contractShopifyId.split("/").pop()}</span>
-          <div style={{ fontWeight: 700, fontSize: "1.125rem", marginTop: "0.25rem" }}>
+          <span className={styles.subContract}>Contract #{sub.contractShopifyId.split("/").pop()}</span>
+          <div className={styles.subTitle}>
             {productUrl ? (
               <a href={productUrl} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>
                 {sub.productTitle}
@@ -592,91 +592,107 @@ function SubscriptionCard({
               sub.productTitle
             )}
           </div>
-          <span
-            className={STATUS_BADGE[sub.status] ?? styles.badgeNeutral}
-            style={{ marginTop: "0.5rem", display: "inline-flex" }}
-          >
-            {sub.status}
-          </span>
-        </div>
-        <div className={styles.subPrice}>{formatMoney(sub.totalAmount, sub.currencyCode)}</div>
-      </div>
-
-      <div className={styles.metaGrid}>
-        <div>
-          <span className={styles.metaLabel}>Next shipment</span>
-          <div className={styles.metaValue}>{formatDate(sub.nextBillingDate)}</div>
+          <span className={STATUS_PILL[sub.status] ?? styles.statusCancelled}>{sub.status}</span>
         </div>
         <div>
-          <span className={styles.metaLabel}>Delivery interval</span>
-          <div className={styles.metaValue}>
-            {formatInterval(sub.billingInterval, sub.billingIntervalCount)}
-          </div>
-        </div>
-        <div>
-          <span className={styles.metaLabel}>Billing status</span>
-          <div className={styles.metaValue}>{sub.status === "ACTIVE" ? "Active" : sub.status}</div>
+          <span className={styles.subPriceLabel}>Unit price</span>
+          <div className={styles.subPrice}>{formatMoney(sub.totalAmount, sub.currencyCode)}</div>
         </div>
       </div>
-
-      {fetcher.data?.intent === "skip" && "success" in fetcher.data && (
-        <div className={styles.success}>Next order skipped. New next shipment date above.</div>
-      )}
-      {fetcher.data?.intent === "shipNow" && "success" in fetcher.data && (
-        <div className={styles.success}>
-          {fetcher.data.orderName
-            ? `Order ${fetcher.data.orderName} placed.`
-            : "Charge submitted — check Order History shortly."}
-        </div>
-      )}
-      {fetcher.data && "error" in fetcher.data && (fetcher.data.intent === "skip" || fetcher.data.intent === "shipNow") && (
-        <div className={styles.error}>{fetcher.data.error}</div>
-      )}
 
       {sub.status === "ACTIVE" && (
-        <div className={styles.actionsRow}>
-          <button
-            type="button"
-            className={styles.pillNeutral}
-            disabled={busy}
-            onClick={() => runAction("skip")}
-          >
-            {busyIntent === "skip" ? "Skipping..." : "Skip Next Order"}
-          </button>
-          <button
-            type="button"
-            className={styles.pillNeutral}
-            disabled={busy}
-            onClick={() => runAction("shipNow")}
-          >
-            {busyIntent === "shipNow" ? "Charging..." : "Ship Now"}
-          </button>
-          <button type="button" className={styles.pillDark} onClick={() => setManageOpen(true)}>
-            Manage Subscription
-          </button>
-          {productUrl ? (
-            <a
-              href={productUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={styles.pillNeutral}
-              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
-            >
-              + Add One-time Item
-            </a>
-          ) : (
-            <button type="button" className={styles.pillNeutral} disabled title="Product page unavailable">
-              + Add One-time Item
-            </button>
+        <>
+          <hr className={styles.subDivider} />
+
+          <div className={styles.metaGrid}>
+            <div>
+              <span className={styles.metaLabel}>Next shipment</span>
+              <div className={styles.metaValue}>{formatDate(sub.nextBillingDate)}</div>
+            </div>
+            <div>
+              <span className={styles.metaLabel}>Delivery interval</span>
+              <div className={styles.metaValue}>
+                {formatInterval(sub.billingInterval, sub.billingIntervalCount)}
+              </div>
+            </div>
+            <div>
+              <span className={styles.metaLabel}>Quantity</span>
+              <div className={styles.metaValue}>{sub.quantity ?? "—"}</div>
+              {sub.variantTitle && <span className={styles.metaSubtext}>{sub.variantTitle}</span>}
+            </div>
+            <div>
+              <span className={styles.metaLabel}>Billing status</span>
+              <div className={styles.metaValue}>Active</div>
+            </div>
+          </div>
+
+          {(sub.shipToDisplay || sub.paymentMethodDisplay) && (
+            <div className={styles.shipPayRow}>
+              <span>Ship to &bull; {sub.shipToDisplay ?? "—"}</span>
+              <span>Pay with &bull; {sub.paymentMethodDisplay ?? "—"}</span>
+            </div>
           )}
-          <button
-            type="button"
-            className={styles.cancelLink}
-            onClick={() => onCancel(sub.contractShopifyId)}
-          >
-            Cancel subscription
-          </button>
-        </div>
+
+          {fetcher.data?.intent === "skip" && "success" in fetcher.data && (
+            <div className={styles.success}>Next order skipped. New next shipment date above.</div>
+          )}
+          {fetcher.data?.intent === "shipNow" && "success" in fetcher.data && (
+            <div className={styles.success}>
+              {fetcher.data.orderName
+                ? `Order ${fetcher.data.orderName} placed.`
+                : "Charge submitted — check Order History shortly."}
+            </div>
+          )}
+          {fetcher.data &&
+            "error" in fetcher.data &&
+            (fetcher.data.intent === "skip" || fetcher.data.intent === "shipNow") && (
+              <div className={styles.error}>{fetcher.data.error}</div>
+            )}
+
+          <div className={styles.actionsRow}>
+            <button
+              type="button"
+              className={styles.pillNeutral}
+              disabled={busy}
+              onClick={() => runAction("skip")}
+            >
+              {busyIntent === "skip" ? "Skipping..." : "Skip Next Order"}
+            </button>
+            <button
+              type="button"
+              className={styles.pillNeutral}
+              disabled={busy}
+              onClick={() => runAction("shipNow")}
+            >
+              {busyIntent === "shipNow" ? "Charging..." : "Ship Now"}
+            </button>
+            <button type="button" className={styles.pillDark} onClick={() => setManageOpen(true)}>
+              Manage Subscription
+            </button>
+            {productUrl ? (
+              <a
+                href={productUrl}
+                target="_blank"
+                rel="noreferrer"
+                className={styles.pillNeutral}
+                style={{ textDecoration: "none" }}
+              >
+                + Add One-time Item
+              </a>
+            ) : (
+              <button type="button" className={styles.pillNeutral} disabled title="Product page unavailable">
+                + Add One-time Item
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles.cancelLink}
+              onClick={() => onCancel(sub.contractShopifyId)}
+            >
+              Cancel subscription
+            </button>
+          </div>
+        </>
       )}
 
       {manageOpen && <ManageSubscriptionModal sub={sub} onClose={() => setManageOpen(false)} />}
