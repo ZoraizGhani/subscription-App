@@ -55,10 +55,6 @@
       }
     </script>
 
-    {%- if block.settings.reassurance_text != blank -%}
-      <p class="subscription-widget__reassurance">{{ block.settings.reassurance_text }}</p>
-    {%- endif -%}
-
     {%- if product.has_only_default_variant == false -%}
       {%- assign first_option = product.options_with_values.first -%}
       <div class="subscription-widget__section">
@@ -206,6 +202,12 @@
       {{ block.settings.subscribe_button_label }}
     </button>
 
+    <div class="subscription-widget__footer-meta">
+      <span>Variant {{ current_variant.id }}</span>
+      {%- if block.settings.reassurance_text != blank -%}<span>{{ block.settings.reassurance_text }}</span>{%- endif -%}
+      {%- if block.settings.cancel_note != blank -%}<span>{{ block.settings.cancel_note }}</span>{%- endif -%}
+    </div>
+
     <p class="subscription-widget__status" data-status role="status" aria-live="polite"></p>
   </div>
 
@@ -244,7 +246,8 @@
     { "type": "header", "content": "Buttons & reassurance copy" },
     { "type": "text", "id": "subscribe_button_label", "label": "Subscribe button label", "default": "Subscribe" },
     { "type": "text", "id": "one_time_button_label", "label": "One-time purchase button label", "default": "Add to cart" },
-    { "type": "text", "id": "reassurance_text", "label": "Reassurance line (leave blank to hide)", "default": "Charged at each delivery · Manage anytime in your account" },
+    { "type": "text", "id": "reassurance_text", "label": "Reassurance note 1 (leave blank to hide)", "default": "Charged at each delivery" },
+    { "type": "text", "id": "cancel_note", "label": "Reassurance note 2 (leave blank to hide)", "default": "Cancel from your account anytime" },
 
     { "type": "header", "content": "Appearance" },
     { "type": "color", "id": "accent_color", "label": "Accent color", "default": "#1a1a1a" }
