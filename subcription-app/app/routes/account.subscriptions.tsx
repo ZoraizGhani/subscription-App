@@ -83,6 +83,34 @@ function formatInterval(interval: string | null, count: number | null) {
   return `Every ${count} ${unit}${count === 1 ? "" : "s"}`;
 }
 
+function toIsoDate(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function todayIsoDate() {
+  return toIsoDate(new Date());
+}
+
+/** Adds `count` units of `interval` to today's date, for previewing where a
+ * frequency change would land the next delivery. */
+function addIntervalToToday(interval: string, count: number) {
+  const result = new Date();
+  switch (interval) {
+    case "WEEK":
+      result.setDate(result.getDate() + count * 7);
+      break;
+    case "MONTH":
+      result.setMonth(result.getMonth() + count);
+      break;
+    case "YEAR":
+      result.setFullYear(result.getFullYear() + count);
+      break;
+    default:
+      result.setDate(result.getDate() + count);
+  }
+  return toIsoDate(result);
+}
+
 function blankAddress(): ShippingAddress {
   return {
     address1: "",
@@ -340,8 +368,22 @@ function ManageSubscriptionModal({
   const unitPrice = activeVariant ? Number(activeVariant.price) : 0;
   const currencyCode = activeVariant?.currencyCode ?? sub.currencyCode;
 
+  // Can't schedule a delivery earlier than today, and if today's cycle has
+  // already been billed (options.nextBillingDate -- the corrected true next
+  // *unbilled* cycle -- has moved past today), today is spoken for too.
+  const minSelectableDate = options?.nextBillingDate
+    ? [todayIsoDate(), options.nextBillingDate.slice(0, 10)].sort().pop()!
+    : todayIsoDate();
+
   const setAddressField = (field: keyof ShippingAddress, value: string) => {
     setAddress({ ...(currentAddress ?? blankAddress()), [field]: value });
+  };
+
+  const applyFrequency = (newInterval: string, newIntervalCount: number) => {
+    setInterval_(newInterval);
+    setIntervalCount(newIntervalCount);
+    const projected = addIntervalToToday(newInterval, newIntervalCount);
+    setNextDeliveryDate(projected < minSelectableDate ? minSelectableDate : projected);
   };
 
   const saving = saveFetcher.state !== "idle";
@@ -408,7 +450,10 @@ function ManageSubscriptionModal({
                   type="date"
                   className={styles.manageDateInput}
                   value={activeDate}
-                  onChange={(e) => setNextDeliveryDate(e.target.value)}
+                  min={minSelectableDate}
+                  onChange={(e) =>
+                    setNextDeliveryDate(e.target.value < minSelectableDate ? minSelectableDate : e.target.value)
+                  }
                 />
                 <svg
                   className={styles.manageDateIcon}
@@ -437,13 +482,13 @@ function ManageSubscriptionModal({
                   type="number"
                   min={1}
                   value={activeIntervalCount}
-                  onChange={(e) => setIntervalCount(Math.max(1, Number(e.target.value) || 1))}
+                  onChange={(e) => applyFrequency(activeInterval, Math.max(1, Number(e.target.value) || 1))}
                 />
                 <select
                   className={styles.manageSelect}
                   style={{ flex: 1 }}
                   value={activeInterval}
-                  onChange={(e) => setInterval_(e.target.value)}
+                  onChange={(e) => applyFrequency(e.target.value, activeIntervalCount)}
                 >
                   {INTERVAL_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
