@@ -523,6 +523,11 @@
 }
 
 .orderHistoryBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
   font-family: "Geist", sans-serif;
   font-weight: 600;
   font-size: 0.65rem;
@@ -530,21 +535,25 @@
   letter-spacing: 0.0325rem;
   text-transform: uppercase;
   text-align: center;
+  background: rgba(107, 114, 128, 0.12);
   color: #6b7280;
 }
 
 .orderHistoryBadgeDelivered {
   composes: orderHistoryBadge;
-  color: #8fa28a;
+  background: rgba(143, 162, 138, 0.22);
+  color: #5a6d59;
 }
 
 .orderHistoryBadgePaused {
   composes: orderHistoryBadge;
+  background: rgba(154, 106, 16, 0.14);
   color: #9a6a10;
 }
 
 .orderHistoryBadgeCancelled {
   composes: orderHistoryBadge;
+  background: rgba(160, 43, 31, 0.12);
   color: #a02b1f;
 }
 
