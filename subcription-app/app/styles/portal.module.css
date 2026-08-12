@@ -690,7 +690,6 @@
   width: fit-content;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
-  font-family: "Inter", sans-serif;
   font-size: 0.625rem;
   font-weight: 700;
   line-height: 1.5;
@@ -710,20 +709,23 @@
 
 .statusActive {
   composes: statusPill;
+  font-family: "Inter", sans-serif;
   background: #bddaa1;
   color: #3b5d44;
 }
 
 .statusFailed {
   composes: statusPill;
-  background: #f5c2c2;
-  color: #7a2222;
+  font-family: "Geist", sans-serif;
+  background: #f9eeeb;
+  color: #d17565;
 }
 
 .statusCancelled {
   composes: statusPill;
-  background: #e5e3db;
-  color: #4a463e;
+  font-family: "Geist", sans-serif;
+  background: #f0f1f3;
+  color: #6b7280;
 }
 
 .metaGrid {

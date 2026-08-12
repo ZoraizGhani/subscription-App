@@ -165,7 +165,11 @@ export async function getPortalOverview({
 const PRODUCT_HANDLES_QUERY = `#graphql
   query PortalProductHandles($ids: [ID!]!) {
     nodes(ids: $ids) {
-      ... on Product { id handle }
+      ... on Product {
+        id
+        handle
+        featuredImage { url }
+      }
     }
   }
 `;
@@ -213,6 +217,7 @@ export async function listPortalSubscriptions({
   );
 
   const handleByProductId = new Map<string, string>();
+  const imageByProductId = new Map<string, string>();
   const summaryByContractId = new Map<string, { shipToDisplay: string | null; paymentMethodDisplay: string | null }>();
   let correctedDates = new Map<string, Date | null>();
   try {
@@ -221,10 +226,12 @@ export async function listPortalSubscriptions({
     if (productIds.length) {
       const response = await admin.graphql(PRODUCT_HANDLES_QUERY, { variables: { ids: productIds } });
       const body = (await response.json()) as {
-        data?: { nodes: ({ id: string; handle: string } | null)[] };
+        data?: { nodes: ({ id: string; handle: string; featuredImage: { url: string } | null } | null)[] };
       };
       for (const node of body.data?.nodes ?? []) {
-        if (node) handleByProductId.set(node.id, node.handle);
+        if (!node) continue;
+        handleByProductId.set(node.id, node.handle);
+        if (node.featuredImage?.url) imageByProductId.set(node.id, node.featuredImage.url);
       }
     }
 
@@ -268,6 +275,7 @@ export async function listPortalSubscriptions({
       contractShopifyId: c.shopifyId,
       productTitle: line?.title ?? "Subscription",
       productHandle: line?.productId ? (handleByProductId.get(line.productId) ?? null) : null,
+      productImageUrl: line?.productId ? (imageByProductId.get(line.productId) ?? null) : null,
       quantity: line?.quantity ?? null,
       variantTitle: line?.variantTitle ?? null,
       status: c.status,

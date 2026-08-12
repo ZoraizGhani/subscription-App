@@ -581,18 +581,27 @@ function SubscriptionCard({
   return (
     <div className={styles.subCard}>
       <div className={styles.subHeader}>
-        <div>
-          <span className={styles.subContract}>Contract #{sub.contractShopifyId.split("/").pop()}</span>
-          <div className={styles.subTitle}>
-            {productUrl ? (
-              <a href={productUrl} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>
-                {sub.productTitle}
-              </a>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
+          <div className={styles.productThumb}>
+            {sub.productImageUrl ? (
+              <img src={sub.productImageUrl} alt={sub.productTitle} className={styles.productThumbImg} />
             ) : (
-              sub.productTitle
+              "CLRTY"
             )}
           </div>
-          <span className={STATUS_PILL[sub.status] ?? styles.statusCancelled}>{sub.status}</span>
+          <div>
+            <span className={styles.subContract}>Contract #{sub.contractShopifyId.split("/").pop()}</span>
+            <div className={styles.subTitle}>
+              {productUrl ? (
+                <a href={productUrl} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>
+                  {sub.productTitle}
+                </a>
+              ) : (
+                sub.productTitle
+              )}
+            </div>
+            <span className={STATUS_PILL[sub.status] ?? styles.statusCancelled}>{sub.status}</span>
+          </div>
         </div>
         <div>
           <span className={styles.subPriceLabel}>Unit price</span>
