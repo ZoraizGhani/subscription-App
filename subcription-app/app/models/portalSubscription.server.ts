@@ -916,23 +916,19 @@ export async function getPortalManageOptions({
 }
 
 const SWAPPABLE_PRODUCTS_QUERY = `#graphql
-  query PortalSwappableProducts($country: CountryCode) {
-    sellingPlanGroups(first: 20) {
-      nodes {
-        products(first: 20) {
+  query PortalSwappableProducts($ids: [ID!]!, $country: CountryCode) {
+    nodes(ids: $ids) {
+      ... on Product {
+        id
+        title
+        featuredImage { url }
+        variants(first: 20) {
           nodes {
             id
             title
-            featuredImage { url }
-            variants(first: 20) {
-              nodes {
-                id
-                title
-                availableForSale
-                contextualPricing(context: { country: $country }) {
-                  price { amount currencyCode }
-                }
-              }
+            availableForSale
+            contextualPricing(context: { country: $country }) {
+              price { amount currencyCode }
             }
           }
         }
@@ -956,12 +952,14 @@ interface SwappableProductNode {
 }
 
 /**
- * Every other product in the shop that's subscribable at all (has some
- * selling plan group) AND actually purchasable in this contract's billing
- * currency, for the manage-subscription modal's "swap product" picker.
- * Showing a product whose contextual price resolves to a different currency
- * for this customer would just dead-end at swapPortalProductVariant's own
- * currency-safety check, so it's filtered out here instead.
+ * Every other product configured for subscriptions through this app's own
+ * selling-plans screen (not just any product that happens to have a Shopify
+ * selling plan group from some other source) AND actually purchasable in
+ * this contract's billing currency, for the manage-subscription modal's
+ * "swap product" picker. Showing a product whose contextual price resolves
+ * to a different currency for this customer would just dead-end at
+ * swapPortalProductVariant's own currency-safety check, so it's filtered
+ * out here instead.
  */
 export async function listPortalSwappableProducts({
   shop,
@@ -1010,16 +1008,24 @@ export async function listPortalSwappableProducts({
   const country = contract?.deliveryMethod?.address?.countryCodeV2 ?? contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
   const excludeProductId = contract?.lines.nodes[0]?.productId ?? null;
 
-  const response = await admin.graphql(SWAPPABLE_PRODUCTS_QUERY, { variables: { country } });
+  const trackedGroups = await db.sellingPlanGroup.findMany({ where: { shop }, select: { productIds: true } });
+  const trackedProductIds = new Set<string>();
+  for (const group of trackedGroups) {
+    for (const id of JSON.parse(group.productIds) as string[]) trackedProductIds.add(id);
+  }
+  trackedProductIds.delete(excludeProductId ?? "");
+  if (trackedProductIds.size === 0) return [];
+
+  const response = await admin.graphql(SWAPPABLE_PRODUCTS_QUERY, {
+    variables: { ids: Array.from(trackedProductIds), country },
+  });
   const body = (await response.json()) as {
-    data?: { sellingPlanGroups: { nodes: { products: { nodes: SwappableProductNode[] } }[] } };
+    data?: { nodes: (SwappableProductNode | null)[] };
   };
 
   const byId = new Map<string, SwappableProductNode>();
-  for (const group of body.data?.sellingPlanGroups.nodes ?? []) {
-    for (const product of group.products.nodes) {
-      if (product.id !== excludeProductId) byId.set(product.id, product);
-    }
+  for (const product of body.data?.nodes ?? []) {
+    if (product) byId.set(product.id, product);
   }
 
   return Array.from(byId.values())
