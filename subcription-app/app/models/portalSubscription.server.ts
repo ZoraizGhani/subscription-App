@@ -32,16 +32,21 @@ function firstLineProductId(linesJson: string | null): string | null {
 const ORDER_FULFILLMENT_STATUS_QUERY = `#graphql
   query PortalOrderFulfillmentStatus($ids: [ID!]!) {
     nodes(ids: $ids) {
-      ... on Order { id displayFulfillmentStatus }
+      ... on Order { id displayFulfillmentStatus statusPageUrl }
     }
   }
 `;
 
+interface OrderLiveDetails {
+  fulfillmentStatus: string;
+  receiptUrl: string | null;
+}
+
 /**
- * Fulfillment status isn't mirrored anywhere -- Shopify is the only source
- * for it, so it's always fetched live. A failure here (or an order Shopify
- * no longer has) just leaves those orders' status blank rather than breaking
- * whichever page called this.
+ * Fulfillment status and the receipt link aren't mirrored anywhere -- Shopify
+ * is the only source for either, so they're always fetched live. A failure
+ * here (or an order Shopify no longer has) just leaves those orders' status
+ * and receipt link blank rather than breaking whichever page called this.
  */
 async function getOrderFulfillmentStatuses({
   shop,
@@ -49,9 +54,9 @@ async function getOrderFulfillmentStatuses({
 }: {
   shop: string;
   orderShopifyIds: string[];
-}): Promise<Map<string, string>> {
-  const fulfillmentStatusByOrder = new Map<string, string>();
-  if (orderShopifyIds.length === 0) return fulfillmentStatusByOrder;
+}): Promise<Map<string, OrderLiveDetails>> {
+  const detailsByOrder = new Map<string, OrderLiveDetails>();
+  if (orderShopifyIds.length === 0) return detailsByOrder;
 
   try {
     const { admin } = await unauthenticated.admin(shop);
@@ -59,16 +64,18 @@ async function getOrderFulfillmentStatuses({
       variables: { ids: orderShopifyIds },
     });
     const body = (await response.json()) as {
-      data?: { nodes: ({ id: string; displayFulfillmentStatus: string } | null)[] };
+      data?: { nodes: ({ id: string; displayFulfillmentStatus: string; statusPageUrl: string | null } | null)[] };
     };
     for (const node of body.data?.nodes ?? []) {
-      if (node) fulfillmentStatusByOrder.set(node.id, node.displayFulfillmentStatus);
+      if (node) {
+        detailsByOrder.set(node.id, { fulfillmentStatus: node.displayFulfillmentStatus, receiptUrl: node.statusPageUrl });
+      }
     }
   } catch {
     // Live status is a convenience -- the caller still renders fine without it.
   }
 
-  return fulfillmentStatusByOrder;
+  return detailsByOrder;
 }
 
 const PRODUCT_IMAGE_QUERY = `#graphql
@@ -157,7 +164,7 @@ export async function getPortalOverview({
       processedAt: o.processedAt,
       totalPrice: o.totalPrice,
       currencyCode: o.currencyCode,
-      fulfillmentStatus: fulfillmentStatusByOrder.get(o.orderShopifyId) ?? null,
+      fulfillmentStatus: fulfillmentStatusByOrder.get(o.orderShopifyId)?.fulfillmentStatus ?? null,
     })),
   };
 }
@@ -323,7 +330,8 @@ export async function listPortalOrders({
     totalPrice: o.totalPrice,
     currencyCode: o.currencyCode,
     productTitle: o.contractShopifyId ? titleByContract.get(o.contractShopifyId) : null,
-    fulfillmentStatus: fulfillmentStatusByOrder.get(o.orderShopifyId) ?? null,
+    fulfillmentStatus: fulfillmentStatusByOrder.get(o.orderShopifyId)?.fulfillmentStatus ?? null,
+    receiptUrl: fulfillmentStatusByOrder.get(o.orderShopifyId)?.receiptUrl ?? null,
   }));
 }
 

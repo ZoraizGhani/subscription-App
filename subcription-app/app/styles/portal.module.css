@@ -468,6 +468,99 @@
   background: currentColor;
 }
 
+/* --- Order history table --- */
+
+.orderHistoryCard {
+  background: #ffffff;
+  border: 1px solid #e2ded4;
+  border-radius: 0.5rem;
+  padding: 2rem;
+}
+
+.orderHistoryTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orderHistoryTable th {
+  text-align: left;
+  vertical-align: middle;
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  letter-spacing: 0.075rem;
+  text-transform: uppercase;
+  color: #7c7667;
+  padding: 0 0.75rem 1rem;
+  border-bottom: 1px solid #e2ded4;
+}
+
+.orderHistoryTable td {
+  text-align: left;
+  vertical-align: middle;
+  padding: 1rem 0.75rem;
+  font-family: "Geist", sans-serif;
+  font-weight: 400;
+  font-size: 0.95rem;
+  line-height: 1.425rem;
+  color: #2d2d2d;
+}
+
+.orderHistoryAmountCell {
+  text-align: right;
+}
+
+.orderHistoryAmount {
+  font-weight: 500;
+}
+
+.orderHistoryStatusCell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.orderHistoryBadge {
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 0.65rem;
+  line-height: 0.975rem;
+  letter-spacing: 0.0325rem;
+  text-transform: uppercase;
+  text-align: center;
+  color: #6b7280;
+}
+
+.orderHistoryBadgeDelivered {
+  composes: orderHistoryBadge;
+  color: #8fa28a;
+}
+
+.orderHistoryBadgePaused {
+  composes: orderHistoryBadge;
+  color: #9a6a10;
+}
+
+.orderHistoryBadgeCancelled {
+  composes: orderHistoryBadge;
+  color: #a02b1f;
+}
+
+.receiptLink {
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  letter-spacing: 0.075rem;
+  text-transform: uppercase;
+  text-align: right;
+  text-decoration: underline;
+  color: #2d2d2d;
+  white-space: nowrap;
+}
+
 .buttonSecondary {
   padding: 0.625rem 1.25rem;
   background: #fff;

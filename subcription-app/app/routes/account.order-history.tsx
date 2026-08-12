@@ -20,16 +20,16 @@ function formatMoney(amount: number | null, currency: string | null) {
 // exact values Order.displayFulfillmentStatus can return, so every case is
 // covered rather than falling through to a generic label.
 const FULFILLMENT_STATUS: Record<string, { label: string; className: keyof typeof styles }> = {
-  FULFILLED: { label: "Fulfilled", className: "badgeActive" },
-  PARTIALLY_FULFILLED: { label: "Partially fulfilled", className: "badgePaused" },
-  IN_PROGRESS: { label: "In progress", className: "badgePaused" },
-  ON_HOLD: { label: "On hold", className: "badgePaused" },
-  PENDING_FULFILLMENT: { label: "Pending", className: "badgeNeutral" },
-  SCHEDULED: { label: "Scheduled", className: "badgeNeutral" },
-  OPEN: { label: "Open", className: "badgeNeutral" },
-  UNFULFILLED: { label: "Unfulfilled", className: "badgeNeutral" },
-  RESTOCKED: { label: "Restocked", className: "badgeCancelled" },
-  REQUEST_DECLINED: { label: "Request declined", className: "badgeCancelled" },
+  FULFILLED: { label: "Delivered", className: "orderHistoryBadgeDelivered" },
+  PARTIALLY_FULFILLED: { label: "Partially fulfilled", className: "orderHistoryBadgePaused" },
+  IN_PROGRESS: { label: "In progress", className: "orderHistoryBadgePaused" },
+  ON_HOLD: { label: "On hold", className: "orderHistoryBadgePaused" },
+  PENDING_FULFILLMENT: { label: "Pending", className: "orderHistoryBadge" },
+  SCHEDULED: { label: "Scheduled", className: "orderHistoryBadge" },
+  OPEN: { label: "Open", className: "orderHistoryBadge" },
+  UNFULFILLED: { label: "Unfulfilled", className: "orderHistoryBadge" },
+  RESTOCKED: { label: "Restocked", className: "orderHistoryBadgeCancelled" },
+  REQUEST_DECLINED: { label: "Request declined", className: "orderHistoryBadgeCancelled" },
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -61,14 +61,14 @@ export default function AccountOrderHistory() {
       {orders.length === 0 ? (
         <div className={styles.emptyState}>No orders yet.</div>
       ) : (
-        <div className={styles.card} style={{ padding: 0 }}>
-          <table className={styles.table}>
+        <div className={styles.orderHistoryCard}>
+          <table className={styles.orderHistoryTable}>
             <thead>
               <tr>
                 <th>Order</th>
                 <th>Date</th>
                 <th>Items</th>
-                <th>Total</th>
+                <th className={styles.orderHistoryAmountCell}>Total</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -78,15 +78,31 @@ export default function AccountOrderHistory() {
                   <td>{order.orderName ?? order.orderShopifyId}</td>
                   <td>{formatDate(order.processedAt)}</td>
                   <td>{order.productTitle ?? "Subscription"}</td>
-                  <td>{formatMoney(order.totalPrice, order.currencyCode)}</td>
+                  <td className={styles.orderHistoryAmountCell}>
+                    <span className={styles.orderHistoryAmount}>
+                      {formatMoney(order.totalPrice, order.currencyCode)}
+                    </span>
+                  </td>
                   <td>
-                    {order.fulfillmentStatus && FULFILLMENT_STATUS[order.fulfillmentStatus] ? (
-                      <span className={styles[FULFILLMENT_STATUS[order.fulfillmentStatus].className]}>
-                        {FULFILLMENT_STATUS[order.fulfillmentStatus].label}
-                      </span>
-                    ) : (
-                      <span className={styles.badgeNeutral}>—</span>
-                    )}
+                    <div className={styles.orderHistoryStatusCell}>
+                      {order.fulfillmentStatus && FULFILLMENT_STATUS[order.fulfillmentStatus] ? (
+                        <span className={styles[FULFILLMENT_STATUS[order.fulfillmentStatus].className]}>
+                          {FULFILLMENT_STATUS[order.fulfillmentStatus].label}
+                        </span>
+                      ) : (
+                        <span className={styles.orderHistoryBadge}>—</span>
+                      )}
+                      {order.receiptUrl && (
+                        <a
+                          className={styles.receiptLink}
+                          href={order.receiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Receipt
+                        </a>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
