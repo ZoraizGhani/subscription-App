@@ -876,6 +876,7 @@ export async function getPortalManageOptions({
 
   return {
     lineId: line.id,
+    productId: line.productId,
     currentVariantId: line.variantId,
     quantity: line.quantity,
     productTitle: product?.title ?? "",
@@ -907,6 +908,72 @@ export async function getPortalManageOptions({
         }
       : null,
   };
+}
+
+const SWAPPABLE_PRODUCTS_QUERY = `#graphql
+  query PortalSwappableProducts {
+    sellingPlanGroups(first: 20) {
+      nodes {
+        products(first: 20) {
+          nodes {
+            id
+            title
+            featuredImage { url }
+            variants(first: 20) {
+              nodes { id title availableForSale price }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Every other product in the shop that's subscribable at all (has some
+ * selling plan group), for the manage-subscription modal's "swap product"
+ * picker. Products are only reachable through their selling plan group here
+ * -- there's no direct "products with a selling plan" filter on the root
+ * `products` connection.
+ */
+interface SwappableProductNode {
+  id: string;
+  title: string;
+  featuredImage: { url: string } | null;
+  variants: { nodes: { id: string; title: string; availableForSale: boolean; price: string }[] };
+}
+
+export async function listPortalSwappableProducts({
+  shop,
+  excludeProductId,
+}: {
+  shop: string;
+  excludeProductId: string;
+}) {
+  const { admin } = await unauthenticated.admin(shop);
+  const response = await admin.graphql(SWAPPABLE_PRODUCTS_QUERY);
+  const body = (await response.json()) as {
+    data?: { sellingPlanGroups: { nodes: { products: { nodes: SwappableProductNode[] } }[] } };
+  };
+
+  const byId = new Map<string, SwappableProductNode>();
+  for (const group of body.data?.sellingPlanGroups.nodes ?? []) {
+    for (const product of group.products.nodes) {
+      if (product.id !== excludeProductId) byId.set(product.id, product);
+    }
+  }
+
+  return Array.from(byId.values()).map((product) => ({
+    id: product.id,
+    title: product.title,
+    imageUrl: product.featuredImage?.url ?? null,
+    variants: product.variants.nodes.map((v) => ({
+      id: v.id,
+      title: v.title,
+      availableForSale: v.availableForSale,
+      price: v.price,
+    })),
+  }));
 }
 
 const CONTRACT_OPEN_DRAFT_MUTATION = `#graphql

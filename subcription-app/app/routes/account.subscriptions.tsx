@@ -40,6 +40,7 @@ interface ShippingAddress {
 
 interface ManageOptions {
   lineId: string;
+  productId: string | null;
   currentVariantId: string | null;
   quantity: number;
   productTitle: string;
@@ -58,6 +59,13 @@ interface ManageOptions {
   paymentMethods: { id: string; display: string; isCurrent: boolean }[];
   shippingAddressDisplay: string | null;
   shippingAddress: ShippingAddress | null;
+}
+
+interface SwappableProduct {
+  id: string;
+  title: string;
+  imageUrl: string | null;
+  variants: { id: string; title: string; availableForSale: boolean; price: string }[];
 }
 
 const CANCEL_REASONS = [
@@ -339,6 +347,7 @@ function ManageSubscriptionModal({
 }) {
   const optionsFetcher = useFetcher<ManageOptions | { error: string }>();
   const saveFetcher = useFetcher<typeof action>();
+  const swapFetcher = useFetcher<{ products: SwappableProduct[] } | { error: string }>();
 
   const [nextDeliveryDate, setNextDeliveryDate] = useState<string | null>(null);
   const [interval, setInterval_] = useState<string | null>(null);
@@ -348,6 +357,8 @@ function ManageSubscriptionModal({
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
   const [addressOpen, setAddressOpen] = useState(false);
   const [address, setAddress] = useState<ShippingAddress | null>(null);
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [swapProduct, setSwapProduct] = useState<SwappableProduct | null>(null);
 
   if (optionsFetcher.state === "idle" && !optionsFetcher.data) {
     optionsFetcher.load(`/account/subscriptions/manage?contractId=${encodeURIComponent(sub.contractShopifyId)}`);
@@ -355,6 +366,14 @@ function ManageSubscriptionModal({
 
   const options = optionsFetcher.data && "variants" in optionsFetcher.data ? optionsFetcher.data : null;
   const loadError = optionsFetcher.data && "error" in optionsFetcher.data ? optionsFetcher.data.error : null;
+
+  if (swapOpen && swapFetcher.state === "idle" && !swapFetcher.data && options) {
+    swapFetcher.load(
+      `/account/subscriptions/swap-products?excludeProductId=${encodeURIComponent(options.productId ?? "")}`,
+    );
+  }
+  const swapProducts = swapFetcher.data && "products" in swapFetcher.data ? swapFetcher.data.products : [];
+  const swapLoadError = swapFetcher.data && "error" in swapFetcher.data ? swapFetcher.data.error : null;
 
   const activeDate = nextDeliveryDate ?? (options?.nextBillingDate ? options.nextBillingDate.slice(0, 10) : "");
   const activeInterval = interval ?? options?.billingInterval ?? "DAY";
@@ -364,9 +383,19 @@ function ManageSubscriptionModal({
   const activePaymentMethodId =
     selectedPaymentMethodId ?? options?.paymentMethods.find((p) => p.isCurrent)?.id ?? null;
   const currentAddress = address ?? options?.shippingAddress ?? null;
-  const activeVariant = options?.variants.find((v) => v.id === activeVariantId) ?? null;
+  const displayVariants = swapProduct
+    ? swapProduct.variants.map((v) => ({ ...v, imageUrl: swapProduct.imageUrl, currencyCode: null as string | null }))
+    : (options?.variants ?? []);
+  const activeVariant = displayVariants.find((v) => v.id === activeVariantId) ?? null;
   const unitPrice = activeVariant ? Number(activeVariant.price) : 0;
   const currencyCode = activeVariant?.currencyCode ?? sub.currencyCode;
+
+  const selectSwapProduct = (product: SwappableProduct) => {
+    setSwapProduct(product);
+    const firstAvailable = product.variants.find((v) => v.availableForSale) ?? product.variants[0];
+    setSelectedVariantId(firstAvailable?.id ?? null);
+    setSwapOpen(false);
+  };
 
   // Can't schedule a delivery earlier than today, and if today's cycle has
   // already been billed (options.nextBillingDate -- the corrected true next
@@ -597,11 +626,27 @@ function ManageSubscriptionModal({
               )}
             </div>
 
-            {options.variants.length > 1 && (
+            {swapProduct && (
+              <div className={styles.manageStaticBox} style={{ justifyContent: "flex-start", gap: "0.5rem" }}>
+                Swapping to <strong>{swapProduct.title}</strong>
+                <button
+                  type="button"
+                  className={styles.cancelLink}
+                  onClick={() => {
+                    setSwapProduct(null);
+                    setSelectedVariantId(null);
+                  }}
+                >
+                  Undo
+                </button>
+              </div>
+            )}
+
+            {displayVariants.length > 1 && (
               <div className={styles.manageField}>
                 <span className={styles.manageFieldLabel}>1. Select flavor(s)</span>
                 <div className={styles.manageSwatchGrid}>
-                  {options.variants.map((variant) => (
+                  {displayVariants.map((variant) => (
                     <button
                       key={variant.id}
                       type="button"
@@ -659,9 +704,36 @@ function ManageSubscriptionModal({
               {saving ? "Saving..." : "Save changes"}
             </button>
 
-            <button type="button" className={styles.manageSwapLink} disabled title="Coming soon">
-              Swap product
+            <button type="button" className={styles.manageSwapLink} onClick={() => setSwapOpen((open) => !open)}>
+              {swapOpen ? "Cancel swap" : "Swap product"}
             </button>
+
+            {swapOpen && (
+              <div className={styles.manageField}>
+                {swapLoadError && <div className={styles.error}>{swapLoadError}</div>}
+                {!swapFetcher.data && !swapLoadError && (
+                  <div className={styles.emptyState}>Loading other products...</div>
+                )}
+                {swapProducts.length === 0 && swapFetcher.data && !swapLoadError && (
+                  <div className={styles.emptyState}>No other subscribable products found.</div>
+                )}
+                <div className={styles.manageSwatchGrid}>
+                  {swapProducts.map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      className={styles.manageSwatch}
+                      onClick={() => selectSwapProduct(product)}
+                    >
+                      <span className={styles.manageSwatchImage}>
+                        {product.imageUrl && <img src={product.imageUrl} alt={product.title} />}
+                      </span>
+                      <span className={styles.manageSwatchName}>{product.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
