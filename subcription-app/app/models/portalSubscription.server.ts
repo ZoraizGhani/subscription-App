@@ -739,7 +739,7 @@ const MANAGE_OPTIONS_QUERY = `#graphql
         }
       }
       lines(first: 1) {
-        nodes { id productId variantId variantTitle }
+        nodes { id productId variantId variantTitle quantity }
       }
     }
   }
@@ -755,6 +755,7 @@ const PRODUCT_VARIANTS_QUERY = `#graphql
             id
             title
             availableForSale
+            image { url }
             contextualPricing(context: { country: $country }) {
               price { amount currencyCode }
             }
@@ -814,7 +815,7 @@ export async function getPortalManageOptions({
         } | null;
         customerPaymentMethod: { id: string; instrument: RawPaymentMethod["instrument"] } | null;
         deliveryMethod: { address?: RawAddress } | null;
-        lines: { nodes: { id: string; productId: string | null; variantId: string | null }[] };
+        lines: { nodes: { id: string; productId: string | null; variantId: string | null; quantity: number }[] };
       } | null;
     };
   };
@@ -858,6 +859,7 @@ export async function getPortalManageOptions({
               id: string;
               title: string;
               availableForSale: boolean;
+              image: { url: string } | null;
               contextualPricing: { price: { amount: string; currencyCode: string } };
             };
           }[];
@@ -875,6 +877,7 @@ export async function getPortalManageOptions({
   return {
     lineId: line.id,
     currentVariantId: line.variantId,
+    quantity: line.quantity,
     productTitle: product?.title ?? "",
     variants: (product?.variants.edges ?? []).map((e) => ({
       id: e.node.id,
@@ -882,6 +885,7 @@ export async function getPortalManageOptions({
       price: e.node.contextualPricing.price.amount,
       currencyCode: e.node.contextualPricing.price.currencyCode,
       availableForSale: e.node.availableForSale,
+      imageUrl: e.node.image?.url ?? null,
     })),
     billingInterval: contract?.billingPolicy?.interval ?? "DAY",
     billingIntervalCount: contract?.billingPolicy?.intervalCount ?? 1,
@@ -1015,6 +1019,88 @@ export async function updatePortalDeliveryFrequency({
   const updateErrors = updateBody.data?.subscriptionDraftUpdate?.userErrors ?? [];
   if (updateErrors.length) {
     throw new Error(`subscriptionDraftUpdate failed: ${JSON.stringify(updateErrors)}`);
+  }
+
+  await commitPortalDraft(admin, draftId);
+  await syncSubscriptionContract({ graphql: admin.graphql, shop, contractId: contractShopifyId });
+}
+
+export async function updatePortalNextBillingDate({
+  shop,
+  customerShopifyId,
+  contractShopifyId,
+  nextBillingDate,
+}: {
+  shop: string;
+  customerShopifyId: string;
+  contractShopifyId: string;
+  nextBillingDate: string;
+}) {
+  await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
+
+  const parsed = new Date(nextBillingDate);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error("Invalid delivery date.");
+  }
+
+  const { admin } = await unauthenticated.admin(shop);
+  const draftId = await openPortalDraft(admin, contractShopifyId);
+
+  const updateResponse = await admin.graphql(DRAFT_UPDATE_MUTATION, {
+    variables: { draftId, input: { nextBillingDate: parsed.toISOString() } },
+  });
+  const updateBody = (await updateResponse.json()) as {
+    data?: { subscriptionDraftUpdate: { userErrors: { field: string[]; message: string }[] } };
+  };
+  const updateErrors = updateBody.data?.subscriptionDraftUpdate?.userErrors ?? [];
+  if (updateErrors.length) {
+    throw new Error(`subscriptionDraftUpdate failed: ${JSON.stringify(updateErrors)}`);
+  }
+
+  await commitPortalDraft(admin, draftId);
+  await syncSubscriptionContract({ graphql: admin.graphql, shop, contractId: contractShopifyId });
+}
+
+const DRAFT_LINE_UPDATE_MUTATION = `#graphql
+  mutation PortalDraftLineUpdate($draftId: ID!, $lineId: ID!, $input: SubscriptionLineUpdateInput!) {
+    subscriptionDraftLineUpdate(draftId: $draftId, lineId: $lineId, input: $input) {
+      draft { id }
+      userErrors { field message }
+    }
+  }
+`;
+
+export async function updatePortalLineQuantity({
+  shop,
+  customerShopifyId,
+  contractShopifyId,
+  lineId,
+  quantity,
+}: {
+  shop: string;
+  customerShopifyId: string;
+  contractShopifyId: string;
+  lineId: string;
+  quantity: number;
+}) {
+  await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
+
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new Error("Invalid quantity.");
+  }
+
+  const { admin } = await unauthenticated.admin(shop);
+  const draftId = await openPortalDraft(admin, contractShopifyId);
+
+  const updateResponse = await admin.graphql(DRAFT_LINE_UPDATE_MUTATION, {
+    variables: { draftId, lineId, input: { quantity } },
+  });
+  const updateBody = (await updateResponse.json()) as {
+    data?: { subscriptionDraftLineUpdate: { userErrors: { field: string[]; message: string }[] } };
+  };
+  const updateErrors = updateBody.data?.subscriptionDraftLineUpdate?.userErrors ?? [];
+  if (updateErrors.length) {
+    throw new Error(`subscriptionDraftLineUpdate failed: ${JSON.stringify(updateErrors)}`);
   }
 
   await commitPortalDraft(admin, draftId);

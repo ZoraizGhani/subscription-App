@@ -10,6 +10,8 @@ import {
   skipPortalNextOrder,
   shipPortalOrderNow,
   updatePortalDeliveryFrequency,
+  updatePortalNextBillingDate,
+  updatePortalLineQuantity,
   swapPortalProductVariant,
   updatePortalPaymentMethod,
   updatePortalShippingAddress,
@@ -39,6 +41,7 @@ interface ShippingAddress {
 interface ManageOptions {
   lineId: string;
   currentVariantId: string | null;
+  quantity: number;
   productTitle: string;
   variants: {
     id: string;
@@ -46,6 +49,7 @@ interface ManageOptions {
     price: string;
     currencyCode: string;
     availableForSale: boolean;
+    imageUrl: string | null;
   }[];
   billingInterval: string;
   billingIntervalCount: number;
@@ -154,6 +158,82 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { intent, success: true };
     }
 
+    if (intent === "saveChanges") {
+      const lineId = String(formData.get("lineId") ?? "");
+
+      // Each of these opens and commits its own draft -- run sequentially,
+      // not in parallel, so overlapping drafts on the same contract can't
+      // race each other.
+      if (formData.has("nextBillingDate")) {
+        await updatePortalNextBillingDate({
+          shop: session.shop,
+          customerShopifyId: customer.customerShopifyId,
+          contractShopifyId,
+          nextBillingDate: String(formData.get("nextBillingDate")),
+        });
+      }
+
+      if (formData.has("interval") && formData.has("intervalCount")) {
+        await updatePortalDeliveryFrequency({
+          shop: session.shop,
+          customerShopifyId: customer.customerShopifyId,
+          contractShopifyId,
+          interval: String(formData.get("interval")),
+          intervalCount: Number(formData.get("intervalCount")),
+        });
+      }
+
+      if (formData.has("productVariantId")) {
+        await swapPortalProductVariant({
+          shop: session.shop,
+          customerShopifyId: customer.customerShopifyId,
+          contractShopifyId,
+          lineId,
+          productVariantId: String(formData.get("productVariantId")),
+        });
+      }
+
+      if (formData.has("quantity")) {
+        await updatePortalLineQuantity({
+          shop: session.shop,
+          customerShopifyId: customer.customerShopifyId,
+          contractShopifyId,
+          lineId,
+          quantity: Number(formData.get("quantity")),
+        });
+      }
+
+      if (formData.has("paymentMethodId")) {
+        await updatePortalPaymentMethod({
+          shop: session.shop,
+          customerShopifyId: customer.customerShopifyId,
+          contractShopifyId,
+          paymentMethodId: String(formData.get("paymentMethodId")),
+        });
+      }
+
+      if (formData.has("address1")) {
+        await updatePortalShippingAddress({
+          shop: session.shop,
+          customerShopifyId: customer.customerShopifyId,
+          contractShopifyId,
+          address: {
+            firstName: String(formData.get("firstName") ?? ""),
+            lastName: String(formData.get("lastName") ?? ""),
+            address1: String(formData.get("address1") ?? ""),
+            address2: String(formData.get("address2") ?? ""),
+            city: String(formData.get("city") ?? ""),
+            provinceCode: String(formData.get("provinceCode") ?? ""),
+            zip: String(formData.get("zip") ?? ""),
+            countryCode: String(formData.get("countryCode") ?? ""),
+            phone: String(formData.get("phone") ?? ""),
+          },
+        });
+      }
+
+      return { intent, success: true };
+    }
+
     if (intent === "swapVariant") {
       const lineId = String(formData.get("lineId") ?? "");
       const productVariantId = String(formData.get("productVariantId") ?? "");
@@ -230,15 +310,15 @@ function ManageSubscriptionModal({
   onClose: () => void;
 }) {
   const optionsFetcher = useFetcher<ManageOptions | { error: string }>();
-  const frequencyFetcher = useFetcher<typeof action>();
-  const variantFetcher = useFetcher<typeof action>();
-  const paymentFetcher = useFetcher<typeof action>();
-  const addressFetcher = useFetcher<typeof action>();
+  const saveFetcher = useFetcher<typeof action>();
 
-  const [interval, setInterval_] = useState(sub.billingInterval ?? "DAY");
-  const [intervalCount, setIntervalCount] = useState(sub.billingIntervalCount ?? 1);
+  const [nextDeliveryDate, setNextDeliveryDate] = useState<string | null>(null);
+  const [interval, setInterval_] = useState<string | null>(null);
+  const [intervalCount, setIntervalCount] = useState<number | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState<number | null>(null);
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
+  const [addressOpen, setAddressOpen] = useState(false);
   const [address, setAddress] = useState<ShippingAddress | null>(null);
 
   if (optionsFetcher.state === "idle" && !optionsFetcher.data) {
@@ -247,109 +327,105 @@ function ManageSubscriptionModal({
 
   const options = optionsFetcher.data && "variants" in optionsFetcher.data ? optionsFetcher.data : null;
   const loadError = optionsFetcher.data && "error" in optionsFetcher.data ? optionsFetcher.data.error : null;
+
+  const activeDate = nextDeliveryDate ?? (options?.nextBillingDate ? options.nextBillingDate.slice(0, 10) : "");
+  const activeInterval = interval ?? options?.billingInterval ?? "DAY";
+  const activeIntervalCount = intervalCount ?? options?.billingIntervalCount ?? 1;
   const activeVariantId = selectedVariantId ?? options?.currentVariantId ?? null;
+  const activeQuantity = quantity ?? options?.quantity ?? 1;
   const activePaymentMethodId =
     selectedPaymentMethodId ?? options?.paymentMethods.find((p) => p.isCurrent)?.id ?? null;
   const currentAddress = address ?? options?.shippingAddress ?? null;
+  const activeVariant = options?.variants.find((v) => v.id === activeVariantId) ?? null;
+  const unitPrice = activeVariant ? Number(activeVariant.price) : 0;
+  const currencyCode = activeVariant?.currencyCode ?? sub.currencyCode;
 
   const setAddressField = (field: keyof ShippingAddress, value: string) => {
     setAddress({ ...(currentAddress ?? blankAddress()), [field]: value });
   };
 
-  const saveFrequency = () => {
-    frequencyFetcher.submit(
-      {
-        intent: "updateFrequency",
-        contractShopifyId: sub.contractShopifyId,
-        interval,
-        intervalCount: String(intervalCount),
-      },
-      { method: "post", action: "/account/subscriptions" },
-    );
-  };
+  const saving = saveFetcher.state !== "idle";
 
-  const saveVariant = () => {
-    if (!options || !selectedVariantId || selectedVariantId === options.currentVariantId) return;
-    variantFetcher.submit(
-      {
-        intent: "swapVariant",
-        contractShopifyId: sub.contractShopifyId,
-        lineId: options.lineId,
-        productVariantId: selectedVariantId,
-      },
-      { method: "post", action: "/account/subscriptions" },
-    );
-  };
+  const saveChanges = () => {
+    if (!options) return;
+    const payload: Record<string, string> = {
+      intent: "saveChanges",
+      contractShopifyId: sub.contractShopifyId,
+      lineId: options.lineId,
+    };
 
-  const savePaymentMethod = () => {
-    const currentId = options?.paymentMethods.find((p) => p.isCurrent)?.id ?? null;
-    if (!selectedPaymentMethodId || selectedPaymentMethodId === currentId) return;
-    paymentFetcher.submit(
-      {
-        intent: "updatePaymentMethod",
-        contractShopifyId: sub.contractShopifyId,
-        paymentMethodId: selectedPaymentMethodId,
-      },
-      { method: "post", action: "/account/subscriptions" },
-    );
-  };
+    if (nextDeliveryDate && nextDeliveryDate !== options.nextBillingDate?.slice(0, 10)) {
+      payload.nextBillingDate = nextDeliveryDate;
+    }
+    if (
+      (interval !== null && interval !== options.billingInterval) ||
+      (intervalCount !== null && intervalCount !== options.billingIntervalCount)
+    ) {
+      payload.interval = activeInterval;
+      payload.intervalCount = String(activeIntervalCount);
+    }
+    if (selectedVariantId && selectedVariantId !== options.currentVariantId) {
+      payload.productVariantId = selectedVariantId;
+    }
+    if (quantity !== null && quantity !== options.quantity) {
+      payload.quantity = String(quantity);
+    }
+    const currentPaymentId = options.paymentMethods.find((p) => p.isCurrent)?.id ?? null;
+    if (selectedPaymentMethodId && selectedPaymentMethodId !== currentPaymentId) {
+      payload.paymentMethodId = selectedPaymentMethodId;
+    }
+    if (address) {
+      Object.assign(payload, address);
+    }
 
-  const saveAddress = () => {
-    if (!currentAddress) return;
-    addressFetcher.submit(
-      { intent: "updateShippingAddress", contractShopifyId: sub.contractShopifyId, ...currentAddress },
-      { method: "post", action: "/account/subscriptions" },
-    );
+    saveFetcher.submit(payload, { method: "post", action: "/account/subscriptions" });
   };
-
-  const frequencyBusy = frequencyFetcher.state !== "idle";
-  const variantBusy = variantFetcher.state !== "idle";
-  const paymentBusy = paymentFetcher.state !== "idle";
-  const addressBusy = addressFetcher.state !== "idle";
 
   return (
     <div className={styles.modalOverlay}>
-      <div className={styles.modalCard} role="dialog" aria-modal="true">
-        <div className={styles.modalHeader}>
-          <span className={styles.eyebrow}>Manage subscription</span>
+      <div className={styles.manageModalCard} role="dialog" aria-modal="true">
+        <div className={styles.manageHeader}>
+          <div>
+            <h2 className={styles.manageTitle}>Manage subscription</h2>
+            <span className={styles.manageSubtitle}>
+              #{sub.contractShopifyId.split("/").pop()} &bull; {sub.productTitle}
+            </span>
+          </div>
           <button type="button" className={styles.modalClose} onClick={onClose} aria-label="Close">
             &times;
           </button>
         </div>
-        <h2 className={styles.heading} style={{ fontSize: "1.5rem", margin: "0.5rem 0 1.25rem" }}>
-          {sub.productTitle}
-        </h2>
 
         {loadError && <div className={styles.error}>{loadError}</div>}
         {!options && !loadError && <div className={styles.emptyState}>Loading...</div>}
 
         {options && (
-          <>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Next delivery date</span>
-              <div className={styles.metaValue}>{formatDate(options.nextBillingDate)}</div>
+          <div className={styles.manageBody}>
+            <div className={styles.manageField}>
+              <span className={styles.manageFieldLabel}>Next delivery date</span>
+              <input
+                type="date"
+                className={styles.manageDateInput}
+                value={activeDate}
+                onChange={(e) => setNextDeliveryDate(e.target.value)}
+              />
             </div>
 
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Delivery frequency</span>
-              {frequencyFetcher.data?.intent === "updateFrequency" && "success" in frequencyFetcher.data && (
-                <div className={styles.success}>Delivery frequency updated.</div>
-              )}
-              {frequencyFetcher.data && "error" in frequencyFetcher.data && (
-                <div className={styles.error}>{frequencyFetcher.data.error}</div>
-              )}
+            <div className={styles.manageField}>
+              <span className={styles.manageFieldLabel}>Delivery frequency</span>
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <input
                   className={styles.input}
                   style={{ width: "5rem" }}
                   type="number"
                   min={1}
-                  value={intervalCount}
+                  value={activeIntervalCount}
                   onChange={(e) => setIntervalCount(Math.max(1, Number(e.target.value) || 1))}
                 />
                 <select
-                  className={styles.input}
-                  value={interval}
+                  className={styles.manageSelect}
+                  style={{ flex: 1 }}
+                  value={activeInterval}
                   onChange={(e) => setInterval_(e.target.value)}
                 >
                   {INTERVAL_OPTIONS.map((opt) => (
@@ -358,72 +434,41 @@ function ManageSubscriptionModal({
                     </option>
                   ))}
                 </select>
-                <button
-                  type="button"
-                  className={styles.pillDark}
-                  disabled={frequencyBusy}
-                  onClick={saveFrequency}
-                >
-                  {frequencyBusy ? "Saving..." : "Save"}
-                </button>
               </div>
             </div>
 
-            <hr className={styles.divider} style={{ margin: "1.25rem 0" }} />
-
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Payment method</span>
-              {paymentFetcher.data?.intent === "updatePaymentMethod" && "success" in paymentFetcher.data && (
-                <div className={styles.success}>Payment method updated.</div>
-              )}
-              {paymentFetcher.data && "error" in paymentFetcher.data && (
-                <div className={styles.error}>{paymentFetcher.data.error}</div>
-              )}
+            <div className={styles.manageField}>
+              <span className={styles.manageFieldLabel}>Payment method</span>
               {options.paymentMethods.length > 1 ? (
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <select
-                    className={styles.input}
-                    style={{ flex: 1 }}
-                    value={activePaymentMethodId ?? ""}
-                    onChange={(e) => setSelectedPaymentMethodId(e.target.value)}
-                  >
-                    {options.paymentMethods.map((pm) => (
-                      <option key={pm.id} value={pm.id}>
-                        {pm.display}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    className={styles.pillDark}
-                    disabled={paymentBusy}
-                    onClick={savePaymentMethod}
-                  >
-                    {paymentBusy ? "Saving..." : "Save"}
-                  </button>
-                </div>
+                <select
+                  className={styles.manageSelect}
+                  value={activePaymentMethodId ?? ""}
+                  onChange={(e) => setSelectedPaymentMethodId(e.target.value)}
+                >
+                  {options.paymentMethods.map((pm) => (
+                    <option key={pm.id} value={pm.id}>
+                      {pm.display}
+                    </option>
+                  ))}
+                </select>
               ) : (
-                <>
-                  <div className={styles.metaValue}>{options.paymentMethodDisplay ?? "—"}</div>
-                  <p style={{ color: "#8a8478", fontSize: "0.8125rem", margin: "0.375rem 0 0" }}>
-                    This is the only card on file — add another via checkout to enable switching here.
-                  </p>
-                </>
+                <div className={styles.manageStaticBox}>{options.paymentMethodDisplay ?? "—"}</div>
               )}
             </div>
 
-            <hr className={styles.divider} style={{ margin: "1.25rem 0" }} />
-
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Shipping address</span>
-              {addressFetcher.data?.intent === "updateShippingAddress" && "success" in addressFetcher.data && (
-                <div className={styles.success}>Shipping address updated.</div>
-              )}
-              {addressFetcher.data && "error" in addressFetcher.data && (
-                <div className={styles.error}>{addressFetcher.data.error}</div>
-              )}
-              {currentAddress ? (
-                <>
+            <div className={styles.manageField}>
+              <span className={styles.manageFieldLabel}>Shipping address</span>
+              <button
+                type="button"
+                className={styles.manageSelect}
+                onClick={() => setAddressOpen((open) => !open)}
+              >
+                {currentAddress
+                  ? [currentAddress.address1, currentAddress.city].filter(Boolean).join(" — ") || "—"
+                  : "—"}
+              </button>
+              {addressOpen && currentAddress && (
+                <div style={{ marginTop: "0.5rem" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
                     <input
                       className={styles.input}
@@ -486,73 +531,76 @@ function ManageSubscriptionModal({
                       onChange={(e) => setAddressField("phone", e.target.value)}
                     />
                   </div>
-                  <button
-                    type="button"
-                    className={styles.pillDark}
-                    style={{ marginTop: "0.75rem" }}
-                    disabled={addressBusy}
-                    onClick={saveAddress}
-                  >
-                    {addressBusy ? "Saving..." : "Save address"}
-                  </button>
-                </>
-              ) : (
-                <div className={styles.metaValue}>—</div>
+                </div>
               )}
             </div>
 
             {options.variants.length > 1 && (
-              <>
-                <hr className={styles.divider} style={{ margin: "1.25rem 0" }} />
-                <div className={styles.field}>
-                  <span className={styles.fieldLabel}>Select flavor(s)</span>
-                  {variantFetcher.data?.intent === "swapVariant" && "success" in variantFetcher.data && (
-                    <div className={styles.success}>Option updated.</div>
-                  )}
-                  {variantFetcher.data && "error" in variantFetcher.data && (
-                    <div className={styles.error}>{variantFetcher.data.error}</div>
-                  )}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                    {options.variants.map((variant) => (
-                      <label
-                        key={variant.id}
-                        className={styles.reasonOption}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          opacity: variant.availableForSale ? 1 : 0.5,
-                        }}
-                      >
-                        <span>
-                          <input
-                            type="radio"
-                            name="variant"
-                            value={variant.id}
-                            checked={activeVariantId === variant.id}
-                            disabled={!variant.availableForSale}
-                            onChange={() => setSelectedVariantId(variant.id)}
-                            style={{ marginRight: "0.5rem" }}
-                          />
-                          {variant.title}
-                          {!variant.availableForSale && " (out of stock)"}
-                        </span>
-                        <span>{formatMoney(Number(variant.price), variant.currencyCode)}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.pillDark}
-                    style={{ marginTop: "0.75rem" }}
-                    disabled={variantBusy || !selectedVariantId || selectedVariantId === options.currentVariantId}
-                    onClick={saveVariant}
-                  >
-                    {variantBusy ? "Saving..." : "Save option"}
-                  </button>
+              <div className={styles.manageField}>
+                <span className={styles.manageFieldLabel}>1. Select flavor(s)</span>
+                <div className={styles.manageSwatchGrid}>
+                  {options.variants.map((variant) => (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      className={`${styles.manageSwatch} ${activeVariantId === variant.id ? styles["is-selected"] : ""}`}
+                      disabled={!variant.availableForSale}
+                      onClick={() => setSelectedVariantId(variant.id)}
+                      style={{ opacity: variant.availableForSale ? 1 : 0.5 }}
+                    >
+                      <span className={styles.manageSwatchCheck} aria-hidden="true">
+                        &check;
+                      </span>
+                      <span className={styles.manageSwatchImage}>
+                        {variant.imageUrl && <img src={variant.imageUrl} alt={variant.title} />}
+                      </span>
+                      <span className={styles.manageSwatchName}>
+                        {variant.title}
+                        {!variant.availableForSale && " (out of stock)"}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              </>
+                <p className={styles.manageMixNote}>
+                  Mix flavors freely &mdash; {activeQuantity} pouch{activeQuantity === 1 ? "" : "es"} selected, same
+                  price per pouch either way.
+                </p>
+              </div>
             )}
-          </>
+
+            <div className={styles.manageQuantityRow}>
+              <span className={styles.manageFieldLabel}>Quantity</span>
+              <div className={styles.manageQuantity}>
+                <button type="button" onClick={() => setQuantity(Math.max(1, activeQuantity - 1))} aria-label="Decrease quantity">
+                  &minus;
+                </button>
+                <span>{activeQuantity}</span>
+                <button type="button" onClick={() => setQuantity(activeQuantity + 1)} aria-label="Increase quantity">
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.manageTotal}>
+              Total: {formatMoney(unitPrice * activeQuantity, currencyCode)} &bull; {activeQuantity} pouch
+              {activeQuantity === 1 ? "" : "es"} per delivery
+            </div>
+
+            {saveFetcher.data?.intent === "saveChanges" && "success" in saveFetcher.data && (
+              <div className={styles.success}>Changes saved.</div>
+            )}
+            {saveFetcher.data && "error" in saveFetcher.data && saveFetcher.data.intent === "saveChanges" && (
+              <div className={styles.error}>{saveFetcher.data.error}</div>
+            )}
+
+            <button type="button" className={styles.manageSaveButton} disabled={saving} onClick={saveChanges}>
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+
+            <button type="button" className={styles.manageSwapLink} disabled title="Coming soon">
+              Swap product
+            </button>
+          </div>
         )}
       </div>
     </div>
