@@ -566,7 +566,7 @@ function ManageSubscriptionModal({
                       style={{ opacity: variant.availableForSale ? 1 : 0.5 }}
                     >
                       <span className={styles.manageSwatchCheck} aria-hidden="true">
-                        &check;
+                        ✓
                       </span>
                       <span className={styles.manageSwatchImage}>
                         {variant.imageUrl && <img src={variant.imageUrl} alt={variant.title} />}
