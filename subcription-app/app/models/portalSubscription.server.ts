@@ -824,7 +824,12 @@ export async function getPortalManageOptions({
   if (!line || !line.productId) {
     throw new Error("This subscription has no product line to manage.");
   }
-  const country = contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
+  // The contract's own delivery address is what actually pins its billing
+  // market/currency -- the customer's account-level default address can
+  // differ (they may have other subscriptions, or changed it since), and
+  // using it here would resolve contextualPricing into the wrong currency.
+  const country =
+    contract?.deliveryMethod?.address?.countryCodeV2 ?? contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
 
   const describeInstrument = (instrument: RawPaymentMethod["instrument"]) =>
     instrument?.brand && instrument.lastDigits ? `${instrument.brand} •••• ${instrument.lastDigits}` : "On file";
@@ -977,6 +982,11 @@ export async function listPortalSwappableProducts({
         subscriptionContract(id: $id) {
           currencyCode
           customer { defaultAddress { countryCodeV2 } }
+          deliveryMethod {
+            ... on SubscriptionDeliveryMethodShipping {
+              address { countryCodeV2 }
+            }
+          }
           lines(first: 1) { nodes { productId } }
         }
       }
@@ -988,13 +998,16 @@ export async function listPortalSwappableProducts({
       subscriptionContract: {
         currencyCode: string;
         customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
+        deliveryMethod: { address?: { countryCodeV2: string } } | null;
         lines: { nodes: { productId: string | null }[] };
       } | null;
     };
   };
   const contract = contractBody.data?.subscriptionContract;
   const currencyCode = contract?.currencyCode ?? null;
-  const country = contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
+  // Prefer the contract's own delivery address over the customer's
+  // account-level default address -- see getPortalManageOptions for why.
+  const country = contract?.deliveryMethod?.address?.countryCodeV2 ?? contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
   const excludeProductId = contract?.lines.nodes[0]?.productId ?? null;
 
   const response = await admin.graphql(SWAPPABLE_PRODUCTS_QUERY, { variables: { country } });
@@ -1365,6 +1378,11 @@ export async function swapPortalProductVariant({
         subscriptionContract(id: $id) {
           currencyCode
           customer { defaultAddress { countryCodeV2 } }
+          deliveryMethod {
+            ... on SubscriptionDeliveryMethodShipping {
+              address { countryCodeV2 }
+            }
+          }
         }
       }
     `,
@@ -1375,11 +1393,15 @@ export async function swapPortalProductVariant({
       subscriptionContract: {
         currencyCode: string;
         customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
+        deliveryMethod: { address?: { countryCodeV2: string } } | null;
       } | null;
     };
   };
   const contractInfo = contractCurrencyBody.data?.subscriptionContract;
-  const country = contractInfo?.customer?.defaultAddress?.countryCodeV2 ?? null;
+  // Prefer the contract's own delivery address over the customer's
+  // account-level default address -- see getPortalManageOptions for why.
+  const country =
+    contractInfo?.deliveryMethod?.address?.countryCodeV2 ?? contractInfo?.customer?.defaultAddress?.countryCodeV2 ?? null;
 
   // ProductVariant.price is the shop's base currency, which is NOT what this
   // customer is billed if the contract is in a market's presentment currency
