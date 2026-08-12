@@ -369,7 +369,7 @@ function ManageSubscriptionModal({
 
   if (swapOpen && swapFetcher.state === "idle" && !swapFetcher.data && options) {
     swapFetcher.load(
-      `/account/subscriptions/swap-products?excludeProductId=${encodeURIComponent(options.productId ?? "")}`,
+      `/account/subscriptions/swap-products?contractId=${encodeURIComponent(sub.contractShopifyId)}`,
     );
   }
   const swapProducts = swapFetcher.data && "products" in swapFetcher.data ? swapFetcher.data.products : [];
@@ -715,7 +715,10 @@ function ManageSubscriptionModal({
                   <div className={styles.emptyState}>Loading other products...</div>
                 )}
                 {swapProducts.length === 0 && swapFetcher.data && !swapLoadError && (
-                  <div className={styles.emptyState}>No other subscribable products found.</div>
+                  <div className={styles.emptyState}>
+                    No other products are currently available in this subscription&apos;s currency
+                    ({sub.currencyCode}).
+                  </div>
                 )}
                 <div className={styles.manageSwatchGrid}>
                   {swapProducts.map((product) => (

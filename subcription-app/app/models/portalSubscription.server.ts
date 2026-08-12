@@ -911,7 +911,7 @@ export async function getPortalManageOptions({
 }
 
 const SWAPPABLE_PRODUCTS_QUERY = `#graphql
-  query PortalSwappableProducts {
+  query PortalSwappableProducts($country: CountryCode) {
     sellingPlanGroups(first: 20) {
       nodes {
         products(first: 20) {
@@ -920,7 +920,14 @@ const SWAPPABLE_PRODUCTS_QUERY = `#graphql
             title
             featuredImage { url }
             variants(first: 20) {
-              nodes { id title availableForSale price }
+              nodes {
+                id
+                title
+                availableForSale
+                contextualPricing(context: { country: $country }) {
+                  price { amount currencyCode }
+                }
+              }
             }
           }
         }
@@ -929,29 +936,68 @@ const SWAPPABLE_PRODUCTS_QUERY = `#graphql
   }
 `;
 
-/**
- * Every other product in the shop that's subscribable at all (has some
- * selling plan group), for the manage-subscription modal's "swap product"
- * picker. Products are only reachable through their selling plan group here
- * -- there's no direct "products with a selling plan" filter on the root
- * `products` connection.
- */
 interface SwappableProductNode {
   id: string;
   title: string;
   featuredImage: { url: string } | null;
-  variants: { nodes: { id: string; title: string; availableForSale: boolean; price: string }[] };
+  variants: {
+    nodes: {
+      id: string;
+      title: string;
+      availableForSale: boolean;
+      contextualPricing: { price: { amount: string; currencyCode: string } };
+    }[];
+  };
 }
 
+/**
+ * Every other product in the shop that's subscribable at all (has some
+ * selling plan group) AND actually purchasable in this contract's billing
+ * currency, for the manage-subscription modal's "swap product" picker.
+ * Showing a product whose contextual price resolves to a different currency
+ * for this customer would just dead-end at swapPortalProductVariant's own
+ * currency-safety check, so it's filtered out here instead.
+ */
 export async function listPortalSwappableProducts({
   shop,
-  excludeProductId,
+  customerShopifyId,
+  contractShopifyId,
 }: {
   shop: string;
-  excludeProductId: string;
+  customerShopifyId: string;
+  contractShopifyId: string;
 }) {
+  await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
+
   const { admin } = await unauthenticated.admin(shop);
-  const response = await admin.graphql(SWAPPABLE_PRODUCTS_QUERY);
+
+  const contractResponse = await admin.graphql(
+    `#graphql
+      query PortalSwapContractContext($id: ID!) {
+        subscriptionContract(id: $id) {
+          currencyCode
+          customer { defaultAddress { countryCodeV2 } }
+          lines(first: 1) { nodes { productId } }
+        }
+      }
+    `,
+    { variables: { id: contractShopifyId } },
+  );
+  const contractBody = (await contractResponse.json()) as {
+    data?: {
+      subscriptionContract: {
+        currencyCode: string;
+        customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
+        lines: { nodes: { productId: string | null }[] };
+      } | null;
+    };
+  };
+  const contract = contractBody.data?.subscriptionContract;
+  const currencyCode = contract?.currencyCode ?? null;
+  const country = contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
+  const excludeProductId = contract?.lines.nodes[0]?.productId ?? null;
+
+  const response = await admin.graphql(SWAPPABLE_PRODUCTS_QUERY, { variables: { country } });
   const body = (await response.json()) as {
     data?: { sellingPlanGroups: { nodes: { products: { nodes: SwappableProductNode[] } }[] } };
   };
@@ -963,17 +1009,21 @@ export async function listPortalSwappableProducts({
     }
   }
 
-  return Array.from(byId.values()).map((product) => ({
-    id: product.id,
-    title: product.title,
-    imageUrl: product.featuredImage?.url ?? null,
-    variants: product.variants.nodes.map((v) => ({
-      id: v.id,
-      title: v.title,
-      availableForSale: v.availableForSale,
-      price: v.price,
-    })),
-  }));
+  return Array.from(byId.values())
+    .map((product) => ({
+      id: product.id,
+      title: product.title,
+      imageUrl: product.featuredImage?.url ?? null,
+      variants: product.variants.nodes
+        .filter((v) => v.availableForSale && (!currencyCode || v.contextualPricing.price.currencyCode === currencyCode))
+        .map((v) => ({
+          id: v.id,
+          title: v.title,
+          availableForSale: v.availableForSale,
+          price: v.contextualPricing.price.amount,
+        })),
+    }))
+    .filter((product) => product.variants.length > 0);
 }
 
 const CONTRACT_OPEN_DRAFT_MUTATION = `#graphql
