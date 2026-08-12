@@ -369,18 +369,17 @@
 }
 
 .subscription-widget__benefits li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.8125rem;
   color: #4a463e;
-  padding-left: 1.25rem;
-  position: relative;
 }
 
-.subscription-widget__benefits li::before {
-  content: "✓";
-  position: absolute;
-  left: 0;
-  color: var(--subscription-widget-accent);
-  font-weight: 700;
+.subscription-widget__benefit-icon {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5625rem;
 }
 
 /* --- Submit button --- */
