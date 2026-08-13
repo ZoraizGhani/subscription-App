@@ -52,6 +52,43 @@ function OrderHistoryIcon({ className }: { className?: string }) {
   );
 }
 
+function HelpIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.25a2.5 2.5 0 1 1 3.5 2.292c-.75.334-1 .875-1 1.458" />
+      <circle cx="12" cy="16.5" r="0.1" fill="currentColor" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function LogoutIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15" />
+      <path d="M21 12H9m12 0-3-3m3 3-3 3" />
+    </svg>
+  );
+}
+
 function SettingsIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -64,7 +101,7 @@ function SettingsIcon({ className }: { className?: string }) {
 }
 
 export default function AccountLayout() {
-  const { customer } = useLoaderData<typeof loader>();
+  const { shop, customer } = useLoaderData<typeof loader>();
 
   return (
     <div className={styles.page}>
@@ -119,6 +156,25 @@ export default function AccountLayout() {
               Settings
             </NavLink>
           </nav>
+
+          <div className={styles.sidebarFooter}>
+            <a
+              className={styles.sidebarPrimaryButton}
+              href={`https://${shop}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Create New Plan
+            </a>
+            <NavLink to="/account/settings" className={styles.sidebarFooterLink}>
+              <HelpIcon className={styles.sidebarFooterIcon} />
+              Help Center
+            </NavLink>
+            <Link to="/account/logout" className={styles.sidebarFooterLinkDanger}>
+              <LogoutIcon className={styles.sidebarFooterIcon} />
+              Logout
+            </Link>
+          </div>
         </aside>
 
         <main className={styles.content}>
