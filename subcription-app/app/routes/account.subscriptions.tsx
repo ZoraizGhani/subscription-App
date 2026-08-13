@@ -925,7 +925,13 @@ export default function AccountSubscriptions() {
       </h1>
 
       {subscriptions.length === 0 ? (
-        <div className={styles.emptyState}>You don&apos;t have any subscriptions yet.</div>
+        <div className={styles.emptyStateCentered}>
+          <h2 className={styles.emptyStateHeading}>No active subscriptions</h2>
+          <p className={styles.emptyStateSubtext}>Start a subscription to save 15% on every delivery.</p>
+          <a className={styles.emptyStateAction} href={`https://${shop}`} target="_blank" rel="noopener noreferrer">
+            Shop CLRTY
+          </a>
+        </div>
       ) : (
         subscriptions.map((sub) => (
           <SubscriptionCard key={sub.contractShopifyId} sub={sub} shop={shop} onCancel={setCancelTarget} />

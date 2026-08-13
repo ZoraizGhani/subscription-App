@@ -603,6 +603,37 @@
   padding: 2rem 0;
 }
 
+.emptyStateCentered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 4rem 1.5rem;
+}
+
+.emptyStateHeading {
+  composes: heading;
+  font-size: 1.875rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.emptyStateSubtext {
+  font-family: "Geist", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #6b7280;
+  margin: 0;
+}
+
+.emptyStateAction {
+  composes: pillDark;
+  margin-top: 0.75rem;
+  text-decoration: none;
+}
+
 /* --- Site header: logo bar, full width, above the nav bar --- */
 
 /* --- Top bar (storefront-style nav on logged-in pages) --- */
