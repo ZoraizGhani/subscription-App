@@ -772,6 +772,7 @@ function OneTimeAddonModal({ sub, onClose }: { sub: Subscription; onClose: () =>
   // null until the customer touches a row -- lets the preselected (already on
   // the next order) set come from the load instead of starting empty.
   const [selection, setSelection] = useState<Set<string> | null>(null);
+  const [visibleCount, setVisibleCount] = useState(3);
 
   if (optionsFetcher.state === "idle" && !optionsFetcher.data) {
     optionsFetcher.load(
@@ -843,7 +844,7 @@ function OneTimeAddonModal({ sub, onClose }: { sub: Subscription; onClose: () =>
               {options.products.length === 0 ? (
                 <div className={styles.emptyState}>No other products are available to add right now.</div>
               ) : (
-                options.products.map((product) => {
+                options.products.slice(0, visibleCount).map((product) => {
                   const isSelected = activeSelection.has(product.variantId);
                   return (
                     <button
@@ -865,6 +866,15 @@ function OneTimeAddonModal({ sub, onClose }: { sub: Subscription; onClose: () =>
                     </button>
                   );
                 })
+              )}
+              {options.products.length > visibleCount && (
+                <button
+                  type="button"
+                  className={styles.addonLoadMore}
+                  onClick={() => setVisibleCount((count) => count + 3)}
+                >
+                  Load more
+                </button>
               )}
             </div>
 

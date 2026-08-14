@@ -1498,6 +1498,25 @@
   font-family: "Inter", sans-serif;
 }
 
+.addonLoadMore {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px dashed #d1d5db;
+  border-radius: 0.25rem;
+  background: none;
+  font-family: "Geist", sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.addonLoadMore:hover {
+  background: #f3f1e9;
+}
+
 .addonCheck {
   width: 1.5rem;
   height: 1.5rem;
