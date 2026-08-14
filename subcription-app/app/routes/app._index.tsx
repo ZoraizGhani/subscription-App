@@ -466,7 +466,7 @@ export default function Dashboard() {
                 <div className={styles.barPair}>
                   <Link
                     className={styles.barWrap}
-                    to={`/app/subscriptions?createdFrom=${encodeURIComponent(bucket.startDate)}&createdTo=${encodeURIComponent(bucket.endDate)}`}
+                    to={`/app/subscriptions?status=ACTIVE&createdFrom=${encodeURIComponent(bucket.startDate)}&createdTo=${encodeURIComponent(bucket.endDate)}`}
                   >
                     <span className={styles.barTooltip}>{bucket.created}</span>
                     <div
@@ -479,7 +479,7 @@ export default function Dashboard() {
                   </Link>
                   <Link
                     className={styles.barWrap}
-                    to={`/app/subscriptions?cancelledFrom=${encodeURIComponent(bucket.startDate)}&cancelledTo=${encodeURIComponent(bucket.endDate)}`}
+                    to={`/app/subscriptions?status=CANCELLED&cancelledFrom=${encodeURIComponent(bucket.startDate)}&cancelledTo=${encodeURIComponent(bucket.endDate)}`}
                   >
                     <span className={styles.barTooltip}>{bucket.cancelled}</span>
                     <div
