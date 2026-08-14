@@ -27,6 +27,27 @@ function frequencyKey(interval: string, intervalCount: number) {
   return `${interval}:${intervalCount}`;
 }
 
+/** Projects where the next delivery would land if it started today, for
+ * previewing a frequency change -- same approach as the customer portal's
+ * manage-subscription modal. */
+function addIntervalToToday(interval: string, count: number) {
+  const result = new Date();
+  switch (interval) {
+    case "WEEK":
+      result.setDate(result.getDate() + count * 7);
+      break;
+    case "MONTH":
+      result.setMonth(result.getMonth() + count);
+      break;
+    case "YEAR":
+      result.setFullYear(result.getFullYear() + count);
+      break;
+    default:
+      result.setDate(result.getDate() + count);
+  }
+  return result.toISOString().slice(0, 10);
+}
+
 function CalendarIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -145,7 +166,12 @@ function QuickReviewModal({
               <select
                 className={styles.reviewSelect}
                 value={activeFrequencyKey}
-                onChange={(e) => setFrequencyKeyValue(e.target.value)}
+                onChange={(e) => {
+                  const key = e.target.value;
+                  setFrequencyKeyValue(key);
+                  const option = FREQUENCY_OPTIONS.find((o) => frequencyKey(o.interval, o.intervalCount) === key);
+                  if (option) setNextDeliveryDate(addIntervalToToday(option.interval, option.intervalCount));
+                }}
               >
                 {!FREQUENCY_OPTIONS.some((o) => frequencyKey(o.interval, o.intervalCount) === activeFrequencyKey) && (
                   <option value={activeFrequencyKey}>
