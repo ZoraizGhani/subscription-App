@@ -675,9 +675,25 @@
 }
 
 .emptyStateAction {
-  composes: pillDark;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #1d1d1d;
+  color: #fff;
+  border: 1px solid #1d1d1d;
+  border-radius: 9999px;
+  font-family: "Geist", sans-serif;
+  font-size: 0.625rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
   text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 /* --- Site header: logo bar, full width, above the nav bar --- */
