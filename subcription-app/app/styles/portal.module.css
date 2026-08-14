@@ -1386,6 +1386,189 @@
   background: #f0ede4;
 }
 
+/* --- One-time add-on modal --- */
+
+.addonModalCard {
+  width: 100%;
+  max-width: 29.875rem;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  background: #faf7f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.addonHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.addonTitle {
+  font-family: "Instrument Serif", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-size: 2.25rem;
+  line-height: 2.8125rem;
+  letter-spacing: -0.0225rem;
+  color: #111827;
+  margin: 0;
+}
+
+.addonSubtitle {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: "Geist", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.3125rem;
+  color: #555555;
+}
+
+.addonList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.addonRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  background: #fff;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.addonThumb {
+  width: 5rem;
+  height: 5rem;
+  flex-shrink: 0;
+  border-radius: 0.125rem;
+  background: #efece6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-family: "Geist", sans-serif;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8a8478;
+}
+
+.addonThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.addonInfo {
+  flex: 1;
+}
+
+.addonName {
+  font-family: "Geist", sans-serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.75rem;
+  color: #111827;
+}
+
+.addonMeta {
+  font-family: "Geist", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+  color: #6b7280;
+}
+
+.addonPrice {
+  font-family: "Inter", sans-serif;
+}
+
+.addonCheck {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  font-size: 0.75rem;
+}
+
+.addonRow.is-selected .addonCheck {
+  border-color: #1a1a1a;
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.addonDivider {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 0;
+}
+
+.addonTotalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.addonTotalLabel {
+  font-family: "Geist", sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.03125rem;
+  letter-spacing: 0.06875rem;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.addonTotalValue {
+  font-family: "Geist", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 2rem;
+  color: #111827;
+}
+
+.addonSubmitButton {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1.25rem 1.5rem;
+  border: none;
+  border-radius: 4.875rem;
+  background: #111111;
+  color: #fff;
+  font-family: "Geist", sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.addonSubmitButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* --- Settings screen --- */
 
 .settingsGrid {

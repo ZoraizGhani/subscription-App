@@ -1475,3 +1475,351 @@ export async function swapPortalProductVariant({
 
   await syncSubscriptionContract({ graphql: admin.graphql, shop, contractId: contractShopifyId });
 }
+
+// ---------------------------------------------------------------------------
+// One-time add-ons for the next order
+//
+// Adding a one-time product to a subscription doesn't touch the contract's
+// recurring lines at all -- it edits a single upcoming *billing cycle* via
+// Shopify's billing-cycle-draft mutations (subscriptionBillingCycleContractEdit
+// -> subscriptionDraftLine* -> subscriptionBillingCycleContractDraftCommit), so
+// only that one order picks it up and the recurring subscription is untouched.
+// A one-time line is just a SubscriptionLineInput with no sellingPlanId; the
+// recurring line always carries one, which is how existing add-ons are told
+// apart from the subscribed product when reading a cycle back.
+// ---------------------------------------------------------------------------
+
+const ONE_TIME_ADDON_CONTEXT_QUERY = `#graphql
+  query PortalOneTimeAddonContext($id: ID!) {
+    subscriptionContract(id: $id) {
+      currencyCode
+      customer { defaultAddress { countryCodeV2 } }
+      deliveryMethod {
+        ... on SubscriptionDeliveryMethodShipping {
+          address { countryCodeV2 }
+        }
+      }
+      lines(first: 1) { nodes { productId } }
+    }
+  }
+`;
+
+interface OneTimeAddonContext {
+  currencyCode: string;
+  customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
+  deliveryMethod: { address?: { countryCodeV2: string } } | null;
+  lines: { nodes: { productId: string | null }[] };
+}
+
+async function getOneTimeAddonContext(admin: PortalAdmin, contractShopifyId: string) {
+  const response = await admin.graphql(ONE_TIME_ADDON_CONTEXT_QUERY, { variables: { id: contractShopifyId } });
+  const body = (await response.json()) as { data?: { subscriptionContract: OneTimeAddonContext | null } };
+  const context = body.data?.subscriptionContract;
+  return {
+    currencyCode: context?.currencyCode ?? null,
+    // Prefer the contract's own delivery address over the customer's
+    // account-level default address -- see getPortalManageOptions for why.
+    country: context?.deliveryMethod?.address?.countryCodeV2 ?? context?.customer?.defaultAddress?.countryCodeV2 ?? null,
+    excludeProductId: context?.lines.nodes[0]?.productId ?? null,
+  };
+}
+
+const ONE_TIME_PRODUCTS_QUERY = `#graphql
+  query PortalOneTimeProducts($country: CountryCode) {
+    products(first: 20, query: "status:active") {
+      nodes {
+        id
+        title
+        featuredImage { url }
+        variants(first: 1) {
+          nodes {
+            id
+            availableForSale
+            contextualPricing(context: { country: $country }) {
+              price { amount currencyCode }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+interface OneTimeProductNode {
+  id: string;
+  title: string;
+  featuredImage: { url: string } | null;
+  variants: {
+    nodes: {
+      id: string;
+      availableForSale: boolean;
+      contextualPricing: { price: { amount: string; currencyCode: string } };
+    }[];
+  };
+}
+
+const NEXT_CYCLE_LINES_QUERY = `#graphql
+  query PortalNextCycleLines($id: ID!, $index: Int!) {
+    subscriptionBillingCycle(billingCycleInput: { contractId: $id, selector: { index: $index } }) {
+      editedContract {
+        lines(first: 20) {
+          nodes {
+            id
+            title
+            variantId
+            sellingPlanId
+            currentPrice { amount currencyCode }
+            variantImage { url }
+          }
+        }
+      }
+    }
+  }
+`;
+
+interface NextCycleLineNode {
+  id: string;
+  title: string;
+  variantId: string | null;
+  sellingPlanId: string | null;
+  currentPrice: { amount: string; currencyCode: string };
+  variantImage: { url: string } | null;
+}
+
+/**
+ * Everything the "Add to next order" modal needs: every other active product
+ * that can be added as a one-time item to this contract's next shipment, and
+ * whichever one-time add-ons are already staged on that specific cycle (so the
+ * modal can preselect them and offer to remove them instead of only adding).
+ */
+export async function listPortalOneTimeAddonOptions({
+  shop,
+  customerShopifyId,
+  contractShopifyId,
+}: {
+  shop: string;
+  customerShopifyId: string;
+  contractShopifyId: string;
+}) {
+  const contract = await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
+  const { admin } = await unauthenticated.admin(shop);
+
+  const nextCycle = await findNextUnbilledCycle(admin, contractShopifyId);
+  const context = await getOneTimeAddonContext(admin, contractShopifyId);
+  const currencyCode = context.currencyCode ?? contract.currencyCode;
+
+  const [productsResponse, linesResponse, nextBillingDate] = await Promise.all([
+    admin.graphql(ONE_TIME_PRODUCTS_QUERY, { variables: { country: context.country } }),
+    admin.graphql(NEXT_CYCLE_LINES_QUERY, { variables: { id: contractShopifyId, index: nextCycle.index } }),
+    correctedNextBillingDate({ admin, contract }),
+  ]);
+
+  const productsBody = (await productsResponse.json()) as { data?: { products: { nodes: OneTimeProductNode[] } } };
+  const products = (productsBody.data?.products.nodes ?? [])
+    .filter((product) => product.id !== context.excludeProductId)
+    .flatMap((product) => {
+      const variant = product.variants.nodes[0];
+      if (!variant || !variant.availableForSale || variant.contextualPricing.price.currencyCode !== currencyCode) {
+        return [];
+      }
+      return [
+        {
+          productId: product.id,
+          variantId: variant.id,
+          title: product.title,
+          imageUrl: product.featuredImage?.url ?? null,
+          price: variant.contextualPricing.price.amount,
+        },
+      ];
+    });
+
+  const linesBody = (await linesResponse.json()) as {
+    data?: { subscriptionBillingCycle: { editedContract: { lines: { nodes: NextCycleLineNode[] } } | null } | null };
+  };
+  const existingAddons = (linesBody.data?.subscriptionBillingCycle?.editedContract?.lines.nodes ?? [])
+    .filter((line) => !line.sellingPlanId)
+    .map((line) => ({
+      lineId: line.id,
+      variantId: line.variantId,
+      title: line.title,
+      imageUrl: line.variantImage?.url ?? null,
+      price: line.currentPrice.amount,
+    }));
+
+  return {
+    nextBillingDate: nextBillingDate ?? new Date(nextCycle.date),
+    currencyCode,
+    products,
+    existingAddons,
+  };
+}
+
+const CYCLE_DRAFT_OPEN_MUTATION = `#graphql
+  mutation PortalOpenCycleDraft($input: SubscriptionBillingCycleInput!) {
+    subscriptionBillingCycleContractEdit(billingCycleInput: $input) {
+      draft { id }
+      userErrors { field message }
+    }
+  }
+`;
+
+const CYCLE_DRAFT_LINE_ADD_MUTATION = `#graphql
+  mutation PortalAddOneTimeLine($draftId: ID!, $input: SubscriptionLineInput!) {
+    subscriptionDraftLineAdd(draftId: $draftId, input: $input) {
+      draft { id }
+      userErrors { field message }
+    }
+  }
+`;
+
+const CYCLE_DRAFT_LINE_REMOVE_MUTATION = `#graphql
+  mutation PortalRemoveOneTimeLine($draftId: ID!, $lineId: ID!) {
+    subscriptionDraftLineRemove(draftId: $draftId, lineId: $lineId) {
+      draft { id }
+      userErrors { field message }
+    }
+  }
+`;
+
+const CYCLE_DRAFT_COMMIT_MUTATION = `#graphql
+  mutation PortalCommitCycleDraft($draftId: ID!) {
+    subscriptionBillingCycleContractDraftCommit(draftId: $draftId) {
+      contract { updatedAt }
+      userErrors { field message }
+    }
+  }
+`;
+
+async function openCycleDraft(admin: PortalAdmin, contractShopifyId: string, cycleIndex: number) {
+  const response = await admin.graphql(CYCLE_DRAFT_OPEN_MUTATION, {
+    variables: { input: { contractId: contractShopifyId, selector: { index: cycleIndex } } },
+  });
+  const body = (await response.json()) as {
+    data?: {
+      subscriptionBillingCycleContractEdit: {
+        draft: { id: string } | null;
+        userErrors: { field: string[]; message: string }[];
+      };
+    };
+  };
+  const result = body.data?.subscriptionBillingCycleContractEdit;
+  const userErrors = result?.userErrors ?? [];
+  if (userErrors.length || !result?.draft) {
+    throw new Error(`subscriptionBillingCycleContractEdit failed: ${JSON.stringify(userErrors)}`);
+  }
+  return result.draft.id;
+}
+
+async function addCycleDraftLine(admin: PortalAdmin, draftId: string, productVariantId: string, currentPrice: string) {
+  const response = await admin.graphql(CYCLE_DRAFT_LINE_ADD_MUTATION, {
+    variables: { draftId, input: { productVariantId, quantity: 1, currentPrice } },
+  });
+  const body = (await response.json()) as {
+    data?: { subscriptionDraftLineAdd: { userErrors: { field: string[]; message: string }[] } };
+  };
+  const userErrors = body.data?.subscriptionDraftLineAdd?.userErrors ?? [];
+  if (userErrors.length) {
+    throw new Error(`subscriptionDraftLineAdd failed: ${JSON.stringify(userErrors)}`);
+  }
+}
+
+async function removeCycleDraftLine(admin: PortalAdmin, draftId: string, lineId: string) {
+  const response = await admin.graphql(CYCLE_DRAFT_LINE_REMOVE_MUTATION, { variables: { draftId, lineId } });
+  const body = (await response.json()) as {
+    data?: { subscriptionDraftLineRemove: { userErrors: { field: string[]; message: string }[] } };
+  };
+  const userErrors = body.data?.subscriptionDraftLineRemove?.userErrors ?? [];
+  if (userErrors.length) {
+    throw new Error(`subscriptionDraftLineRemove failed: ${JSON.stringify(userErrors)}`);
+  }
+}
+
+async function commitCycleDraft(admin: PortalAdmin, draftId: string) {
+  const response = await admin.graphql(CYCLE_DRAFT_COMMIT_MUTATION, { variables: { draftId } });
+  const body = (await response.json()) as {
+    data?: {
+      subscriptionBillingCycleContractDraftCommit: {
+        contract: { updatedAt: string } | null;
+        userErrors: { field: string[]; message: string }[];
+      };
+    };
+  };
+  const result = body.data?.subscriptionBillingCycleContractDraftCommit;
+  const userErrors = result?.userErrors ?? [];
+  if (userErrors.length || !result?.contract) {
+    throw new Error(`subscriptionBillingCycleContractDraftCommit failed: ${JSON.stringify(userErrors)}`);
+  }
+}
+
+const ONE_TIME_VARIANT_PRICE_QUERY = `#graphql
+  query PortalOneTimeVariantPrice($id: ID!, $country: CountryCode) {
+    productVariant(id: $id) {
+      availableForSale
+      contextualPricing(context: { country: $country }) {
+        price { amount currencyCode }
+      }
+    }
+  }
+`;
+
+/**
+ * Adds and removes one-time items on the contract's next order in a single
+ * billing-cycle draft, so a save that both adds one product and removes
+ * another can't leave things half-applied by committing twice. Prices are
+ * re-resolved server-side per variant (never trusting a client-supplied
+ * price), same reasoning as swapPortalProductVariant.
+ */
+export async function updatePortalOneTimeAddons({
+  shop,
+  customerShopifyId,
+  contractShopifyId,
+  addVariantIds,
+  removeLineIds,
+}: {
+  shop: string;
+  customerShopifyId: string;
+  contractShopifyId: string;
+  addVariantIds: string[];
+  removeLineIds: string[];
+}) {
+  await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
+
+  const { admin } = await unauthenticated.admin(shop);
+  const nextCycle = await findNextUnbilledCycle(admin, contractShopifyId);
+  const context = await getOneTimeAddonContext(admin, contractShopifyId);
+
+  const draftId = await openCycleDraft(admin, contractShopifyId, nextCycle.index);
+
+  // Remove first, then add -- so re-adding something just removed in the same
+  // save (a toggle-off-then-back-on in the modal) can't collide.
+  for (const lineId of removeLineIds) {
+    await removeCycleDraftLine(admin, draftId, lineId);
+  }
+
+  for (const productVariantId of addVariantIds) {
+    const priceResponse = await admin.graphql(ONE_TIME_VARIANT_PRICE_QUERY, {
+      variables: { id: productVariantId, country: context.country },
+    });
+    const priceBody = (await priceResponse.json()) as {
+      data?: {
+        productVariant: {
+          availableForSale: boolean;
+          contextualPricing: { price: { amount: string; currencyCode: string } };
+        } | null;
+      };
+    };
+    const variant = priceBody.data?.productVariant;
+    if (!variant) {
+      throw new Error("That item is no longer available.");
+    }
+    if (!variant.availableForSale) {
+      throw new Error("That item is currently out of stock.");
+    }
+    if (context.currencyCode && variant.contextualPricing.price.currencyCode !== context.currencyCode) {
+      throw new Error("Could not confirm pricing for that item in your currency. Please try again.");
+    }
+    await addCycleDraftLine(admin, draftId, productVariantId, variant.contextualPricing.price.amount);
+  }
+
+  await commitCycleDraft(admin, draftId);
+}

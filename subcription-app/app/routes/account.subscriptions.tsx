@@ -15,6 +15,7 @@ import {
   swapPortalProductVariant,
   updatePortalPaymentMethod,
   updatePortalShippingAddress,
+  updatePortalOneTimeAddons,
   PortalOwnershipError,
 } from "../models/portalSubscription.server";
 import styles from "../styles/portal.module.css";
@@ -66,6 +67,13 @@ interface SwappableProduct {
   title: string;
   imageUrl: string | null;
   variants: { id: string; title: string; availableForSale: boolean; price: string }[];
+}
+
+interface OneTimeAddonOptions {
+  nextBillingDate: string;
+  currencyCode: string;
+  products: { productId: string; variantId: string; title: string; imageUrl: string | null; price: string }[];
+  existingAddons: { lineId: string; variantId: string | null; title: string; imageUrl: string | null; price: string }[];
 }
 
 const CANCEL_REASONS = [
@@ -279,6 +287,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         contractShopifyId,
         lineId,
         productVariantId,
+      });
+      return { intent, success: true };
+    }
+
+    if (intent === "updateOneTimeAddons") {
+      const addVariantIds = formData.getAll("addVariantId").map(String);
+      const removeLineIds = formData.getAll("removeLineId").map(String);
+      await updatePortalOneTimeAddons({
+        shop: session.shop,
+        customerShopifyId: customer.customerShopifyId,
+        contractShopifyId,
+        addVariantIds,
+        removeLineIds,
       });
       return { intent, success: true };
     }
@@ -744,6 +765,131 @@ function ManageSubscriptionModal({
   );
 }
 
+function OneTimeAddonModal({ sub, onClose }: { sub: Subscription; onClose: () => void }) {
+  const optionsFetcher = useFetcher<OneTimeAddonOptions | { error: string }>();
+  const saveFetcher = useFetcher<typeof action>();
+
+  // null until the customer touches a row -- lets the preselected (already on
+  // the next order) set come from the load instead of starting empty.
+  const [selection, setSelection] = useState<Set<string> | null>(null);
+
+  if (optionsFetcher.state === "idle" && !optionsFetcher.data) {
+    optionsFetcher.load(
+      `/account/subscriptions/one-time-addons?contractId=${encodeURIComponent(sub.contractShopifyId)}`,
+    );
+  }
+
+  const options = optionsFetcher.data && "products" in optionsFetcher.data ? optionsFetcher.data : null;
+  const loadError = optionsFetcher.data && "error" in optionsFetcher.data ? optionsFetcher.data.error : null;
+
+  const existingVariantIds = new Set(
+    (options?.existingAddons ?? []).map((a) => a.variantId).filter((id): id is string => Boolean(id)),
+  );
+  const activeSelection = selection ?? existingVariantIds;
+
+  const toggle = (variantId: string) => {
+    const next = new Set(activeSelection);
+    if (next.has(variantId)) next.delete(variantId);
+    else next.add(variantId);
+    setSelection(next);
+  };
+
+  const total = (options?.products ?? [])
+    .filter((p) => activeSelection.has(p.variantId))
+    .reduce((sum, p) => sum + Number(p.price), 0);
+
+  const saving = saveFetcher.state !== "idle";
+  const saved = saveFetcher.state === "idle" && saveFetcher.data && "success" in saveFetcher.data;
+
+  const save = () => {
+    if (!options) return;
+    const addVariantId = Array.from(activeSelection).filter((id) => !existingVariantIds.has(id));
+    const removeLineId = options.existingAddons
+      .filter((a) => a.variantId && !activeSelection.has(a.variantId))
+      .map((a) => a.lineId);
+
+    const formData = new FormData();
+    formData.set("intent", "updateOneTimeAddons");
+    formData.set("contractShopifyId", sub.contractShopifyId);
+    for (const id of addVariantId) formData.append("addVariantId", id);
+    for (const id of removeLineId) formData.append("removeLineId", id);
+
+    saveFetcher.submit(formData, { method: "post", action: "/account/subscriptions" });
+  };
+
+  return (
+    <div className={styles.modalOverlay}>
+      <div className={styles.addonModalCard} role="dialog" aria-modal="true">
+        <div className={styles.addonHeader}>
+          <div>
+            <h2 className={styles.addonTitle}>Add to next order</h2>
+            {options && (
+              <span className={styles.addonSubtitle}>
+                Ships with your next renewal on {formatDate(options.nextBillingDate)} — no extra shipping fee.
+              </span>
+            )}
+          </div>
+          <button type="button" className={styles.modalClose} onClick={onClose} aria-label="Close">
+            &times;
+          </button>
+        </div>
+
+        {loadError && <div className={styles.error}>{loadError}</div>}
+        {!options && !loadError && <div className={styles.emptyState}>Loading...</div>}
+
+        {options && (
+          <>
+            <div className={styles.addonList}>
+              {options.products.length === 0 ? (
+                <div className={styles.emptyState}>No other products are available to add right now.</div>
+              ) : (
+                options.products.map((product) => {
+                  const isSelected = activeSelection.has(product.variantId);
+                  return (
+                    <button
+                      key={product.variantId}
+                      type="button"
+                      className={`${styles.addonRow} ${isSelected ? "is-selected" : ""}`}
+                      onClick={() => toggle(product.variantId)}
+                    >
+                      <span className={styles.addonThumb}>
+                        {product.imageUrl ? <img src={product.imageUrl} alt={product.title} /> : "CLRTY"}
+                      </span>
+                      <span className={styles.addonInfo}>
+                        <div className={styles.addonName}>{product.title}</div>
+                        <span className={styles.addonMeta}>
+                          One-time &bull; <span className={styles.addonPrice}>{formatMoney(Number(product.price), options.currencyCode)}</span>
+                        </span>
+                      </span>
+                      <span className={styles.addonCheck}>{isSelected ? "✓" : ""}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            <hr className={styles.addonDivider} />
+
+            <div className={styles.addonTotalRow}>
+              <span className={styles.addonTotalLabel}>Add-on total</span>
+              <span className={styles.addonTotalValue}>{formatMoney(total, options.currencyCode)}</span>
+            </div>
+
+            {saved && <div className={styles.success}>Next shipment updated.</div>}
+            {saveFetcher.data && "error" in saveFetcher.data && (
+              <div className={styles.error}>{saveFetcher.data.error}</div>
+            )}
+
+            <button type="button" className={styles.addonSubmitButton} disabled={saving} onClick={save}>
+              {saving ? "Saving..." : "Add to next shipment"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SubscriptionCard({
   sub,
   shop,
@@ -757,6 +903,7 @@ function SubscriptionCard({
   const busy = fetcher.state !== "idle";
   const busyIntent = busy ? fetcher.formData?.get("intent") : null;
   const [manageOpen, setManageOpen] = useState(false);
+  const [oneTimeOpen, setOneTimeOpen] = useState(false);
   const productUrl = sub.productHandle ? `https://${shop}/products/${sub.productHandle}` : null;
 
   const runAction = (intent: "skip" | "shipNow") => {
@@ -863,21 +1010,9 @@ function SubscriptionCard({
             <button type="button" className={styles.pillDark} onClick={() => setManageOpen(true)}>
               Manage Subscription
             </button>
-            {productUrl ? (
-              <a
-                href={productUrl}
-                target="_blank"
-                rel="noreferrer"
-                className={styles.pillNeutral}
-                style={{ textDecoration: "none" }}
-              >
-                + Add One-time Item
-              </a>
-            ) : (
-              <button type="button" className={styles.pillNeutral} disabled title="Product page unavailable">
-                + Add One-time Item
-              </button>
-            )}
+            <button type="button" className={styles.pillNeutral} onClick={() => setOneTimeOpen(true)}>
+              + Add One-time Item
+            </button>
             <button
               type="button"
               className={styles.cancelLink}
@@ -890,6 +1025,7 @@ function SubscriptionCard({
       )}
 
       {manageOpen && <ManageSubscriptionModal sub={sub} onClose={() => setManageOpen(false)} />}
+      {oneTimeOpen && <OneTimeAddonModal sub={sub} onClose={() => setOneTimeOpen(false)} />}
     </div>
   );
 }
