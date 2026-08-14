@@ -1,5 +1,6 @@
+import { useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, Link, useLoaderData, useSearchParams } from "react-router";
+import { Form, Link, useFetcher, useLoaderData, useSearchParams } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { authenticate } from "../shopify.server";
@@ -10,7 +11,227 @@ import {
   getUpcomingRenewals,
   type FlowBucketUnit,
 } from "../models/dashboard.server";
+import type { QuickReviewData } from "../models/adminQuickReview.server";
 import styles from "../styles/dashboard.module.css";
+
+const FREQUENCY_OPTIONS = [
+  { interval: "DAY", intervalCount: 30, label: "Every 30 days" },
+  { interval: "DAY", intervalCount: 45, label: "Every 45 days" },
+  { interval: "DAY", intervalCount: 60, label: "Every 60 days" },
+  { interval: "WEEK", intervalCount: 1, label: "Every week" },
+  { interval: "WEEK", intervalCount: 2, label: "Every 2 weeks" },
+  { interval: "MONTH", intervalCount: 1, label: "Every month" },
+];
+
+function frequencyKey(interval: string, intervalCount: number) {
+  return `${interval}:${intervalCount}`;
+}
+
+function CalendarIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M3.33333 2.66602H12.6667C13.4026 2.66602 14 3.26346 14 3.99935V13.3327C14 14.0686 13.4026 14.666 12.6667 14.666H3.33333C2.59745 14.666 2 14.0686 2 13.3327V3.99935C2 3.26346 2.59745 2.66602 3.33333 2.66602V2.66602"
+        stroke="#1F2937"
+        strokeWidth="1.33333"
+      />
+      <path d="M10.6665 1.33398V4.00065" stroke="#1F2937" strokeWidth="1.33333" />
+      <path d="M5.3335 1.33398V4.00065" stroke="#1F2937" strokeWidth="1.33333" />
+      <path d="M2 6.66602H14" stroke="#1F2937" strokeWidth="1.33333" />
+    </svg>
+  );
+}
+
+function QuickReviewModal({
+  contractShopifyId,
+  currencyCode,
+  onClose,
+}: {
+  contractShopifyId: string;
+  currencyCode: string;
+  onClose: () => void;
+}) {
+  const optionsFetcher = useFetcher<QuickReviewData | { error: string }>();
+  const actionFetcher = useFetcher<{ intent: string; success?: boolean; error?: string }>();
+
+  const [nextDeliveryDate, setNextDeliveryDate] = useState<string | null>(null);
+  const [frequencyKeyValue, setFrequencyKeyValue] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState<number | null>(null);
+
+  if (optionsFetcher.state === "idle" && !optionsFetcher.data) {
+    optionsFetcher.load(`/app/subscriptions/quick-review?contractId=${encodeURIComponent(contractShopifyId)}`);
+  }
+
+  const data = optionsFetcher.data && "contractNumber" in optionsFetcher.data ? optionsFetcher.data : null;
+  const loadError = optionsFetcher.data && "error" in optionsFetcher.data ? optionsFetcher.data.error : null;
+
+  const activeDate = nextDeliveryDate ?? (data?.nextBillingDate ? data.nextBillingDate.slice(0, 10) : "");
+  const activeFrequencyKey = frequencyKeyValue ?? (data ? frequencyKey(data.billingInterval, data.billingIntervalCount) : "");
+  const activeQuantity = quantity ?? data?.quantity ?? 1;
+  const unitPrice = data?.totalAmount && data.quantity ? data.totalAmount / data.quantity : 0;
+
+  const busy = actionFetcher.state !== "idle";
+  const busyIntent = busy ? actionFetcher.formData?.get("intent") : null;
+  const saved = actionFetcher.state === "idle" && actionFetcher.data?.intent === "saveChanges" && actionFetcher.data.success;
+
+  const runAction = (intent: string, extra: Record<string, string> = {}) => {
+    actionFetcher.submit({ intent, contractShopifyId, ...extra }, { method: "post", action: "/app/subscriptions/quick-review" });
+  };
+
+  const saveChanges = () => {
+    if (!data) return;
+    const payload: Record<string, string> = { intent: "saveChanges", contractShopifyId, lineId: data.lineId ?? "" };
+    if (nextDeliveryDate && nextDeliveryDate !== data.nextBillingDate?.slice(0, 10)) {
+      payload.nextBillingDate = nextDeliveryDate;
+    }
+    if (frequencyKeyValue && frequencyKeyValue !== frequencyKey(data.billingInterval, data.billingIntervalCount)) {
+      const option = FREQUENCY_OPTIONS.find((o) => frequencyKey(o.interval, o.intervalCount) === frequencyKeyValue);
+      if (option) {
+        payload.interval = option.interval;
+        payload.intervalCount = String(option.intervalCount);
+      }
+    }
+    if (quantity != null && quantity !== data.quantity) {
+      payload.quantity = String(quantity);
+    }
+    actionFetcher.submit(payload, { method: "post", action: "/app/subscriptions/quick-review" });
+  };
+
+  return (
+    <div className={styles.reviewOverlay}>
+      <div className={styles.reviewCard} role="dialog" aria-modal="true">
+        <div className={styles.reviewHeader}>
+          <div>
+            <span className={styles.reviewEyebrow}>Contract {data?.contractNumber ?? ""}</span>
+            <h2 className={styles.reviewTitle}>{data?.customerName ?? "Loading..."}</h2>
+          </div>
+          <button type="button" className={styles.reviewClose} onClick={onClose} aria-label="Close">
+            &times;
+          </button>
+        </div>
+
+        {loadError && <div className={styles.emptyState}>{loadError}</div>}
+
+        {data && (
+          <>
+            <div className={styles.reviewGrid2}>
+              <div>
+                <span className={styles.reviewEyebrow}>Product</span>
+                <div className={styles.reviewFieldValue}>{data.productTitle}</div>
+              </div>
+              <div>
+                <span className={styles.reviewEyebrow}>Status</span>
+                <div>
+                  <span className={styles.reviewStatusBadge}>⚠ {data.status.replace(/_/g, " ")}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.reviewField}>
+              <span className={styles.reviewEyebrow}>Next delivery date</span>
+              <div className={styles.reviewDateWrap}>
+                <input
+                  type="date"
+                  className={styles.reviewDateInput}
+                  value={activeDate}
+                  onChange={(e) => setNextDeliveryDate(e.target.value)}
+                />
+                <CalendarIcon className={styles.reviewCalendarIcon} />
+              </div>
+            </div>
+
+            <div className={styles.reviewField}>
+              <span className={styles.reviewEyebrow}>Frequency</span>
+              <select
+                className={styles.reviewSelect}
+                value={activeFrequencyKey}
+                onChange={(e) => setFrequencyKeyValue(e.target.value)}
+              >
+                {!FREQUENCY_OPTIONS.some((o) => frequencyKey(o.interval, o.intervalCount) === activeFrequencyKey) && (
+                  <option value={activeFrequencyKey}>
+                    Every {data.billingIntervalCount} {data.billingInterval.toLowerCase()}
+                    {data.billingIntervalCount === 1 ? "" : "s"}
+                  </option>
+                )}
+                {FREQUENCY_OPTIONS.map((o) => (
+                  <option key={frequencyKey(o.interval, o.intervalCount)} value={frequencyKey(o.interval, o.intervalCount)}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.reviewQuantityRow}>
+              <div className={styles.reviewField}>
+                <span className={styles.reviewEyebrow}>Quantity</span>
+                <div className={styles.reviewQuantity}>
+                  <button type="button" onClick={() => setQuantity(Math.max(1, activeQuantity - 1))}>
+                    &minus;
+                  </button>
+                  <span>{activeQuantity}</span>
+                  <button type="button" onClick={() => setQuantity(activeQuantity + 1)}>
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className={styles.reviewTotal}>
+                <span className={styles.reviewTotalLabel}>Total:</span>
+                <span className={styles.reviewTotalValue}>
+                  {new Intl.NumberFormat("en-US", { style: "currency", currency: data.currencyCode ?? currencyCode }).format(
+                    unitPrice * activeQuantity,
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div className={styles.reviewPillRow}>
+              <button
+                type="button"
+                className={styles.reviewPill}
+                disabled={busy}
+                onClick={() => runAction("applyDiscount")}
+              >
+                {busyIntent === "applyDiscount" ? "Applying..." : "Apply 25% discount"}
+              </button>
+              <button type="button" className={styles.reviewPill} disabled={busy} onClick={() => runAction("pause")}>
+                {busyIntent === "pause" ? "Pausing..." : "Pause subscription"}
+              </button>
+              <button
+                type="button"
+                className={styles.reviewPill}
+                disabled={busy || !data.hasPaymentMethod}
+                title={data.hasPaymentMethod ? undefined : "No payment method on file"}
+                onClick={() => runAction("resendPaymentLink")}
+              >
+                {busyIntent === "resendPaymentLink" ? "Sending..." : "Resend payment link"}
+              </button>
+            </div>
+
+            {actionFetcher.data?.error && <div className={styles.emptyState}>{actionFetcher.data.error}</div>}
+            {saved && <div className={styles.emptyState}>Changes saved.</div>}
+            {actionFetcher.data?.intent === "pause" && actionFetcher.data.success && (
+              <div className={styles.emptyState}>Subscription paused.</div>
+            )}
+            {actionFetcher.data?.intent === "resendPaymentLink" && actionFetcher.data.success && (
+              <div className={styles.emptyState}>Payment link sent.</div>
+            )}
+
+            <hr className={styles.reviewDivider} />
+
+            <div className={styles.reviewButtonsRow}>
+              <button type="button" className={styles.reviewSaveButton} disabled={busy} onClick={saveChanges}>
+                {busyIntent === "saveChanges" ? "Saving..." : "Save changes"}
+              </button>
+              <button type="button" className={styles.reviewCancelButton} onClick={onClose}>
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const STATUS_PILL: Record<string, string> = {
   ACTIVE: styles.statusActive,
@@ -112,6 +333,7 @@ function Delta({ value, unit, positiveIsGood }: { value: number | null; unit: "p
 export default function Dashboard() {
   const { metrics, series, needsAttention, renewals, currencyCode, shopName, range } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
+  const [reviewContractId, setReviewContractId] = useState<string | null>(null);
   const config = RANGE_CONFIG[range];
 
   const maxFlow = Math.max(1, ...series.flatMap((m) => [m.created, m.cancelled]));
@@ -253,9 +475,13 @@ export default function Dashboard() {
                     <div className={styles.attentionName}>{row.customerName}</div>
                     <div className={styles.attentionMeta}>{row.contractNumber} • Payment declined</div>
                   </div>
-                  <Link className={styles.reviewLink} to={`/app/subscriptions/${row.contractShopifyId.split("/").pop()}`}>
+                  <button
+                    type="button"
+                    className={styles.attentionReviewButton}
+                    onClick={() => setReviewContractId(row.contractShopifyId)}
+                  >
                     Review
-                  </Link>
+                  </button>
                 </div>
               ))}
             </div>
@@ -301,6 +527,14 @@ export default function Dashboard() {
           </table>
         )}
       </div>
+
+      {reviewContractId && (
+        <QuickReviewModal
+          contractShopifyId={reviewContractId}
+          currencyCode={currencyCode}
+          onClose={() => setReviewContractId(null)}
+        />
+      )}
     </div>
   );
 }
