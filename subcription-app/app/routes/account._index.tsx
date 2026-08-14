@@ -132,34 +132,36 @@ export default function AccountOverview() {
           {overview.recentOrders.length === 0 ? (
             <div className={styles.emptyState}>No orders yet.</div>
           ) : (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Order</th>
-                  <th>Date</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {overview.recentOrders.map((order) => (
-                  <tr key={order.orderShopifyId}>
-                    <td>{order.orderName ?? order.orderShopifyId}</td>
-                    <td>{formatDate(order.processedAt)}</td>
-                    <td>{formatMoney(order.totalPrice, order.currencyCode)}</td>
-                    <td>
-                      {order.fulfillmentStatus && FULFILLMENT_STATUS[order.fulfillmentStatus] ? (
-                        <span className={styles[FULFILLMENT_STATUS[order.fulfillmentStatus].className]}>
-                          {FULFILLMENT_STATUS[order.fulfillmentStatus].label}
-                        </span>
-                      ) : (
-                        <span className={styles.badgeNeutral}>—</span>
-                      )}
-                    </td>
+            <div className={styles.tableScroll}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {overview.recentOrders.map((order) => (
+                    <tr key={order.orderShopifyId}>
+                      <td>{order.orderName ?? order.orderShopifyId}</td>
+                      <td>{formatDate(order.processedAt)}</td>
+                      <td>{formatMoney(order.totalPrice, order.currencyCode)}</td>
+                      <td>
+                        {order.fulfillmentStatus && FULFILLMENT_STATUS[order.fulfillmentStatus] ? (
+                          <span className={styles[FULFILLMENT_STATUS[order.fulfillmentStatus].className]}>
+                            {FULFILLMENT_STATUS[order.fulfillmentStatus].label}
+                          </span>
+                        ) : (
+                          <span className={styles.badgeNeutral}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </>
       )}
