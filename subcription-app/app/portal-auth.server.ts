@@ -1,5 +1,7 @@
 import { createCookieSessionStorage, redirect } from "react-router";
 
+import db from "./db.server";
+
 // Session for the customer portal (/account/*), entirely separate from
 // Shopify's own admin session cookie -- a portal customer is never the same
 // thing as an authenticated merchant admin request.
@@ -57,6 +59,18 @@ export async function requirePortalSession(
     throw redirect(redirectTo);
   }
   return session;
+}
+
+/**
+ * This app is single-merchant (custom distribution, not the App Store), so
+ * when an auth page is reached with no `?shop=` query param and no existing
+ * portal session -- e.g. someone bookmarked or typed the URL directly --
+ * falling back to the one shop this app is installed on is always correct;
+ * there's never a second shop to disambiguate from.
+ */
+export async function resolveDefaultShop(): Promise<string> {
+  const session = await db.session.findFirst({ select: { shop: true } });
+  return session?.shop ?? "";
 }
 
 export async function destroyPortalSession(request: Request) {

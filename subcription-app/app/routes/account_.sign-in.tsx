@@ -2,13 +2,13 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, Link, useLoaderData, useNavigation, useActionData } from "react-router";
 
 import { verifyPortalLogin, PortalAuthError } from "../models/portalCustomer.server";
-import { createPortalUserSession, getPortalSession } from "../portal-auth.server";
+import { createPortalUserSession, getPortalSession, resolveDefaultShop } from "../portal-auth.server";
 import styles from "../styles/portal.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const existing = await getPortalSession(request);
   const url = new URL(request.url);
-  const shop = url.searchParams.get("shop") ?? existing?.shop ?? "";
+  const shop = url.searchParams.get("shop") || existing?.shop || (await resolveDefaultShop());
 
   return { shop };
 };

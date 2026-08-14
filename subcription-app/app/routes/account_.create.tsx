@@ -2,12 +2,12 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, Link, useLoaderData, useNavigation, useActionData } from "react-router";
 
 import { createPortalAccount, PortalAuthError } from "../models/portalCustomer.server";
-import { createPortalUserSession } from "../portal-auth.server";
+import { createPortalUserSession, resolveDefaultShop } from "../portal-auth.server";
 import styles from "../styles/portal.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
-  const shop = url.searchParams.get("shop") ?? "";
+  const shop = url.searchParams.get("shop") || (await resolveDefaultShop());
   return { shop };
 };
 
