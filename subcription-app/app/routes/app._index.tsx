@@ -466,7 +466,7 @@ export default function Dashboard() {
                 <div className={styles.barPair}>
                   <div
                     className={styles.bar}
-                    title={`${bucket.label}: ${bucket.created} new`}
+                    title={String(bucket.created)}
                     style={{
                       height: `${Math.max(4, (bucket.created / maxFlow) * 120)}px`,
                       backgroundColor: CHART_COLORS.created,
@@ -474,7 +474,7 @@ export default function Dashboard() {
                   />
                   <div
                     className={styles.bar}
-                    title={`${bucket.label}: ${bucket.cancelled} cancelled`}
+                    title={String(bucket.cancelled)}
                     style={{
                       height: `${Math.max(4, (bucket.cancelled / maxFlow) * 120)}px`,
                       backgroundColor: CHART_COLORS.cancelled,
