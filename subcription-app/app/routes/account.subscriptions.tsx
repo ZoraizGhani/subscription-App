@@ -880,8 +880,13 @@ function OneTimeAddonModal({ sub, onClose }: { sub: Subscription; onClose: () =>
               <div className={styles.error}>{saveFetcher.data.error}</div>
             )}
 
-            <button type="button" className={styles.addonSubmitButton} disabled={saving} onClick={save}>
-              {saving ? "Saving..." : "Add to next shipment"}
+            <button
+              type="button"
+              className={styles.addonSubmitButton}
+              disabled={saving || Boolean(saved)}
+              onClick={save}
+            >
+              {saving ? "Saving..." : saved ? "Added" : "Add to next shipment"}
             </button>
           </>
         )}
@@ -971,6 +976,17 @@ function SubscriptionCard({
             <div className={styles.shipPayRow}>
               <span>Ship to &bull; {sub.shipToDisplay ?? "—"}</span>
               <span>Pay with &bull; {sub.paymentMethodDisplay ?? "—"}</span>
+            </div>
+          )}
+
+          {sub.oneTimeAddons.length > 0 && (
+            <div className={styles.shipPayRow}>
+              <span>
+                One-time add-ons &bull;{" "}
+                {sub.oneTimeAddons
+                  .map((addon) => `${addon.title} (${formatMoney(Number(addon.price), sub.currencyCode)})`)
+                  .join(", ")}
+              </span>
             </div>
           )}
 

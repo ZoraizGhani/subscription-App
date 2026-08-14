@@ -226,6 +226,7 @@ export async function listPortalSubscriptions({
   const handleByProductId = new Map<string, string>();
   const imageByProductId = new Map<string, string>();
   const summaryByContractId = new Map<string, { shipToDisplay: string | null; paymentMethodDisplay: string | null }>();
+  const oneTimeAddonsByContractId = new Map<string, { title: string; imageUrl: string | null; price: string }[]>();
   let correctedDates = new Map<string, Date | null>();
   try {
     const { admin } = await unauthenticated.admin(shop);
@@ -270,6 +271,22 @@ export async function listPortalSubscriptions({
           .map(async (c) => [c.shopifyId, await correctedNextBillingDate({ admin, contract: c })] as const),
       ),
     );
+
+    // Best-effort per contract -- one contract's cycle scan failing (e.g. it
+    // has no upcoming cycle left) shouldn't blank out the rest of the list.
+    await Promise.all(
+      contracts
+        .filter((c) => c.status === "ACTIVE")
+        .map(async (c) => {
+          try {
+            const cycle = await findNextUnbilledCycle(admin, c.shopifyId);
+            const addons = await getNextCycleOneTimeLines(admin, c.shopifyId, cycle.index);
+            oneTimeAddonsByContractId.set(c.shopifyId, addons);
+          } catch {
+            // Leave this contract's add-ons empty rather than failing the list.
+          }
+        }),
+    );
   } catch {
     // Best-effort accuracy improvements -- if the admin client itself can't
     // be obtained, the list still renders fine with the mirrored data.
@@ -294,6 +311,7 @@ export async function listPortalSubscriptions({
       cancellationReason: c.cancellationReason,
       shipToDisplay: summary?.shipToDisplay ?? null,
       paymentMethodDisplay: summary?.paymentMethodDisplay ?? null,
+      oneTimeAddons: oneTimeAddonsByContractId.get(c.shopifyId) ?? [],
     };
   });
 }
@@ -1587,6 +1605,31 @@ interface NextCycleLineNode {
 }
 
 /**
+ * The one-time add-ons already staged on a specific upcoming billing cycle --
+ * shared by the "Add to next order" modal (which also needs the eligible
+ * products list) and the plain subscriptions list (which just needs to show
+ * what's already added, without paying for the products query too).
+ */
+async function getNextCycleOneTimeLines(admin: PortalAdmin, contractShopifyId: string, cycleIndex: number) {
+  const response = await admin.graphql(NEXT_CYCLE_LINES_QUERY, {
+    variables: { id: contractShopifyId, index: cycleIndex },
+  });
+  const body = (await response.json()) as {
+    data?: { subscriptionBillingCycle: { editedContract: { lines: { nodes: NextCycleLineNode[] } } | null } | null };
+  };
+  return (body.data?.subscriptionBillingCycle?.editedContract?.lines.nodes ?? [])
+    .filter((line) => !line.sellingPlanId)
+    .map((line) => ({
+      lineId: line.id,
+      variantId: line.variantId,
+      title: line.title,
+      imageUrl: line.variantImage?.url ?? null,
+      price: line.currentPrice.amount,
+      currencyCode: line.currentPrice.currencyCode,
+    }));
+}
+
+/**
  * Everything the "Add to next order" modal needs: every other active product
  * that can be added as a one-time item to this contract's next shipment, and
  * whichever one-time add-ons are already staged on that specific cycle (so the
@@ -1608,9 +1651,9 @@ export async function listPortalOneTimeAddonOptions({
   const context = await getOneTimeAddonContext(admin, contractShopifyId);
   const currencyCode = context.currencyCode ?? contract.currencyCode;
 
-  const [productsResponse, linesResponse, nextBillingDate] = await Promise.all([
+  const [productsResponse, existingAddons, nextBillingDate] = await Promise.all([
     admin.graphql(ONE_TIME_PRODUCTS_QUERY, { variables: { country: context.country } }),
-    admin.graphql(NEXT_CYCLE_LINES_QUERY, { variables: { id: contractShopifyId, index: nextCycle.index } }),
+    getNextCycleOneTimeLines(admin, contractShopifyId, nextCycle.index),
     correctedNextBillingDate({ admin, contract }),
   ]);
 
@@ -1632,19 +1675,6 @@ export async function listPortalOneTimeAddonOptions({
         },
       ];
     });
-
-  const linesBody = (await linesResponse.json()) as {
-    data?: { subscriptionBillingCycle: { editedContract: { lines: { nodes: NextCycleLineNode[] } } | null } | null };
-  };
-  const existingAddons = (linesBody.data?.subscriptionBillingCycle?.editedContract?.lines.nodes ?? [])
-    .filter((line) => !line.sellingPlanId)
-    .map((line) => ({
-      lineId: line.id,
-      variantId: line.variantId,
-      title: line.title,
-      imageUrl: line.variantImage?.url ?? null,
-      price: line.currentPrice.amount,
-    }));
 
   return {
     nextBillingDate: nextBillingDate ?? new Date(nextCycle.date),
