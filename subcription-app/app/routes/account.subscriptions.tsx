@@ -849,7 +849,7 @@ function OneTimeAddonModal({ sub, onClose }: { sub: Subscription; onClose: () =>
                     <button
                       key={product.variantId}
                       type="button"
-                      className={`${styles.addonRow} ${isSelected ? "is-selected" : ""}`}
+                      className={`${styles.addonRow} ${isSelected ? styles["is-selected"] : ""}`}
                       onClick={() => toggle(product.variantId)}
                     >
                       <span className={styles.addonThumb}>
