@@ -464,22 +464,26 @@ export default function Dashboard() {
             {series.map((bucket, index) => (
               <div key={`${bucket.label}-${index}`} className={styles.barGroup}>
                 <div className={styles.barPair}>
-                  <div
-                    className={styles.bar}
-                    title={String(bucket.created)}
-                    style={{
-                      height: `${Math.max(4, (bucket.created / maxFlow) * 120)}px`,
-                      backgroundColor: CHART_COLORS.created,
-                    }}
-                  />
-                  <div
-                    className={styles.bar}
-                    title={String(bucket.cancelled)}
-                    style={{
-                      height: `${Math.max(4, (bucket.cancelled / maxFlow) * 120)}px`,
-                      backgroundColor: CHART_COLORS.cancelled,
-                    }}
-                  />
+                  <div className={styles.barWrap}>
+                    <span className={styles.barTooltip}>{bucket.created}</span>
+                    <div
+                      className={styles.bar}
+                      style={{
+                        height: `${Math.max(4, (bucket.created / maxFlow) * 120)}px`,
+                        backgroundColor: CHART_COLORS.created,
+                      }}
+                    />
+                  </div>
+                  <div className={styles.barWrap}>
+                    <span className={styles.barTooltip}>{bucket.cancelled}</span>
+                    <div
+                      className={styles.bar}
+                      style={{
+                        height: `${Math.max(4, (bucket.cancelled / maxFlow) * 120)}px`,
+                        backgroundColor: CHART_COLORS.cancelled,
+                      }}
+                    />
+                  </div>
                 </div>
                 <span className={styles.barMonthLabel}>{bucket.label}</span>
               </div>
