@@ -1,5 +1,5 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useSearchParams } from "react-router";
+import { Link, useLoaderData, useSearchParams } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { authenticate } from "../shopify.server";
@@ -26,9 +26,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const search = url.searchParams.get("q") ?? "";
   const status = url.searchParams.get("status") ?? "";
+  const createdFrom = url.searchParams.get("createdFrom") ?? undefined;
+  const createdTo = url.searchParams.get("createdTo") ?? undefined;
+  const cancelledFrom = url.searchParams.get("cancelledFrom") ?? undefined;
+  const cancelledTo = url.searchParams.get("cancelledTo") ?? undefined;
 
   const [{ rows, counts }, shopResponse] = await Promise.all([
-    listSubscriptionContracts({ shop: session.shop, search: search || undefined, status: status || undefined }),
+    listSubscriptionContracts({
+      shop: session.shop,
+      search: search || undefined,
+      status: status || undefined,
+      createdFrom,
+      createdTo,
+      cancelledFrom,
+      cancelledTo,
+    }),
     admin.graphql(`#graphql
       query ShopCurrency {
         shop { currencyCode }
@@ -38,7 +50,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shopData = (await shopResponse.json()) as { data?: { shop: { currencyCode: string } } };
   const currencyCode = shopData.data?.shop.currencyCode ?? "USD";
 
-  return { rows, counts, search, status, currencyCode };
+  return {
+    rows,
+    counts,
+    search,
+    status,
+    currencyCode,
+    dateFilter: createdFrom ? { kind: "created" as const, from: createdFrom } : cancelledFrom ? { kind: "cancelled" as const, from: cancelledFrom } : null,
+  };
 };
 
 function formatMoney(amount: number, currencyCode: string) {
@@ -51,7 +70,7 @@ function formatDate(value: Date | string | null) {
 }
 
 export default function Subscriptions() {
-  const { rows, counts, search, status, currencyCode } = useLoaderData<typeof loader>();
+  const { rows, counts, search, status, currencyCode, dateFilter } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const handleSearchInput = (event: Event) => {
@@ -90,6 +109,13 @@ export default function Subscriptions() {
               </s-button>
             ))}
           </s-stack>
+
+          {dateFilter && (
+            <s-banner tone="info">
+              Showing subscriptions {dateFilter.kind} on {formatDate(dateFilter.from)}.{" "}
+              <Link to="/app/subscriptions">Clear filter</Link>
+            </s-banner>
+          )}
 
           <s-search-field
             label="Search"

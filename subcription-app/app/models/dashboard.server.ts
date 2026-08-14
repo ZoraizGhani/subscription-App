@@ -148,6 +148,9 @@ export interface MonthlyFlow {
   label: string;
   created: number;
   cancelled: number;
+  /** ISO bucket boundaries, for drilling down into which contracts landed here. */
+  startDate: string;
+  endDate: string;
 }
 
 export type FlowBucketUnit = "day" | "week" | "month";
@@ -199,7 +202,17 @@ export async function getNewVsCancelledSeries({
 
   const buckets: MonthlyFlow[] = [];
   for (let i = count - 1; i >= 0; i -= 1) {
-    buckets.push({ label: bucketLabel(bucketStart(now, unit, i, now), unit), created: 0, cancelled: 0 });
+    const start = bucketStart(now, unit, i, now);
+    // The most recent bucket is the current, still-filling one -- it ends
+    // now rather than at the next bucket's start.
+    const end = i === 0 ? now : bucketStart(now, unit, i - 1, now);
+    buckets.push({
+      label: bucketLabel(start, unit),
+      created: 0,
+      cancelled: 0,
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    });
   }
 
   for (const contract of contracts) {

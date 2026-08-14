@@ -464,7 +464,10 @@ export default function Dashboard() {
             {series.map((bucket, index) => (
               <div key={`${bucket.label}-${index}`} className={styles.barGroup}>
                 <div className={styles.barPair}>
-                  <div className={styles.barWrap}>
+                  <Link
+                    className={styles.barWrap}
+                    to={`/app/subscriptions?createdFrom=${encodeURIComponent(bucket.startDate)}&createdTo=${encodeURIComponent(bucket.endDate)}`}
+                  >
                     <span className={styles.barTooltip}>{bucket.created}</span>
                     <div
                       className={styles.bar}
@@ -473,8 +476,11 @@ export default function Dashboard() {
                         backgroundColor: CHART_COLORS.created,
                       }}
                     />
-                  </div>
-                  <div className={styles.barWrap}>
+                  </Link>
+                  <Link
+                    className={styles.barWrap}
+                    to={`/app/subscriptions?cancelledFrom=${encodeURIComponent(bucket.startDate)}&cancelledTo=${encodeURIComponent(bucket.endDate)}`}
+                  >
                     <span className={styles.barTooltip}>{bucket.cancelled}</span>
                     <div
                       className={styles.bar}
@@ -483,7 +489,7 @@ export default function Dashboard() {
                         backgroundColor: CHART_COLORS.cancelled,
                       }}
                     />
-                  </div>
+                  </Link>
                 </div>
                 <span className={styles.barMonthLabel}>{bucket.label}</span>
               </div>

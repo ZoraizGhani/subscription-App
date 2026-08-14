@@ -22,19 +22,45 @@ const INTERVAL_SHORT: Record<string, string> = { DAY: "d", WEEK: "w", MONTH: "mo
 /**
  * Contracts for the shop's Subscriptions list, with tab counts computed
  * before the status filter (so switching tabs doesn't change the other
- * counts) and search applied after.
+ * counts) and search applied after. `createdFrom`/`createdTo` and
+ * `cancelledFrom`/`cancelledTo` are the dashboard's "New vs. cancelled" chart
+ * drilling down into a specific bucket -- when set, counts are computed from
+ * that narrowed set too, since a date-filtered view showing shop-wide tab
+ * counts would be misleading.
  */
 export async function listSubscriptionContracts({
   shop,
   search,
   status,
+  createdFrom,
+  createdTo,
+  cancelledFrom,
+  cancelledTo,
 }: {
   shop: string;
   search?: string;
   status?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  cancelledFrom?: string;
+  cancelledTo?: string;
 }): Promise<SubscriptionListResult> {
+  const where: Record<string, unknown> = { shop };
+  if (createdFrom || createdTo) {
+    where.createdAt = {
+      ...(createdFrom ? { gte: new Date(createdFrom) } : {}),
+      ...(createdTo ? { lt: new Date(createdTo) } : {}),
+    };
+  }
+  if (cancelledFrom || cancelledTo) {
+    where.cancelledAt = {
+      ...(cancelledFrom ? { gte: new Date(cancelledFrom) } : {}),
+      ...(cancelledTo ? { lt: new Date(cancelledTo) } : {}),
+    };
+  }
+
   const all = await db.subscriptionContract.findMany({
-    where: { shop },
+    where,
     orderBy: { createdAt: "desc" },
   });
 
