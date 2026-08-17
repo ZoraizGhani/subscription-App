@@ -5,7 +5,7 @@
 
 client_id = "4df4707f56ec6035d9395e58a3d4b8ce"
 name = "Subscription App"
-application_url = "https://subscription-app-three.vercel.app"
+application_url = "https://subscription-app-guies.vercel.app"
 embedded = true
 
 [access_scopes]
@@ -51,7 +51,7 @@ api_version = "2026-07"
   topics = [ "orders/create" ]
 
 [auth]
-redirect_urls = [ "https://subscription-app-three.vercel.app/api/auth" ]
+redirect_urls = [ "https://subscription-app-guies.vercel.app/api/auth" ]
 
 [build]
 automatically_update_urls_on_dev = true
