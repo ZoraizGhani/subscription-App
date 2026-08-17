@@ -367,6 +367,13 @@
 
 .content {
   flex: 1;
+  /* Flex items default to min-width: auto, so without this .content refuses
+     to shrink below its widest descendant (the order tables' min-width:
+     32rem) -- on a narrow phone that silently pushes the whole column past
+     the viewport, which .page's overflow-x: hidden then clips instead of
+     scrolling. min-width: 0 lets .content shrink to the viewport so
+     .tableScroll's own overflow-x: auto is what handles the table instead. */
+  min-width: 0;
   padding: 2.5rem 3rem;
   max-width: 90rem;
 }
