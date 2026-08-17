@@ -607,8 +607,22 @@
 
 .orderHistoryTable {
   width: 100%;
-  min-width: 32rem;
+  min-width: 40rem;
   border-collapse: collapse;
+}
+
+/* Date and Items were getting squeezed to an even share of the table's
+   min-width, wrapping "Aug 17, 2026" and product titles onto 3-4 lines --
+   give them a floor wide enough to sit on one or two lines instead. */
+.orderHistoryTable th:nth-child(2),
+.orderHistoryTable td:nth-child(2) {
+  min-width: 7rem;
+  white-space: nowrap;
+}
+
+.orderHistoryTable th:nth-child(3),
+.orderHistoryTable td:nth-child(3) {
+  min-width: 12rem;
 }
 
 .orderHistoryTable th {
