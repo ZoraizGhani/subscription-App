@@ -459,6 +459,25 @@
   margin-top: 0.25rem;
 }
 
+/* Dashboard "Active subscription" row: was inline-styled with no wrap, so a
+   long product title pushed the Active badge past the card's edge -- .page's
+   overflow-x: hidden then silently clipped it instead of scrolling. Same
+   flex-wrap treatment as .subHeader/.actionsRow below. */
+.activeSubRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.activeSubInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
 .viewAllLink {
   font-family: "Inter", sans-serif;
   font-size: 0.875rem;
@@ -476,6 +495,7 @@
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
 .table {
@@ -575,6 +595,7 @@
   padding: 2rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
 .orderHistoryTable {
@@ -1872,6 +1893,14 @@
      never drags the rest of the page with it. */
   .orderHistoryCard {
     padding: 1.25rem;
+  }
+
+  /* Same auto-fit/minmax(<rem>, 1fr) pattern that pushed a stat card off
+     the right edge -- fixed 2-up with minmax(0, ...) so it always sums to
+     exactly the container width and can't overflow it. */
+  .metaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
   }
 
   .subCard {

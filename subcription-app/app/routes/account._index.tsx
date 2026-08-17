@@ -100,8 +100,8 @@ export default function AccountOverview() {
           </div>
 
           {overview.activeSubscription ? (
-            <div className={styles.card} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div className={`${styles.card} ${styles.activeSubRow}`}>
+              <div className={styles.activeSubInfo}>
                 <div className={styles.productThumb}>
                   {overview.activeSubscription.productImageUrl ? (
                     <img

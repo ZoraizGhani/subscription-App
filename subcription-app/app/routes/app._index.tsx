@@ -535,32 +535,34 @@ export default function Dashboard() {
         {renewals.length === 0 ? (
           <p className={styles.emptyState}>No renewals due {config.renewalsLabel}.</p>
         ) : (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Product</th>
-                <th>Renewal date</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {renewals.map((row) => (
-                <tr key={row.contractShopifyId}>
-                  <td>{row.customerName}</td>
-                  <td>{row.productTitle}</td>
-                  <td>{formatDate(row.nextBillingDate)}</td>
-                  <td>{formatMoney(row.amount, row.currencyCode)}</td>
-                  <td>
-                    <span className={`${styles.statusPill} ${STATUS_PILL[row.status] ?? styles.statusNeutral}`}>
-                      {row.status}
-                    </span>
-                  </td>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Product</th>
+                  <th>Renewal date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {renewals.map((row) => (
+                  <tr key={row.contractShopifyId}>
+                    <td>{row.customerName}</td>
+                    <td>{row.productTitle}</td>
+                    <td>{formatDate(row.nextBillingDate)}</td>
+                    <td>{formatMoney(row.amount, row.currencyCode)}</td>
+                    <td>
+                      <span className={`${styles.statusPill} ${STATUS_PILL[row.status] ?? styles.statusNeutral}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

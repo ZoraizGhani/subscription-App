@@ -337,8 +337,16 @@
   text-decoration: none;
 }
 
+.tableScroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
 .table {
   width: 100%;
+  min-width: 32rem;
   border-collapse: collapse;
 }
 
