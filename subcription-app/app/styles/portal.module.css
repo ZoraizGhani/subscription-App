@@ -1932,6 +1932,15 @@
     text-align: left;
   }
 
+  /* The table is a stacked list now (see above), not a wide table, so
+     these wrappers have nothing left to scroll horizontally -- closing off
+     overflow-x explicitly stops iOS from still treating them as a
+     scrollable/rubber-banding region over a stray sub-pixel of overflow. */
+  .tableScroll,
+  .orderHistoryCard {
+    overflow-x: hidden;
+  }
+
   .orderHistoryCard {
     padding: 1.25rem;
   }
