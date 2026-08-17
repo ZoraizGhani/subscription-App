@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import type { LoaderFunctionArgs } from "react-router";
-import { Link, NavLink, Outlet, useLoaderData } from "react-router";
+import { Link, NavLink, Outlet, useLoaderData, useLocation } from "react-router";
 
 import { requirePortalSession, destroyPortalSession } from "../portal-auth.server";
 import { getPortalCustomerById } from "../models/portalCustomer.server";
@@ -89,6 +90,25 @@ function LogoutIcon({ className }: { className?: string }) {
   );
 }
 
+function MenuIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  );
+}
+
 function SettingsIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -102,13 +122,47 @@ function SettingsIcon({ className }: { className?: string }) {
 
 export default function AccountLayout() {
   const { shop, customer } = useLoaderData<typeof loader>();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
+
+  // Close the drawer whenever the account section navigates -- otherwise it
+  // would stay open (covering the new page) after tapping a nav link.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  // Lock background scroll behind the drawer, and let Escape close it.
+  useEffect(() => {
+    if (!menuOpen) return;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   return (
     <div className={styles.page}>
       <div className={styles.topbar}>
-        <div className={styles.topbarLogo}>
-          <span className={styles.topbarBrandMark}>CLRTY</span>
-          <span className={styles.topbarBrandSub}>Supplements</span>
+        <div className={styles.topbarLeft}>
+          <button
+            type="button"
+            className={styles.hamburgerButton}
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+          >
+            <MenuIcon className={styles.hamburgerIcon} />
+          </button>
+          <div className={styles.topbarLogo}>
+            <span className={styles.topbarBrandMark}>CLRTY</span>
+            <span className={styles.topbarBrandSub}>Supplements</span>
+          </div>
         </div>
         <div className={styles.topbarNav}>
           <span>Shop</span>
@@ -124,7 +178,21 @@ export default function AccountLayout() {
       </div>
 
       <div className={styles.shell}>
-        <aside className={styles.sidebar}>
+        {menuOpen && (
+          <div className={styles.sidebarBackdrop} onClick={closeMenu} aria-hidden="true" />
+        )}
+        <aside className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ""}`}>
+          <div className={styles.sidebarHeader}>
+            <span className={styles.brandMark}>CLRTY</span>
+            <button
+              type="button"
+              className={styles.sidebarCloseButton}
+              onClick={closeMenu}
+              aria-label="Close menu"
+            >
+              &times;
+            </button>
+          </div>
           <nav className={styles.nav}>
             <NavLink
               to="/account"
