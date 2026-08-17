@@ -1843,16 +1843,97 @@
     display: none;
   }
 
+  /* Fixed 3-up with minmax(0, ...) rather than auto-fit/minmax(8.5rem, ...):
+     there are always exactly 3 stat cards here, and a track minimum in rem
+     can still add up to wider than the phone it's supposed to fit, which is
+     what was pushing the 3rd card off the right edge of the screen. Tracks
+     that must sum to exactly the container width can't ever overflow it. */
   .statGrid {
-    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.625rem;
   }
 
   .statCard {
-    padding: 1.25rem;
+    padding: 0.875rem;
+  }
+
+  .statLabel {
+    font-size: 0.75rem;
+    overflow-wrap: break-word;
   }
 
   .statValue {
-    font-size: 2.25rem;
+    font-size: 1.5rem;
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+
+  /* Data tables (Recent orders / Order history): a 4-5 column table can't
+     fit a phone screen without shrinking text past readability or scrolling
+     sideways -- so below tablet width each row renders as a small stacked
+     card instead, with the column name shown from the cell's data-label. */
+  .table,
+  .orderHistoryTable {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .table thead,
+  .orderHistoryTable thead {
+    display: none;
+  }
+
+  .table tbody,
+  .orderHistoryTable tbody {
+    display: block;
+  }
+
+  .table tr,
+  .orderHistoryTable tr {
+    display: block;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0ede4;
+  }
+
+  .table tr:first-child,
+  .orderHistoryTable tr:first-child {
+    padding-top: 0;
+  }
+
+  .table tr:last-child,
+  .orderHistoryTable tr:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .table td,
+  .orderHistoryTable td {
+    display: block;
+    padding: 0.25rem 0;
+    border-bottom: none;
+    text-align: left;
+  }
+
+  .table td::before,
+  .orderHistoryTable td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.125rem;
+    font-family: "Geist", sans-serif;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+
+  .orderHistoryAmountCell {
+    text-align: left;
+  }
+
+  .orderHistoryCard {
+    padding: 1.25rem;
   }
 
   .subCard {

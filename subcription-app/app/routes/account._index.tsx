@@ -145,10 +145,10 @@ export default function AccountOverview() {
                 <tbody>
                   {overview.recentOrders.map((order) => (
                     <tr key={order.orderShopifyId}>
-                      <td>{order.orderName ?? order.orderShopifyId}</td>
-                      <td>{formatDate(order.processedAt)}</td>
-                      <td>{formatMoney(order.totalPrice, order.currencyCode)}</td>
-                      <td>
+                      <td data-label="Order">{order.orderName ?? order.orderShopifyId}</td>
+                      <td data-label="Date">{formatDate(order.processedAt)}</td>
+                      <td data-label="Total">{formatMoney(order.totalPrice, order.currencyCode)}</td>
+                      <td data-label="Status">
                         {order.fulfillmentStatus && FULFILLMENT_STATUS[order.fulfillmentStatus] ? (
                           <span className={styles[FULFILLMENT_STATUS[order.fulfillmentStatus].className]}>
                             {FULFILLMENT_STATUS[order.fulfillmentStatus].label}
