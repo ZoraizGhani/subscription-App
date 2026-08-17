@@ -460,40 +460,42 @@ export default function Dashboard() {
               </span>
             </div>
           </div>
-          <div className={styles.chartArea}>
-            {series.map((bucket, index) => (
-              <div key={`${bucket.label}-${index}`} className={styles.barGroup}>
-                <div className={styles.barPair}>
-                  <Link
-                    className={styles.barWrap}
-                    to={`/app/subscriptions?status=ACTIVE&createdFrom=${encodeURIComponent(bucket.startDate)}&createdTo=${encodeURIComponent(bucket.endDate)}`}
-                  >
-                    <span className={styles.barTooltip}>{bucket.created}</span>
-                    <div
-                      className={styles.bar}
-                      style={{
-                        height: `${Math.max(4, (bucket.created / maxFlow) * 120)}px`,
-                        backgroundColor: CHART_COLORS.created,
-                      }}
-                    />
-                  </Link>
-                  <Link
-                    className={styles.barWrap}
-                    to={`/app/subscriptions?status=CANCELLED&cancelledFrom=${encodeURIComponent(bucket.startDate)}&cancelledTo=${encodeURIComponent(bucket.endDate)}`}
-                  >
-                    <span className={styles.barTooltip}>{bucket.cancelled}</span>
-                    <div
-                      className={styles.bar}
-                      style={{
-                        height: `${Math.max(4, (bucket.cancelled / maxFlow) * 120)}px`,
-                        backgroundColor: CHART_COLORS.cancelled,
-                      }}
-                    />
-                  </Link>
+          <div className={styles.chartScroll}>
+            <div className={styles.chartArea}>
+              {series.map((bucket, index) => (
+                <div key={`${bucket.label}-${index}`} className={styles.barGroup}>
+                  <div className={styles.barPair}>
+                    <Link
+                      className={styles.barWrap}
+                      to={`/app/subscriptions?status=ACTIVE&createdFrom=${encodeURIComponent(bucket.startDate)}&createdTo=${encodeURIComponent(bucket.endDate)}`}
+                    >
+                      <span className={styles.barTooltip}>{bucket.created}</span>
+                      <div
+                        className={styles.bar}
+                        style={{
+                          height: `${Math.max(4, (bucket.created / maxFlow) * 120)}px`,
+                          backgroundColor: CHART_COLORS.created,
+                        }}
+                      />
+                    </Link>
+                    <Link
+                      className={styles.barWrap}
+                      to={`/app/subscriptions?status=CANCELLED&cancelledFrom=${encodeURIComponent(bucket.startDate)}&cancelledTo=${encodeURIComponent(bucket.endDate)}`}
+                    >
+                      <span className={styles.barTooltip}>{bucket.cancelled}</span>
+                      <div
+                        className={styles.bar}
+                        style={{
+                          height: `${Math.max(4, (bucket.cancelled / maxFlow) * 120)}px`,
+                          backgroundColor: CHART_COLORS.cancelled,
+                        }}
+                      />
+                    </Link>
+                  </div>
+                  <span className={styles.barMonthLabel}>{bucket.label}</span>
                 </div>
-                <span className={styles.barMonthLabel}>{bucket.label}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
