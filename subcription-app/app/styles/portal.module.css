@@ -475,6 +475,7 @@
 .tableScroll {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
@@ -573,6 +574,7 @@
   border-radius: 0.5rem;
   padding: 2rem;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .orderHistoryTable {
@@ -1843,27 +1845,23 @@
     display: none;
   }
 
-  /* Fixed 3-up with minmax(0, ...) rather than auto-fit/minmax(8.5rem, ...):
-     there are always exactly 3 stat cards here, and a track minimum in rem
-     can still add up to wider than the phone it's supposed to fit, which is
-     what was pushing the 3rd card off the right edge of the screen. Tracks
-     that must sum to exactly the container width can't ever overflow it. */
+  /* One column, stacked full-width -- simplest possible layout for the 3
+     stat cards on a phone, with zero chance of any card being clipped. */
   .statGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.625rem;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .statCard {
-    padding: 0.875rem;
+    padding: 1rem 1.25rem;
   }
 
   .statLabel {
-    font-size: 0.75rem;
     overflow-wrap: break-word;
   }
 
   .statValue {
-    font-size: 1.5rem;
+    font-size: 2rem;
     white-space: normal;
     overflow-wrap: break-word;
   }
