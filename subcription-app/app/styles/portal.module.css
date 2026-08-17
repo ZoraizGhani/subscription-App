@@ -1868,79 +1868,10 @@
     overflow-wrap: break-word;
   }
 
-  /* Data tables (Recent orders / Order history): a 4-5 column table can't
-     fit a phone screen without shrinking text past readability or scrolling
-     sideways -- so below tablet width each row renders as a small stacked
-     card instead, with the column name shown from the cell's data-label. */
-  .table,
-  .orderHistoryTable {
-    display: block;
-    width: 100%;
-    min-width: 0;
-  }
-
-  .table thead,
-  .orderHistoryTable thead {
-    display: none;
-  }
-
-  .table tbody,
-  .orderHistoryTable tbody {
-    display: block;
-  }
-
-  .table tr,
-  .orderHistoryTable tr {
-    display: block;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid #f0ede4;
-  }
-
-  .table tr:first-child,
-  .orderHistoryTable tr:first-child {
-    padding-top: 0;
-  }
-
-  .table tr:last-child,
-  .orderHistoryTable tr:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-
-  .table td,
-  .orderHistoryTable td {
-    display: block;
-    padding: 0.25rem 0;
-    border-bottom: none;
-    text-align: left;
-  }
-
-  .table td::before,
-  .orderHistoryTable td::before {
-    content: attr(data-label);
-    display: block;
-    margin-bottom: 0.125rem;
-    font-family: "Geist", sans-serif;
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: #6b7280;
-  }
-
-  .orderHistoryAmountCell {
-    text-align: left;
-  }
-
-  /* The table is a stacked list now (see above), not a wide table, so
-     these wrappers have nothing left to scroll horizontally -- closing off
-     overflow-x explicitly stops iOS from still treating them as a
-     scrollable/rubber-banding region over a stray sub-pixel of overflow. */
-  .tableScroll,
-  .orderHistoryCard {
-    overflow-x: hidden;
-  }
-
+  /* Data tables (Recent orders / Order history): kept as real tables, same
+     column layout as desktop, swiping sideways inside .tableScroll /
+     .orderHistoryCard to see the rest -- contained to that box only, so it
+     never drags the rest of the page with it. */
   .orderHistoryCard {
     padding: 1.25rem;
   }

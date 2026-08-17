@@ -75,15 +75,15 @@ export default function AccountOrderHistory() {
             <tbody>
               {orders.map((order) => (
                 <tr key={order.orderShopifyId}>
-                  <td data-label="Order">{order.orderName ?? order.orderShopifyId}</td>
-                  <td data-label="Date">{formatDate(order.processedAt)}</td>
-                  <td data-label="Items">{order.productTitle ?? "Subscription"}</td>
-                  <td data-label="Total" className={styles.orderHistoryAmountCell}>
+                  <td>{order.orderName ?? order.orderShopifyId}</td>
+                  <td>{formatDate(order.processedAt)}</td>
+                  <td>{order.productTitle ?? "Subscription"}</td>
+                  <td className={styles.orderHistoryAmountCell}>
                     <span className={styles.orderHistoryAmount}>
                       {formatMoney(order.totalPrice, order.currencyCode)}
                     </span>
                   </td>
-                  <td data-label="Status">
+                  <td>
                     <div className={styles.orderHistoryStatusCell}>
                       {order.fulfillmentStatus && FULFILLMENT_STATUS[order.fulfillmentStatus] ? (
                         <span className={styles[FULFILLMENT_STATUS[order.fulfillmentStatus].className]}>
