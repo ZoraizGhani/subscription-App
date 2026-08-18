@@ -178,11 +178,20 @@ export async function requestPortalPasswordReset({
 
   const resetUrl = `${appUrl}/account/reset-password?token=${rawToken}`;
   const shopName = await getShopName(shop);
-  await sendEmail({
-    to: account.email,
-    subject: `Reset your password – ${shopName}`,
-    html: renderPasswordResetEmail({ shopName, resetUrl }),
-  });
+  try {
+    await sendEmail({
+      to: account.email,
+      subject: `Reset your password – ${shopName}`,
+      html: renderPasswordResetEmail({ shopName, resetUrl }),
+    });
+  } catch (error) {
+    // The reset token is already created above -- don't let a Resend outage
+    // or misconfiguration (bad API key, unverified sender) crash the page or
+    // reveal account existence via a differing response. Log it so it's
+    // visible in server logs, since the customer otherwise has no way to
+    // know their reset link never arrived.
+    console.error(`[portal] Failed to send password reset email for shop ${shop}:`, error);
+  }
 }
 
 /**
