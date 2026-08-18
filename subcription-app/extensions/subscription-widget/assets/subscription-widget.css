@@ -292,10 +292,10 @@
   border: 1px solid #bbf7d0;
   border-radius: 0.25rem;
   background: #dcfce7;
-  font-size: 0.625rem;
+  font-size: 9px;
   font-weight: 600;
-  line-height: 1.5;
-  letter-spacing: 0.05em;
+  line-height: 13.5px;
+  letter-spacing: 0.45px;
   text-transform: uppercase;
   color: #166534;
 }
