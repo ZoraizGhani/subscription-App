@@ -386,8 +386,11 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.8125rem;
-  color: #4a463e;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: #4b5563;
 }
 
 .subscription-widget__benefit-icon {
@@ -406,10 +409,10 @@
   border-radius: 9999px;
   background: var(--subscription-widget-accent);
   color: #fff;
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 700;
-  line-height: 1.4286;
-  letter-spacing: 0.1em;
+  line-height: 20px;
+  letter-spacing: 1.4px;
   text-align: center;
   text-transform: uppercase;
   cursor: pointer;
