@@ -165,8 +165,8 @@ export default function AccountLayout() {
           </div>
         </div>
         <div className={styles.topbarNav}>
-          <span>Shop</span>
-          <span>Science</span>
+          <a href="https://takeclrty.com/collections/all">Shop</a>
+          <a href="https://takeclrty.com/pages/science">Science</a>
           <span className={styles.topbarNavActive}>My Account</span>
         </div>
         <div className={styles.topbarRight}>
