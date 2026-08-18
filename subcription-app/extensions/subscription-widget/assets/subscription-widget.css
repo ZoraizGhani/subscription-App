@@ -238,7 +238,12 @@
 /* --- Custom radio: thin outline, thick ring border only when checked --- */
 
 .subscription-widget__plan-card-radio {
-  padding-top: 0.1875rem;
+  display: flex;
+  align-items: center;
+  /* Matches .subscription-widget__plan-card-title's line-height so the radio
+     centers against the title's first line instead of guessing a fixed
+     padding offset. */
+  height: 22.5px;
 }
 
 .subscription-widget__plan-card-radio input {
@@ -342,10 +347,10 @@
 }
 
 .subscription-widget__deliver-label {
-  font-size: 0.625rem;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 1.5;
-  letter-spacing: 0.1em;
+  line-height: 15px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   color: #6b7280;
 }
@@ -358,9 +363,10 @@
   background: #fff
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b6459' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
     no-repeat right 0.6rem center;
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 500;
-  line-height: 1.3333;
+  line-height: 16px;
+  letter-spacing: 0;
   color: #1a1a1a;
   cursor: pointer;
 }
