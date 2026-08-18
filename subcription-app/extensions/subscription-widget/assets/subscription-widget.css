@@ -2,7 +2,7 @@
   --subscription-widget-accent: #1a1a1a;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 3.5rem;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -389,11 +389,6 @@
   height: 0.5625rem;
 }
 
-@media (min-width: 48rem) {
-  .subscription-widget {
-    gap: 3.5rem;
-  }
-}
 
 /* --- Submit button --- */
 
