@@ -389,6 +389,12 @@
   height: 0.5625rem;
 }
 
+@media (min-width: 48rem) {
+  .subscription-widget {
+    gap: 1.875rem;
+  }
+}
+
 /* --- Submit button --- */
 
 .subscription-widget__submit {
