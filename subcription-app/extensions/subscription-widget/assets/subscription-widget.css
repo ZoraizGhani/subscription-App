@@ -16,10 +16,10 @@
   justify-content: space-between;
   gap: 0.5rem 1rem;
   margin-top: 0.75rem;
-  font-size: 0.625rem;
+  font-size: 10px;
   font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: -0.05em;
+  line-height: 15px;
+  letter-spacing: -0.5px;
   text-transform: uppercase;
   color: #9ca3af;
 }
