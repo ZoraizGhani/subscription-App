@@ -25,6 +25,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     email: customer?.email ?? "",
     hasShopifyCustomer: Boolean(customer?.customerShopifyId),
     address,
+    shop: session.shop,
   };
 };
 
@@ -101,7 +102,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function AccountSettings() {
-  const { name, email, hasShopifyCustomer, address } = useLoaderData<typeof loader>();
+  const { name, email, hasShopifyCustomer, address, shop } = useLoaderData<typeof loader>();
+  const contactUrl = `https://${shop}/pages/contact`;
   const infoFetcher = useFetcher<typeof action>();
   const passwordFetcher = useFetcher<typeof action>();
   const deleteFetcher = useFetcher<typeof action>();
@@ -300,12 +302,12 @@ export default function AccountSettings() {
           <div className={styles.card}>
             <h2 className={styles.sectionHeading}>Help &amp; support</h2>
             <div className={styles.helpList}>
-              <button type="button" className={styles.helpItem} style={{ background: "none", border: "none", textAlign: "left", cursor: "pointer", width: "100%" }}>
+              <a className={styles.helpItem} href={contactUrl} target="_blank" rel="noopener noreferrer">
                 Visit the help center
-              </button>
-              <button type="button" className={styles.helpItem} style={{ background: "none", border: "none", textAlign: "left", cursor: "pointer", width: "100%" }}>
+              </a>
+              <a className={styles.helpItem} href={contactUrl} target="_blank" rel="noopener noreferrer">
                 Chat with support
-              </button>
+              </a>
               <a className={styles.helpItem} href="mailto:support@clrty.com">Email support@clrty.com</a>
             </div>
           </div>
