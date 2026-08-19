@@ -13,7 +13,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
-  const shop = String(formData.get("shop") ?? "");
+  // Resolved server-side, not trusted from the form -- this app is
+  // single-merchant, so a client-supplied shop value can only ever cause a
+  // mismatch against the canonical domain SubscriptionContract rows use.
+  const shop = await resolveDefaultShop();
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
