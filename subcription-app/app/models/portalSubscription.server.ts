@@ -675,6 +675,14 @@ const CANCEL_MUTATION = `#graphql
   }
 `;
 
+const DISCARD_BILLING_CYCLE_EDITS_MUTATION = `#graphql
+  mutation PortalDiscardBillingCycleEdits($contractId: ID!) {
+    subscriptionBillingCycleEditsDelete(contractId: $contractId, targetSelection: ALL) {
+      userErrors { field message }
+    }
+  }
+`;
+
 /**
  * Cancels a subscription contract on behalf of the logged-in portal customer.
  * Verifies the contract actually belongs to that customer before calling
@@ -700,6 +708,16 @@ export async function cancelPortalSubscription({
   }
 
   const { admin } = await unauthenticated.admin(shop);
+
+  // subscriptionContractCancel rejects a contract with a pending one-time
+  // add-on edit on an upcoming cycle ("cannot be updated if there is a
+  // current or upcoming billing cycle contract edit"). The customer is
+  // cancelling outright, so any staged next-order edit is moot -- discard it
+  // first, best-effort, so a leftover add-on never blocks cancellation.
+  await admin.graphql(DISCARD_BILLING_CYCLE_EDITS_MUTATION, {
+    variables: { contractId: contractShopifyId },
+  });
+
   const response = await admin.graphql(CANCEL_MUTATION, {
     variables: { id: contractShopifyId },
   });
