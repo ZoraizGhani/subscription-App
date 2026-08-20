@@ -226,7 +226,10 @@ export async function listPortalSubscriptions({
   const handleByProductId = new Map<string, string>();
   const imageByProductId = new Map<string, string>();
   const summaryByContractId = new Map<string, { shipToDisplay: string | null; paymentMethodDisplay: string | null }>();
-  const oneTimeAddonsByContractId = new Map<string, { title: string; imageUrl: string | null; price: string }[]>();
+  const oneTimeAddonsByContractId = new Map<
+    string,
+    { lineId: string; title: string; imageUrl: string | null; price: string }[]
+  >();
   let correctedDates = new Map<string, Date | null>();
   try {
     const { admin } = await unauthenticated.admin(shop);

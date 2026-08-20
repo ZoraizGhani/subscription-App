@@ -925,6 +925,16 @@ function SubscriptionCard({
     fetcher.submit({ intent, contractShopifyId: sub.contractShopifyId }, { method: "post" });
   };
 
+  const removingLineId =
+    busy && busyIntent === "updateOneTimeAddons" ? String(fetcher.formData?.get("removeLineId") ?? "") : null;
+
+  const removeOneTimeAddon = (lineId: string) => {
+    fetcher.submit(
+      { intent: "updateOneTimeAddons", contractShopifyId: sub.contractShopifyId, removeLineId: lineId },
+      { method: "post" },
+    );
+  };
+
   return (
     <div className={styles.subCard}>
       <div className={styles.subHeader}>
@@ -993,11 +1003,38 @@ function SubscriptionCard({
             <div className={styles.shipPayRow}>
               <span>
                 One-time add-ons &bull;{" "}
-                {sub.oneTimeAddons
-                  .map((addon) => `${addon.title} (${formatMoney(Number(addon.price), sub.currencyCode)})`)
-                  .join(", ")}
+                {sub.oneTimeAddons.map((addon, index) => (
+                  <span key={addon.lineId}>
+                    {index > 0 && ", "}
+                    {addon.title} ({formatMoney(Number(addon.price), sub.currencyCode)})
+                    <button
+                      type="button"
+                      onClick={() => removeOneTimeAddon(addon.lineId)}
+                      disabled={busy}
+                      aria-label={`Remove ${addon.title}`}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "inherit",
+                        textDecoration: "underline",
+                        marginLeft: "0.25rem",
+                        padding: 0,
+                        font: "inherit",
+                      }}
+                    >
+                      {removingLineId === addon.lineId ? "Removing..." : "Remove"}
+                    </button>
+                  </span>
+                ))}
               </span>
             </div>
+          )}
+          {fetcher.data?.intent === "updateOneTimeAddons" && "success" in fetcher.data && (
+            <div className={styles.success}>One-time add-on removed.</div>
+          )}
+          {fetcher.data?.intent === "updateOneTimeAddons" && "error" in fetcher.data && (
+            <div className={styles.error}>{fetcher.data.error}</div>
           )}
 
           {fetcher.data?.intent === "skip" && "success" in fetcher.data && (
