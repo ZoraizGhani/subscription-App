@@ -1517,7 +1517,6 @@ const ONE_TIME_ADDON_CONTEXT_QUERY = `#graphql
           address { countryCodeV2 }
         }
       }
-      lines(first: 1) { nodes { productId } }
     }
   }
 `;
@@ -1526,7 +1525,6 @@ interface OneTimeAddonContext {
   currencyCode: string;
   customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
   deliveryMethod: { address?: { countryCodeV2: string } } | null;
-  lines: { nodes: { productId: string | null }[] };
 }
 
 async function getOneTimeAddonContext(admin: PortalAdmin, contractShopifyId: string) {
@@ -1538,7 +1536,6 @@ async function getOneTimeAddonContext(admin: PortalAdmin, contractShopifyId: str
     // Prefer the contract's own delivery address over the customer's
     // account-level default address -- see getPortalManageOptions for why.
     country: context?.deliveryMethod?.address?.countryCodeV2 ?? context?.customer?.defaultAddress?.countryCodeV2 ?? null,
-    excludeProductId: context?.lines.nodes[0]?.productId ?? null,
   };
 }
 
@@ -1659,7 +1656,6 @@ export async function listPortalOneTimeAddonOptions({
 
   const productsBody = (await productsResponse.json()) as { data?: { products: { nodes: OneTimeProductNode[] } } };
   const products = (productsBody.data?.products.nodes ?? [])
-    .filter((product) => product.id !== context.excludeProductId)
     .flatMap((product) => {
       const variant = product.variants.nodes[0];
       if (!variant || !variant.availableForSale || variant.contextualPricing.price.currencyCode !== currencyCode) {
