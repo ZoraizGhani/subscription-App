@@ -20,7 +20,7 @@ function formatMoney(amount: number | null, currency: string | null) {
 // exact values Order.displayFulfillmentStatus can return, so every case is
 // covered rather than falling through to a generic label.
 const FULFILLMENT_STATUS: Record<string, { label: string; className: keyof typeof styles }> = {
-  FULFILLED: { label: "Delivered", className: "orderHistoryBadgeDelivered" },
+  FULFILLED: { label: "Fulfilled", className: "orderHistoryBadgeDelivered" },
   PARTIALLY_FULFILLED: { label: "Partially fulfilled", className: "orderHistoryBadgePaused" },
   IN_PROGRESS: { label: "In progress", className: "orderHistoryBadgePaused" },
   ON_HOLD: { label: "On hold", className: "orderHistoryBadgePaused" },
