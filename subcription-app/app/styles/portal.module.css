@@ -684,20 +684,20 @@
 
 .orderHistoryBadgeDelivered {
   composes: orderHistoryBadge;
-  background: rgba(143, 162, 138, 0.22);
-  color: #5a6d59;
+  background: rgba(34, 139, 87, 0.16);
+  color: #1f7a4d;
 }
 
 .orderHistoryBadgePaused {
   composes: orderHistoryBadge;
-  background: rgba(154, 106, 16, 0.14);
-  color: #9a6a10;
+  background: rgba(217, 119, 6, 0.16);
+  color: #b45309;
 }
 
 .orderHistoryBadgeCancelled {
   composes: orderHistoryBadge;
-  background: rgba(160, 43, 31, 0.12);
-  color: #a02b1f;
+  background: rgba(220, 38, 38, 0.14);
+  color: #b91c1c;
 }
 
 .receiptLink {
