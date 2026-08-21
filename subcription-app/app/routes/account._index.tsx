@@ -26,11 +26,13 @@ function formatMoney(amount: number | null, currency: string | null) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "USD" }).format(amount);
 }
 
-// Mirrors Shopify's own OrderDisplayFulfillmentStatus enum -- these are the
-// exact values Order.displayFulfillmentStatus can return, so every case is
-// covered rather than falling through to a generic label.
+// Mirrors Shopify's own OrderDisplayFulfillmentStatus enum, plus a synthetic
+// "DELIVERED" that getOrderFulfillmentStatuses only reports once every
+// fulfillment on the order carries a carrier-confirmed delivered status --
+// see that function's doc comment for why FULFILLED alone doesn't mean that.
 const FULFILLMENT_STATUS: Record<string, { label: string; className: keyof typeof styles }> = {
-  FULFILLED: { label: "Fulfilled", className: "badgeActive" },
+  DELIVERED: { label: "Delivered", className: "badgeActive" },
+  FULFILLED: { label: "Fulfilled", className: "badgeFulfilled" },
   PARTIALLY_FULFILLED: { label: "Partially fulfilled", className: "badgePaused" },
   IN_PROGRESS: { label: "In progress", className: "badgePaused" },
   ON_HOLD: { label: "On hold", className: "badgePaused" },

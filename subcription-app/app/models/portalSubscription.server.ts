@@ -32,7 +32,12 @@ function firstLineProductId(linesJson: string | null): string | null {
 const ORDER_FULFILLMENT_STATUS_QUERY = `#graphql
   query PortalOrderFulfillmentStatus($ids: [ID!]!) {
     nodes(ids: $ids) {
-      ... on Order { id displayFulfillmentStatus statusPageUrl }
+      ... on Order {
+        id
+        displayFulfillmentStatus
+        statusPageUrl
+        fulfillments(first: 10) { displayStatus }
+      }
     }
   }
 `;
@@ -47,6 +52,13 @@ interface OrderLiveDetails {
  * is the only source for either, so they're always fetched live. A failure
  * here (or an order Shopify no longer has) just leaves those orders' status
  * and receipt link blank rather than breaking whichever page called this.
+ *
+ * Order.displayFulfillmentStatus tops out at FULFILLED -- that enum has no
+ * "delivered" value, it only reflects whether the merchant shipped the line
+ * items, not whether a carrier confirmed it reached the customer. Actual
+ * delivery confirmation only exists per-fulfillment, so a fulfilled order is
+ * only ever reported as "DELIVERED" here once every one of its fulfillments
+ * carries that carrier-confirmed status too.
  */
 async function getOrderFulfillmentStatuses({
   shop,
@@ -64,12 +76,22 @@ async function getOrderFulfillmentStatuses({
       variables: { ids: orderShopifyIds },
     });
     const body = (await response.json()) as {
-      data?: { nodes: ({ id: string; displayFulfillmentStatus: string; statusPageUrl: string | null } | null)[] };
+      data?: {
+        nodes: ({
+          id: string;
+          displayFulfillmentStatus: string;
+          statusPageUrl: string | null;
+          fulfillments: { displayStatus: string }[];
+        } | null)[];
+      };
     };
     for (const node of body.data?.nodes ?? []) {
-      if (node) {
-        detailsByOrder.set(node.id, { fulfillmentStatus: node.displayFulfillmentStatus, receiptUrl: node.statusPageUrl });
-      }
+      if (!node) continue;
+      const allDelivered =
+        node.fulfillments.length > 0 && node.fulfillments.every((f) => f.displayStatus === "DELIVERED");
+      const fulfillmentStatus =
+        node.displayFulfillmentStatus === "FULFILLED" && allDelivered ? "DELIVERED" : node.displayFulfillmentStatus;
+      detailsByOrder.set(node.id, { fulfillmentStatus, receiptUrl: node.statusPageUrl });
     }
   } catch {
     // Live status is a convenience -- the caller still renders fine without it.

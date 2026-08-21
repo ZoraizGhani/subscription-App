@@ -568,6 +568,11 @@
   color: #6b7280;
 }
 
+.badgeFulfilled {
+  composes: badge;
+  color: #1d4ed8;
+}
+
 .badgeDot {
   display: inline-flex;
   align-items: center;
@@ -686,6 +691,12 @@
   composes: orderHistoryBadge;
   background: rgba(34, 139, 87, 0.16);
   color: #1f7a4d;
+}
+
+.orderHistoryBadgeFulfilled {
+  composes: orderHistoryBadge;
+  background: rgba(37, 99, 235, 0.14);
+  color: #1d4ed8;
 }
 
 .orderHistoryBadgePaused {
