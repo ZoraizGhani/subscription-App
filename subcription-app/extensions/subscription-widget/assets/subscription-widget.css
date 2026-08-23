@@ -118,14 +118,14 @@
   text-align: center;
   color: #fff;
   z-index: 1;
+  /* Badge color reflects whether ITS swatch is the active one, regardless of
+     whether it's the "Most Favourite" or "New" badge -- not the active
+     swatch by default; the .is-selected rule below turns it green. */
+  background: #1e1e1e;
 }
 
-.subscription-widget__swatch-badge--favourite {
+.subscription-widget__swatch.is-selected .subscription-widget__swatch-badge {
   background: var(--subscription-widget-swatch-selected, #8c9e56);
-}
-
-.subscription-widget__swatch-badge--new {
-  background: #3f3f3f;
 }
 
 .subscription-widget__swatch-image {
