@@ -102,7 +102,6 @@
 .subscription-widget__swatch.is-selected {
   border-width: 2px;
   border-color: var(--subscription-widget-swatch-selected, #8c9e56);
-  background: color-mix(in srgb, var(--subscription-widget-swatch-selected, #8c9e56) 12%, #fdfdfd);
 }
 
 .subscription-widget__swatch-badge {
