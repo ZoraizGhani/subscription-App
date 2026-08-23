@@ -42,16 +42,6 @@
 
 .subscription-widget__flavor-heading {
   margin: 0;
-  font-family: "Geist", sans-serif;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 28px;
-  letter-spacing: 0;
-  color: #1e1e1e;
-}
-
-.subscription-widget__flavor-heading-value {
-  margin-left: 0.375rem;
   font-family: "Playfair Display", Georgia, serif;
   font-style: italic;
   font-weight: 400;
@@ -59,6 +49,16 @@
   line-height: 28px;
   letter-spacing: 0;
   color: #111827;
+}
+
+.subscription-widget__flavor-heading-value {
+  margin-left: 0.375rem;
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: #1e1e1e;
 }
 
 .subscription-widget__quantity-label {
@@ -101,6 +101,7 @@
 .subscription-widget__swatch.is-selected {
   border-width: 2px;
   border-color: var(--subscription-widget-swatch-selected, #8c9e56);
+  background: color-mix(in srgb, var(--subscription-widget-swatch-selected, #8c9e56) 12%, #fdfdfd);
 }
 
 .subscription-widget__swatch-badge {
