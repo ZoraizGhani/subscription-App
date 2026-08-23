@@ -96,10 +96,10 @@
 
 .subscription-widget__swatch-badge {
   position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  padding: 0.1875rem 0.5rem;
-  border-radius: 0.25rem;
+  top: 0;
+  left: 0;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0 0.625rem 0.625rem 0.625rem;
   font-size: 0.5625rem;
   font-weight: 600;
   line-height: 1.2;
