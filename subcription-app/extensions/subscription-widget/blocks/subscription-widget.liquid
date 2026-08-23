@@ -58,6 +58,22 @@
     {%- if product.has_only_default_variant == false -%}
       {%- assign first_option = product.options_with_values.first -%}
       {%- assign new_values_list = block.settings.new_values | split: "," -%}
+
+      {%- comment -%}
+        Merchants can name an exact flavor value in the block settings, but
+        most won't bother -- so with nothing configured, default to the same
+        pattern the design shows: the first flavor is "Most Favourite" and
+        every other flavor is "New", rather than showing no badges at all.
+      {%- endcomment -%}
+      {%- assign favourite_value = block.settings.favourite_value -%}
+      {%- if favourite_value == blank -%}
+        {%- assign favourite_value = first_option.values.first -%}
+      {%- endif -%}
+      {%- assign new_values_configured = false -%}
+      {%- if block.settings.new_values != blank -%}
+        {%- assign new_values_configured = true -%}
+      {%- endif -%}
+
       <div class="subscription-widget__section">
         <p class="subscription-widget__flavor-heading">
           {{ block.settings.flavor_section_label }}
@@ -74,16 +90,20 @@
             {%- assign swatch_image = swatch_variant.featured_image | default: product.featured_image -%}
 
             {%- assign is_favourite = false -%}
-            {%- if block.settings.favourite_value != blank and value == block.settings.favourite_value -%}
+            {%- if value == favourite_value -%}
               {%- assign is_favourite = true -%}
             {%- endif -%}
             {%- assign is_new = false -%}
-            {%- for new_value in new_values_list -%}
-              {%- assign new_value_trimmed = new_value | strip -%}
-              {%- if new_value_trimmed == value -%}
-                {%- assign is_new = true -%}
-              {%- endif -%}
-            {%- endfor -%}
+            {%- if new_values_configured -%}
+              {%- for new_value in new_values_list -%}
+                {%- assign new_value_trimmed = new_value | strip -%}
+                {%- if new_value_trimmed == value -%}
+                  {%- assign is_new = true -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- elsif is_favourite == false -%}
+              {%- assign is_new = true -%}
+            {%- endif -%}
 
             <button
               type="button"
