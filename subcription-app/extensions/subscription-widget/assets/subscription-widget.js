@@ -27,21 +27,10 @@
     const submitBtn = root.querySelector("[data-add-to-cart]");
     const statusEl = root.querySelector("[data-status]");
 
-    const planSelect = root.querySelector("[data-plan-select]");
-    const modeInputs = Array.from(root.querySelectorAll("[data-plan-mode]"));
-    const discountPercentEl = root.querySelector("[data-discount-percent]");
-    const comparePriceEl = root.querySelector("[data-compare-price]");
-    const planPriceEl = root.querySelector("[data-plan-price]");
-    const priceUnitEl = root.querySelector("[data-price-unit]");
-    const bestValueBadgeEl = root.querySelector("[data-best-value-badge]");
-    const onetimePriceEl = root.querySelector("[data-onetime-price]");
+    const bundleCards = Array.from(root.querySelectorAll("[data-bundle-card]"));
+    const bundleRadios = Array.from(root.querySelectorAll("[data-plan-radio]"));
 
     const moneyFormat = settings.moneyFormat || (window.Shopify && window.Shopify.money_format);
-
-    if (priceUnitEl && settings.priceUnitSuffix) {
-      priceUnitEl.textContent = `/ ${settings.priceUnitSuffix}`;
-      priceUnitEl.hidden = false;
-    }
 
     function selectedOptionValues() {
       return optionEls.map((optionEl) => {
@@ -65,55 +54,47 @@
       );
     }
 
-    function currentMode() {
-      const checked = modeInputs.find((input) => input.checked);
-      return checked ? checked.value : "subscribe";
+    function planDiscount(variant, planId) {
+      const allocation = planAllocation(variant, planId);
+      if (!allocation || !variant.price) return { price: variant.price, discount: 0 };
+      return { price: allocation.price, discount: Math.round((1 - allocation.price / variant.price) * 100) };
     }
 
-    function setMode(mode) {
-      modeInputs.forEach((input) => {
-        input.checked = input.value === mode;
-      });
+    function selectedPlanId() {
+      const checked = bundleRadios.find((input) => input.checked);
+      return checked ? Number(checked.value) : bundleRadios[0] ? Number(bundleRadios[0].value) : null;
     }
 
     function render() {
       const variant = currentVariant();
-      const mode = currentMode();
 
-      const selectedPlanId = Number(planSelect.value);
-      const selectedAllocation = planAllocation(variant, selectedPlanId);
-      const selectedPrice = selectedAllocation ? selectedAllocation.price : variant.price;
-      const selectedDiscount =
-        selectedAllocation && variant.price
-          ? Math.round((1 - selectedAllocation.price / variant.price) * 100)
-          : 0;
+      // Every bundle card prices and discounts itself independently, so the
+      // "Best value" badge can mark whichever plan is objectively the best
+      // deal rather than only reacting to whatever's currently selected.
+      let bestCard = null;
+      let bestDiscount = -1;
+      bundleCards.forEach((card) => {
+        const radio = card.querySelector("[data-plan-radio]");
+        const priceEl = card.querySelector("[data-bundle-price]");
+        const { price, discount } = planDiscount(variant, Number(radio.value));
+        if (priceEl) priceEl.textContent = formatMoney(price, moneyFormat);
+        if (discount > bestDiscount) {
+          bestDiscount = discount;
+          bestCard = card;
+        }
+      });
 
-      discountPercentEl.textContent = selectedDiscount > 0 ? `${selectedDiscount}%` : "";
-      planPriceEl.textContent = formatMoney(selectedPrice, moneyFormat);
-      if (selectedDiscount > 0) {
-        comparePriceEl.textContent = formatMoney(variant.price, moneyFormat);
-        comparePriceEl.hidden = false;
-      } else {
-        comparePriceEl.hidden = true;
-      }
+      bundleCards.forEach((card) => {
+        const badgeEl = card.querySelector("[data-bundle-best-badge]");
+        if (!badgeEl) return;
+        badgeEl.hidden = !(settings.showBestValueBadge && bestDiscount > 0 && card === bestCard);
+      });
 
-      if (bestValueBadgeEl) {
-        // Subscribe & Save is the only discounted plan on this widget, so any
-        // real discount on it is by definition the best deal available.
-        const showBadge = settings.showBestValueBadge && selectedDiscount > 0;
-        bestValueBadgeEl.hidden = !showBadge;
-      }
-
-      if (onetimePriceEl) {
-        onetimePriceEl.textContent = formatMoney(variant.price, moneyFormat);
-      }
-
-      if (mode === "subscribe") {
-        const intervalLabel = planSelect.selectedOptions[0] ? planSelect.selectedOptions[0].textContent : "";
-        submitBtn.textContent = `${settings.subscribeButtonLabel} — ${formatMoney(selectedPrice, moneyFormat)} / ${intervalLabel}`;
-      } else {
-        submitBtn.textContent = `${settings.oneTimeButtonLabel} — ${formatMoney(variant.price, moneyFormat)}`;
-      }
+      const planId = selectedPlanId();
+      const { price: selectedPrice } = planDiscount(variant, planId);
+      const selectedCard = bundleCards.find((card) => Number(card.querySelector("[data-plan-radio]").value) === planId);
+      const label = selectedCard ? selectedCard.querySelector(".subscription-widget__bundle-title").textContent : "";
+      submitBtn.textContent = `${settings.subscribeButtonLabel} — ${formatMoney(selectedPrice, moneyFormat)} / ${label}`;
     }
 
     optionEls.forEach((optionEl) => {
@@ -140,23 +121,18 @@
       });
     }
 
-    planSelect.addEventListener("change", () => {
-      setMode("subscribe");
-      render();
-    });
-    modeInputs.forEach((input) => input.addEventListener("change", render));
+    bundleRadios.forEach((input) => input.addEventListener("change", render));
 
     submitBtn.addEventListener("click", async () => {
       const variant = currentVariant();
       const quantity = quantityInput ? Math.max(1, Number(quantityInput.value)) : 1;
-      const isSubscribing = currentMode() === "subscribe";
 
       const payload = {
         items: [
           {
             id: variant.id,
             quantity,
-            ...(isSubscribing ? { selling_plan: Number(planSelect.value) } : {}),
+            selling_plan: selectedPlanId(),
           },
         ],
       };

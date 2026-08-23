@@ -1,6 +1,9 @@
 {% comment %}
   Self-contained purchase widget: image-swatch variant picker, quantity, a
-  Subscribe & Save vs one-time-purchase choice, and its own add-to-cart button.
+  bundle picker (one card per selling plan -- clicking a card both picks that
+  plan and shows its price), and its own add-to-cart button. There is no
+  one-time-purchase option; every add-to-cart from this widget is a
+  subscription on whichever plan's card is selected.
 
   If the product has no selling plan group at all, this block renders nothing
   at all -- no fallback buy box of its own. The theme's own default variant
@@ -44,11 +47,7 @@
     </script>
     <script type="application/json" data-subscription-widget-settings>
       {
-        "subscribeTitle": {{ block.settings.subscribe_title | json }},
-        "oneTimeLabel": {{ block.settings.one_time_label | json }},
         "subscribeButtonLabel": {{ block.settings.subscribe_button_label | json }},
-        "oneTimeButtonLabel": {{ block.settings.one_time_button_label | json }},
-        "priceUnitSuffix": {{ block.settings.price_unit_suffix | json }},
         "bestValueBadgeText": {{ block.settings.best_value_badge_text | json }},
         "showBestValueBadge": {{ block.settings.show_best_value_badge | json }},
         "moneyFormat": {{ shop.money_format | json }}
@@ -164,50 +163,28 @@
     <div class="subscription-widget__section">
       <p class="subscription-widget__section-label">{{ block.settings.plan_section_label }}</p>
 
-      <div class="subscription-widget__plan-cards">
-      <label class="subscription-widget__plan-card" data-plan-card="subscribe">
-        <span class="subscription-widget__plan-card-radio">
-          <input type="radio" name="subscription-widget-mode-{{ block.id }}" value="subscribe" checked data-plan-mode="subscribe">
-        </span>
-        <span class="subscription-widget__plan-card-body">
-          <span class="subscription-widget__plan-card-top">
-            <span class="subscription-widget__plan-card-title">
-              {{ block.settings.subscribe_title }}
-              <span data-discount-percent></span>
+      {%- assign bundle_image = current_variant.featured_image | default: product.featured_image -%}
+      <div class="subscription-widget__bundle-grid">
+        {%- for plan in selling_plan_group.selling_plans -%}
+          <label class="subscription-widget__bundle-card" data-bundle-card>
+            <input
+              type="radio"
+              name="subscription-widget-plan-{{ block.id }}"
+              value="{{ plan.id }}"
+              class="subscription-widget__bundle-radio-input"
+              data-plan-radio
+              {% if forloop.first %}checked{% endif %}
+            >
+            <span class="subscription-widget__bundle-badge" data-bundle-best-badge hidden>{{ block.settings.best_value_badge_text }}</span>
+            <span class="subscription-widget__bundle-image">
+              {%- if bundle_image -%}
+                {{ bundle_image | image_url: width: 160 | image_tag: loading: "lazy", alt: plan.name, widths: "80,160" }}
+              {%- endif -%}
             </span>
-            <span class="subscription-widget__badge" data-best-value-badge hidden>{{ block.settings.best_value_badge_text }}</span>
-          </span>
-          <span class="subscription-widget__plan-card-price">
-            <span class="subscription-widget__price-now" data-plan-price></span>
-            <span class="subscription-widget__price-compare" data-compare-price hidden></span>
-            <span class="subscription-widget__price-unit" data-price-unit hidden></span>
-          </span>
-          <span class="subscription-widget__deliver-row">
-            <span class="subscription-widget__deliver-label">{{ block.settings.deliver_every_label }}</span>
-            <select class="subscription-widget__deliver-select" data-plan-select aria-label="{{ block.settings.deliver_every_label }}">
-              {%- for plan in selling_plan_group.selling_plans -%}
-                <option value="{{ plan.id }}">{{ plan.name | remove_first: "Every " }}</option>
-              {%- endfor -%}
-            </select>
-          </span>
-        </span>
-      </label>
-
-      {%- if block.settings.show_one_time_option -%}
-        <label class="subscription-widget__plan-card" data-plan-card="onetime">
-          <span class="subscription-widget__plan-card-radio">
-            <input type="radio" name="subscription-widget-mode-{{ block.id }}" value="onetime" data-plan-mode="onetime">
-          </span>
-          <span class="subscription-widget__plan-card-body">
-            <span class="subscription-widget__plan-card-top">
-              <span class="subscription-widget__plan-card-title">{{ block.settings.one_time_label }}</span>
-            </span>
-            <span class="subscription-widget__plan-card-price">
-              <span class="subscription-widget__price-now" data-onetime-price>{{ current_variant.price | money }}</span>
-            </span>
-          </span>
-        </label>
-      {%- endif -%}
+            <span class="subscription-widget__bundle-title">{{ plan.name | remove_first: "Every " }}</span>
+            <span class="subscription-widget__bundle-price" data-bundle-price></span>
+          </label>
+        {%- endfor -%}
       </div>
 
       {%- if block.settings.benefit_1 != blank or block.settings.benefit_2 != blank or block.settings.benefit_3 != blank -%}
@@ -280,11 +257,6 @@
 
     { "type": "header", "content": "Plan section" },
     { "type": "text", "id": "plan_section_label", "label": "Plan section heading", "default": "2. Choose your plan" },
-    { "type": "text", "id": "subscribe_title", "label": "Subscribe option title", "default": "Subscribe & Save" },
-    { "type": "checkbox", "id": "show_one_time_option", "label": "Show one-time purchase option", "default": true },
-    { "type": "text", "id": "one_time_label", "label": "One-time purchase label", "default": "One-time purchase" },
-    { "type": "text", "id": "deliver_every_label", "label": "Delivery cadence label", "default": "Deliver every" },
-    { "type": "text", "id": "price_unit_suffix", "label": "Price unit suffix (e.g. \"pouch\", \"bottle\") -- leave blank to hide" },
     { "type": "checkbox", "id": "show_best_value_badge", "label": "Show \"best value\" badge on the best-discount plan", "default": true },
     { "type": "text", "id": "best_value_badge_text", "label": "Best value badge text", "default": "Best value" },
 
@@ -295,7 +267,6 @@
 
     { "type": "header", "content": "Buttons & reassurance copy" },
     { "type": "text", "id": "subscribe_button_label", "label": "Subscribe button label", "default": "Subscribe" },
-    { "type": "text", "id": "one_time_button_label", "label": "One-time purchase button label", "default": "Add to cart" },
     { "type": "text", "id": "reassurance_text", "label": "Reassurance note 1 (leave blank to hide)", "default": "Charged at each delivery" },
     { "type": "text", "id": "cancel_note", "label": "Reassurance note 2 (leave blank to hide)", "default": "Cancel from your account anytime" },
 
