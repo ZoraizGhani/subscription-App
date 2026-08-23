@@ -84,7 +84,11 @@
   flex-direction: column;
   align-items: center;
   gap: 0.625rem;
-  padding: 1rem 0.75rem 1rem;
+  /* Top padding is taller than the others so the badge (absolutely
+     positioned, sitting flush in the corner) always has clearance above
+     the image, whether or not this particular swatch has one -- keeps
+     every swatch's image aligned to the same height either way. */
+  padding: 2.25rem 0.75rem 1rem;
   border: 1px solid #1e1e1e;
   border-radius: 0.875rem;
   background: #fdfdfd;
@@ -104,7 +108,7 @@
   top: 0;
   left: 0;
   padding: 0.25rem 0.625rem;
-  border-radius: 12px 0 12px 0;
+  border-radius: 0.875rem 0 0.875rem 0;
   font-family: "Geist", sans-serif;
   font-size: 12px;
   font-weight: 600;
