@@ -104,12 +104,13 @@
   top: 0;
   left: 0;
   padding: 0.25rem 0.625rem;
-  border-radius: 0 0.625rem 0.625rem 0.625rem;
+  border-radius: 12px 0 12px 0;
   font-family: "Geist", sans-serif;
   font-size: 12px;
   font-weight: 600;
   line-height: 18px;
   letter-spacing: 0;
+  text-align: center;
   color: #fff;
   z-index: 1;
 }
@@ -123,8 +124,8 @@
 }
 
 .subscription-widget__swatch-image {
-  width: 100%;
-  aspect-ratio: 1 / 1;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,11 +139,13 @@
 }
 
 .subscription-widget__swatch-name {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.5;
+  font-family: "Geist", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: 0;
   text-align: center;
-  color: #1a1a1a;
+  color: #1e1e1e;
 }
 
 /* --- Plain option buttons (fallback / secondary options) --- */
