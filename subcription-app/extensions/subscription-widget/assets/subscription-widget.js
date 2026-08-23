@@ -19,6 +19,8 @@
     const settings = JSON.parse(settingsJson.textContent);
 
     const optionEls = Array.from(root.querySelectorAll("[data-option-index]"));
+    const flavorSwatchGrid = root.querySelector('[data-option-index="0"]');
+    const selectedFlavorValueEl = root.querySelector("[data-selected-flavor-value]");
     const quantityInput = root.querySelector("[data-quantity-input]");
     const decreaseBtn = root.querySelector("[data-quantity-decrease]");
     const increaseBtn = root.querySelector("[data-quantity-increase]");
@@ -121,6 +123,9 @@
             .querySelectorAll("[data-option-value]")
             .forEach((sibling) => sibling.classList.remove("is-selected"));
           btn.classList.add("is-selected");
+          if (optionEl === flavorSwatchGrid && selectedFlavorValueEl) {
+            selectedFlavorValueEl.textContent = btn.dataset.swatchLabel || btn.dataset.optionValue;
+          }
           render();
         });
       });
