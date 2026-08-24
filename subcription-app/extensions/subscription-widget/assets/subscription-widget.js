@@ -140,6 +140,7 @@
       const days = selectedRadio ? Number(selectedRadio.dataset.days) || 0 : 0;
       currentPlanDays = days;
       currentPlanQuantity = selectedRadio ? Math.max(1, Number(selectedRadio.dataset.quantity) || 1) : 1;
+      const perServing = days ? selectedPrice / days : selectedPrice;
 
       // Sticky bar mirrors whichever plan/variant is selected above -- image,
       // plan label and price all recompute here so picking a plan/flavor in
@@ -155,7 +156,11 @@
           stickyImage.hidden = true;
         }
       }
-      if (stickyPlanLabel) stickyPlanLabel.textContent = `${days}-Day Supply`;
+      if (stickyPlanLabel) {
+        stickyPlanLabel.textContent =
+          selectedDiscount > 0 ? `${days}-Day Supply (Save ${selectedDiscount}%)` : `${days}-Day Supply`;
+      }
+      if (stickyPlanSub) stickyPlanSub.textContent = `${formatMoney(perServing, moneyFormat)} USD / serving`;
       if (stickySubmitLabel) {
         stickySubmitLabel.textContent = `${settings.subscribeButtonLabel} - ${formatMoney(selectedPrice, moneyFormat)}`;
       }
@@ -169,19 +174,18 @@
         const optTitle = optCard
           ? optCard.querySelector(".subscription-widget__bundle-title").textContent
           : "";
-        const optSubtext =
-          optDiscount > 0
-            ? `Save ${optDiscount}% — ${formatMoney(optPrice, moneyFormat)}`
-            : formatMoney(optPrice, moneyFormat);
+        const optDays = optRadio ? Number(optRadio.dataset.days) || 0 : 0;
+        const optPerServing = optDays ? optPrice / optDays : optPrice;
 
         const labelEl = optionBtn.querySelector("[data-option-label]");
         const subEl = optionBtn.querySelector("[data-option-sub]");
-        if (labelEl) labelEl.textContent = `${optTitle} Supply`;
-        if (subEl) subEl.textContent = optSubtext;
+        if (labelEl) {
+          labelEl.textContent =
+            optDiscount > 0 ? `${optTitle} Supply (Save ${optDiscount}%)` : `${optTitle} Supply`;
+        }
+        if (subEl) subEl.textContent = `${formatMoney(optPerServing, moneyFormat)} USD / serving`;
         optionBtn.classList.toggle("is-selected", isSelected);
         optionBtn.setAttribute("aria-selected", String(isSelected));
-
-        if (isSelected && stickyPlanSub) stickyPlanSub.textContent = optSubtext;
       });
 
       // Order summary card -- mirrors whichever plan is selected above.
@@ -205,7 +209,6 @@
       }
 
       const weeks = days ? Math.round(days / 7) || 1 : 0;
-      const perServing = days ? selectedPrice / days : selectedPrice;
       if (summaryBillingEl) {
         summaryBillingEl.textContent = `Billed ${formatMoney(selectedPrice, moneyFormat)} USD every ${weeks} week${weeks === 1 ? "" : "s"}`;
       }
