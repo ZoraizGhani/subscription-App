@@ -381,15 +381,15 @@
   }
 
   .subscription-widget__order-summary-onetime {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .subscription-widget__order-summary-onetime [data-summary-onetime-compare] {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .subscription-widget__order-summary-onetime-perday-wrap {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   /* Two rows on mobile: image + title on top, selector + button below --
