@@ -138,15 +138,23 @@ export async function confirmPlanImageUpload({
   }
 
   let imageUrl = file.image?.url ?? null;
-  for (let attempt = 0; !imageUrl && attempt < 6; attempt++) {
-    await sleep(500);
+  let fileStatus = file.fileStatus;
+  // Processing usually finishes in a second or two, but has been observed to
+  // take longer -- 12 attempts a second apart gives it real room before
+  // giving up, rather than the 3 total seconds this used to allow.
+  for (let attempt = 0; !imageUrl && fileStatus !== "FAILED" && attempt < 12; attempt++) {
+    await sleep(1000);
     const statusResponse = await graphql(FILE_STATUS_QUERY, { variables: { id: file.id } });
     const statusBody = (await statusResponse.json()) as {
       data?: { node: { fileStatus?: string; image?: { url: string } } | null };
     };
     imageUrl = statusBody.data?.node?.image?.url ?? null;
+    fileStatus = statusBody.data?.node?.fileStatus;
   }
 
+  if (fileStatus === "FAILED") {
+    throw new Error("Shopify couldn't process that image -- try a different file.");
+  }
   if (!imageUrl) {
     throw new Error("Image uploaded but Shopify is still processing it -- try saving again in a moment.");
   }
