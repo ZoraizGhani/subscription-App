@@ -280,7 +280,7 @@
   flex-direction: row;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem;
+  padding: 2px;
   border: 1px solid #e9abac;
   border-radius: 0.875rem;
   background: #fff;
@@ -295,23 +295,24 @@
 }
 
 .subscription-widget__bundle-radio-input {
-  /* opacity, not clip/size -- native radio controls are OS-drawn and can
-     ignore a shrunk width/height + clip, leaving the dot visibly rendered
-     anyway. opacity:0 hides it in every browser regardless of native
-     rendering, while the label still activates it on click as normal. */
+  /* Covers the whole card edge-to-edge instead of sitting as a 1px dot
+     pinned to the top-left corner -- opacity, not clip/size, hides it
+     (native radio controls are OS-drawn and can ignore a shrunk width/
+     height + clip, leaving the dot visibly rendered anyway), and inset:0
+     means it can't visually nudge or reserve space on any one side. */
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 1px;
-  height: 1px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
   border: 0;
   opacity: 0;
+  cursor: pointer;
 }
 
 .subscription-widget__bundle-media {
-  position: relative;
+  position: static;
   width: 50%;
   max-width: 50%;
   flex-shrink: 0;
