@@ -311,6 +311,10 @@
   cursor: pointer;
 }
 
+input.subscription-widget__bundle-radio-input {
+  margin-left: -28px;
+}
+
 .subscription-widget__bundle-media {
   position: static;
   width: 50%;
@@ -357,6 +361,8 @@
      exactly match the box. */
   object-fit: contain;
   display: block;
+  max-width: 93px !important;
+  height: 80px;
 }
 
 .subscription-widget__bundle-text {
