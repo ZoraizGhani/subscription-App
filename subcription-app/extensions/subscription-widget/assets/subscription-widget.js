@@ -154,9 +154,13 @@
       // the main widget updates it too, not just the reverse (see the sticky
       // option click handler below for that direction).
       if (stickyImage) {
-        const image = product.featured_image || variant.featured_image;
-        if (image) {
-          stickyImage.src = image.src;
+        // product.featured_image serializes as a plain URL string; a
+        // variant's featured_image serializes as an object with its own
+        // .src -- not the same shape, so each needs its own extraction.
+        const imageSrc =
+          product.featured_image || (variant.featured_image && variant.featured_image.src);
+        if (imageSrc) {
+          stickyImage.src = imageSrc;
           stickyImage.alt = product.title;
           stickyImage.hidden = false;
         } else {
