@@ -361,6 +361,43 @@
     font-size: 10px;
   }
 
+  .subscription-widget__bundle-card {
+    padding: 6px;
+    gap: 0.5rem;
+  }
+
+  .subscription-widget__bundle-media {
+    width: auto;
+    max-width: 88px;
+  }
+
+  .subscription-widget__bundle-image {
+    width: 72px;
+    height: 72px;
+  }
+
+  .subscription-widget__bundle-image img {
+    max-width: 64px !important;
+    height: 60px;
+  }
+
+  .subscription-widget__bundle-badge {
+    font-size: 10px;
+    padding: 0.125rem 0.375rem;
+  }
+
+  .subscription-widget__bundle-text {
+    width: auto;
+    max-width: none;
+    flex: 1 1 auto;
+  }
+
+  .subscription-widget__bundle-title,
+  .subscription-widget__bundle-count {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
   .subscription-widget__order-summary-title {
     font-size: 18px;
     line-height: 24px;
@@ -389,6 +426,20 @@
   }
 
   .subscription-widget__order-summary-onetime-perday-wrap {
+    font-size: 12px;
+  }
+
+  .subscription-widget__order-summary-billing {
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  .subscription-widget__order-summary-benefits li {
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  .subscription-widget__order-summary-submit {
     font-size: 12px;
   }
 

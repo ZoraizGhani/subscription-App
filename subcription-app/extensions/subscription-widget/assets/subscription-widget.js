@@ -238,7 +238,10 @@
         summaryOnetimeCompareEl.textContent = selectedDiscount > 0 ? formatMoney(oneTimeTotal, moneyFormat) : "";
       }
       if (summaryOnetimePriceEl) summaryOnetimePriceEl.textContent = formatMoney(selectedPrice, moneyFormat);
-      if (summaryOnetimePerDayEl) summaryOnetimePerDayEl.textContent = formatMoney(perServing, moneyFormat);
+      // Per-day price for the one-time line is always the sale price divided
+      // by 30 -- each unit of this product is a fixed 30-day/30-count supply,
+      // regardless of what "Count" a given plan happens to have configured.
+      if (summaryOnetimePerDayEl) summaryOnetimePerDayEl.textContent = formatMoney(selectedPrice / 30, moneyFormat);
     }
 
     optionEls.forEach((optionEl) => {
