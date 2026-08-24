@@ -41,10 +41,11 @@
 
     const moneyFormat = settings.moneyFormat || (window.Shopify && window.Shopify.money_format);
 
-    // Set by render() every time the selected plan changes -- the one-time
-    // purchase button reads it at click time rather than recomputing it,
-    // since it needs the exact same day count render() already derived.
+    // Set by render() every time the selected plan changes -- the add-to-
+    // cart buttons read these at click time rather than recomputing them,
+    // since they need the exact same values render() already derived.
     let currentPlanDays = 0;
+    let currentPlanQuantity = 1;
 
     function selectedOptionValues() {
       return optionEls.map((optionEl) => {
@@ -116,6 +117,7 @@
       // not a coincidence.
       const days = selectedRadio ? Number(selectedRadio.dataset.days) || 0 : 0;
       currentPlanDays = days;
+      currentPlanQuantity = selectedRadio ? Math.max(1, Number(selectedRadio.dataset.quantity) || 1) : 1;
       if (summaryTitleEl) summaryTitleEl.textContent = `${days}-Day Supply`;
       if (summarySaveEl) {
         summarySaveEl.hidden = selectedDiscount <= 0;
@@ -176,11 +178,12 @@
     // entry points to the same cart, not independent flows. oneTime skips
     // selling_plan entirely (a real one-time purchase, not a subscription)
     // and uses the selected plan's day count as the quantity, matching the
-    // total price shown next to it; a subscription is always quantity 1
-    // (one recurring line), the plan/bundle choice is what varies.
+    // total price shown next to it. A subscription uses whatever quantity
+    // the merchant configured for that specific plan in the app's admin
+    // (Selling Plan Settings), which can differ per plan -- not always 1.
     async function addToCart({ oneTime } = {}) {
       const variant = currentVariant();
-      const quantity = oneTime ? Math.max(1, currentPlanDays) : 1;
+      const quantity = oneTime ? Math.max(1, currentPlanDays) : currentPlanQuantity;
 
       const payload = {
         items: [
