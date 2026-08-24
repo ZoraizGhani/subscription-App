@@ -21,9 +21,6 @@
     const optionEls = Array.from(root.querySelectorAll("[data-option-index]"));
     const flavorSwatchGrid = root.querySelector('[data-option-index="0"]');
     const selectedFlavorValueEl = root.querySelector("[data-selected-flavor-value]");
-    const quantityInput = root.querySelector("[data-quantity-input]");
-    const decreaseBtn = root.querySelector("[data-quantity-decrease]");
-    const increaseBtn = root.querySelector("[data-quantity-increase]");
     const submitBtn = root.querySelector("[data-add-to-cart]");
     const statusEl = root.querySelector("[data-status]");
 
@@ -172,30 +169,18 @@
       });
     });
 
-    if (decreaseBtn && increaseBtn && quantityInput) {
-      decreaseBtn.addEventListener("click", () => {
-        quantityInput.value = Math.max(1, Number(quantityInput.value) - 1);
-      });
-      increaseBtn.addEventListener("click", () => {
-        quantityInput.value = Number(quantityInput.value) + 1;
-      });
-    }
-
     bundleRadios.forEach((input) => input.addEventListener("change", render));
 
     // Shared by the main submit button, the order summary card's own "Add
     // to cart" button, and its "One-time purchase" button -- all three are
     // entry points to the same cart, not independent flows. oneTime skips
     // selling_plan entirely (a real one-time purchase, not a subscription)
-    // and defaults quantity to the selected plan's day count rather than
-    // the quantity stepper, matching the total price shown next to it.
+    // and uses the selected plan's day count as the quantity, matching the
+    // total price shown next to it; a subscription is always quantity 1
+    // (one recurring line), the plan/bundle choice is what varies.
     async function addToCart({ oneTime } = {}) {
       const variant = currentVariant();
-      const quantity = oneTime
-        ? Math.max(1, currentPlanDays)
-        : quantityInput
-          ? Math.max(1, Number(quantityInput.value))
-          : 1;
+      const quantity = oneTime ? Math.max(1, currentPlanDays) : 1;
 
       const payload = {
         items: [
