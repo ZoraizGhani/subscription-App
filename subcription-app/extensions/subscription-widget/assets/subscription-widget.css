@@ -56,9 +56,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: "Geist", sans-serif;
-  font-size: 13px;
+  font-size: 20px;
   font-weight: 600;
   line-height: 18px;
+  letter-spacing: 0;
   color: #1e1e1e;
 }
 
