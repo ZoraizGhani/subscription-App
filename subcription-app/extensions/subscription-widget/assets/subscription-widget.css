@@ -331,8 +331,8 @@ input.subscription-widget__bundle-radio-input {
 .subscription-widget__order-summary-banner {
   margin: 0;
   padding: 0.75rem 1rem;
-  border-radius: 1.5rem 1.5rem 1.5rem 1.5rem;
-  border: 1px solid #5a0b0b;
+  border-radius: 0;
+  border: 0;
   background: #e6ddd3;
   text-align: center;
   font-family: "Geist", sans-serif;
@@ -348,6 +348,8 @@ input.subscription-widget__bundle-radio-input {
   flex-direction: column;
   gap: 1.25rem;
   padding: 1.5rem;
+  border-radius: 1.5rem 1.5rem 0rem 0rem;
+  border-top: 2px solid #5a0b0b;
 }
 
 .subscription-widget__order-summary-top {
@@ -422,8 +424,6 @@ input.subscription-widget__bundle-radio-input {
   justify-content: flex-start;
   flex-wrap: wrap;
   gap: 0.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #5a0b0b;
   font-family: "Geist", sans-serif;
   font-size: 14px;
   font-weight: 600;
@@ -499,7 +499,6 @@ input.subscription-widget__bundle-radio-input {
   padding: 0.75rem 0 0;
   background: none;
   border: none;
-  border-top: 1px solid #5a0b0b;
   border-radius: 0;
   text-align: left;
   cursor: pointer;
