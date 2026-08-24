@@ -318,11 +318,11 @@
 .subscription-widget__bundle-badge {
   position: absolute;
   top: 0;
-  right: 0;
-  padding: 0.25rem 0.625rem;
+  left: 0;
+  padding: 0.1875rem 0.5rem;
   /* top-left, top-right, bottom-right, bottom-left -- sharp where it's
-     flush against the media box's own top-right corner, rounded elsewhere. */
-  border-radius: 0.875rem 0 0.875rem 0.875rem;
+     flush against the media box's own top-left corner, rounded elsewhere. */
+  border-radius: 0 0.875rem 0.875rem 0.875rem;
   background: #e9abac;
   font-family: "Geist", sans-serif;
   font-size: 12px;
