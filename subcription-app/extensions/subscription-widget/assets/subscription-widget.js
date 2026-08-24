@@ -51,12 +51,14 @@
     const stickySubmitBtn = root.querySelector("[data-sticky-add-to-cart]");
     const stickySubmitLabel = root.querySelector("[data-sticky-submit-label]");
 
-    // Moved to a direct child of <body> so it always stays pinned to the
-    // viewport -- theme sections often wrap content in an ancestor with a
-    // transform/filter/will-change (common for scroll animations), which
-    // silently turns `position: fixed` into something scoped to that
-    // ancestor instead of the real viewport.
-    if (stickyBar) document.body.appendChild(stickyBar);
+    // Moved to a direct child of <html> (not <body>) so it always stays
+    // pinned to the real viewport. Many themes set a transform/filter/
+    // will-change on <body> itself (common for slide-out mobile nav
+    // drawers), which silently turns `position: fixed` into something
+    // scoped to that ancestor instead of the viewport -- a fixed element
+    // has to sit outside <body> entirely to be immune to that, since
+    // <html> is essentially never transformed.
+    if (stickyBar) document.documentElement.appendChild(stickyBar);
 
     const moneyFormat = settings.moneyFormat || (window.Shopify && window.Shopify.money_format);
 

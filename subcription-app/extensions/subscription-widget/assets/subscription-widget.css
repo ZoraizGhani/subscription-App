@@ -13,11 +13,11 @@
 /* --- Sticky add-to-cart bar --- */
 
 .subscription-widget__sticky-bar {
-  position: fixed;
+  position: fixed !important;
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 40;
+  z-index: 999;
   display: flex;
   align-items: center;
   gap: 0.75rem;
