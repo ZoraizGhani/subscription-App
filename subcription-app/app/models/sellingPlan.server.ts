@@ -6,10 +6,6 @@ export interface SellingPlanTier {
   intervalCount: number;
   discountPercent: number;
   planId: string | null;
-  // Bundle image shown for this plan on the storefront widget. Ours alone --
-  // Shopify's SellingPlan has no image field, so this only ever lives in our
-  // own SellingPlan.imageUrl mirror column, matched up by planId/shopifyId.
-  imageUrl: string | null;
 }
 
 export interface ProductSummary {
@@ -21,146 +17,6 @@ export interface ProductSummary {
 /** Thrown for expected, user-facing validation problems -- callers should show
  * `.message` to the merchant rather than treating it as an unexpected crash. */
 export class SellingPlanValidationError extends Error {}
-
-const STAGED_UPLOADS_CREATE = `#graphql
-  mutation PlanImageStagedUpload($input: [StagedUploadInput!]!) {
-    stagedUploadsCreate(input: $input) {
-      stagedTargets {
-        url
-        resourceUrl
-        parameters { name value }
-      }
-      userErrors { field message }
-    }
-  }
-`;
-
-/**
- * Step 1 of uploading a plan's bundle image: asks Shopify for a pre-signed
- * upload URL. The browser then POSTs the raw file straight to that URL
- * (never through our server) -- see confirmPlanImageUpload for step 2.
- */
-export async function requestPlanImageUpload({
-  graphql,
-  filename,
-  mimeType,
-  fileSize,
-}: {
-  graphql: AdminGraphqlClient;
-  filename: string;
-  mimeType: string;
-  fileSize: number;
-}) {
-  const response = await graphql(STAGED_UPLOADS_CREATE, {
-    variables: {
-      input: [{ resource: "IMAGE", filename, mimeType, fileSize: String(fileSize), httpMethod: "POST" }],
-    },
-  });
-  const body = (await response.json()) as {
-    data?: {
-      stagedUploadsCreate: {
-        stagedTargets: { url: string; resourceUrl: string; parameters: { name: string; value: string }[] }[];
-        userErrors: { field: string[]; message: string }[];
-      };
-    };
-  };
-  const result = body.data?.stagedUploadsCreate;
-  const target = result?.stagedTargets[0];
-  if (result?.userErrors.length || !target) {
-    throw new Error(`stagedUploadsCreate failed: ${JSON.stringify(result?.userErrors)}`);
-  }
-  return target;
-}
-
-const FILE_CREATE = `#graphql
-  mutation PlanImageFileCreate($files: [FileCreateInput!]!) {
-    fileCreate(files: $files) {
-      files {
-        id
-        ... on MediaImage {
-          fileStatus
-          image { url }
-        }
-      }
-      userErrors { field message }
-    }
-  }
-`;
-
-const FILE_STATUS_QUERY = `#graphql
-  query PlanImageFileStatus($id: ID!) {
-    node(id: $id) {
-      ... on MediaImage {
-        fileStatus
-        image { url }
-      }
-    }
-  }
-`;
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Step 2: once the browser has uploaded the raw file to the staged URL from
- * requestPlanImageUpload, this registers it as a real Shopify File and waits
- * for image processing to finish so a ready CDN url can be stored right away.
- * MediaImage processing is normally sub-second for a small product photo, so
- * a handful of short-interval polls is enough without a background job.
- */
-export async function confirmPlanImageUpload({
-  graphql,
-  resourceUrl,
-  filename,
-}: {
-  graphql: AdminGraphqlClient;
-  resourceUrl: string;
-  filename: string;
-}) {
-  const response = await graphql(FILE_CREATE, {
-    variables: {
-      files: [{ originalSource: resourceUrl, filename, contentType: "IMAGE", alt: filename }],
-    },
-  });
-  const body = (await response.json()) as {
-    data?: {
-      fileCreate: {
-        files: { id: string; fileStatus?: string; image?: { url: string } }[];
-        userErrors: { field: string[]; message: string }[];
-      };
-    };
-  };
-  const result = body.data?.fileCreate;
-  const file = result?.files[0];
-  if (result?.userErrors.length || !file) {
-    throw new Error(`fileCreate failed: ${JSON.stringify(result?.userErrors)}`);
-  }
-
-  let imageUrl = file.image?.url ?? null;
-  let fileStatus = file.fileStatus;
-  // Processing usually finishes in a second or two, but has been observed to
-  // take longer -- 12 attempts a second apart gives it real room before
-  // giving up, rather than the 3 total seconds this used to allow.
-  for (let attempt = 0; !imageUrl && fileStatus !== "FAILED" && attempt < 12; attempt++) {
-    await sleep(1000);
-    const statusResponse = await graphql(FILE_STATUS_QUERY, { variables: { id: file.id } });
-    const statusBody = (await statusResponse.json()) as {
-      data?: { node: { fileStatus?: string; image?: { url: string } } | null };
-    };
-    imageUrl = statusBody.data?.node?.image?.url ?? null;
-    fileStatus = statusBody.data?.node?.fileStatus;
-  }
-
-  if (fileStatus === "FAILED") {
-    throw new Error("Shopify couldn't process that image -- try a different file.");
-  }
-  if (!imageUrl) {
-    throw new Error("Image uploaded but Shopify is still processing it -- try saving again in a moment.");
-  }
-
-  return imageUrl;
-}
 
 export interface SellingPlanGroupSummary {
   groupId: string;
@@ -287,22 +143,12 @@ export async function getProductSellingPlans({
   const group = product.sellingPlanGroups.nodes[0] ?? null;
   const existingPlans = group?.sellingPlans.nodes ?? [];
 
-  const imageByPlanId = new Map(
-    (
-      await db.sellingPlan.findMany({
-        where: { shopifyId: { in: existingPlans.map((plan) => plan.id) } },
-        select: { shopifyId: true, imageUrl: true },
-      })
-    ).map((plan) => [plan.shopifyId, plan.imageUrl]),
-  );
-
   const tiers: SellingPlanTier[] = existingPlans
     .filter((plan) => plan.billingPolicy.interval === "DAY" && plan.billingPolicy.intervalCount != null)
     .map((plan) => ({
       intervalCount: plan.billingPolicy.intervalCount as number,
       discountPercent: plan.pricingPolicies[0]?.adjustmentValue?.percentage ?? 0,
       planId: plan.id,
-      imageUrl: imageByPlanId.get(plan.id) ?? null,
     }));
 
   return {
@@ -416,13 +262,11 @@ async function mirrorSellingPlanGroup({
   productId,
   productTitle,
   group,
-  tiers,
 }: {
   shop: string;
   productId: string;
   productTitle: string;
   group: SavedGroup;
-  tiers: SellingPlanTier[];
 }) {
   const localGroup = await db.sellingPlanGroup.upsert({
     where: { shopifyId: group.id },
@@ -442,13 +286,6 @@ async function mirrorSellingPlanGroup({
     },
   });
 
-  // Matched by intervalCount, not array position -- sellingPlanGroupUpdate
-  // submits updated/created plans as two separate arrays, so Shopify's
-  // returned node order has no guaranteed relationship to the submitted
-  // tiers' order. intervalCount is safe to key on because saveSellingPlanTiers
-  // already rejects two tiers sharing the same interval before this runs.
-  const imageByIntervalCount = new Map(tiers.map((t) => [t.intervalCount, t.imageUrl]));
-
   for (const [index, plan] of group.sellingPlans.nodes.entries()) {
     const percentage = plan.pricingPolicies[0]?.adjustmentValue?.percentage ?? null;
     const fields = {
@@ -456,7 +293,6 @@ async function mirrorSellingPlanGroup({
       billingInterval: plan.billingPolicy.interval ?? "DAY",
       billingIntervalCount: plan.billingPolicy.intervalCount ?? 0,
       deliveryInterval: plan.billingPolicy.interval ?? "DAY",
-      imageUrl: imageByIntervalCount.get(plan.billingPolicy.intervalCount ?? -1) ?? null,
       deliveryIntervalCount: plan.billingPolicy.intervalCount ?? 0,
       pricingPolicyType: "PERCENTAGE",
       discountValue: percentage,
@@ -533,7 +369,7 @@ export async function saveSellingPlanTiers({
     if (result.userErrors.length || !result.sellingPlanGroup) {
       throw new Error(`sellingPlanGroupUpdate failed: ${JSON.stringify(result.userErrors)}`);
     }
-    await mirrorSellingPlanGroup({ shop, productId, productTitle, group: result.sellingPlanGroup, tiers });
+    await mirrorSellingPlanGroup({ shop, productId, productTitle, group: result.sellingPlanGroup });
     return result.sellingPlanGroup.id;
   }
 
@@ -555,6 +391,6 @@ export async function saveSellingPlanTiers({
   if (result.userErrors.length || !result.sellingPlanGroup) {
     throw new Error(`sellingPlanGroupCreate failed: ${JSON.stringify(result.userErrors)}`);
   }
-  await mirrorSellingPlanGroup({ shop, productId, productTitle, group: result.sellingPlanGroup, tiers });
+  await mirrorSellingPlanGroup({ shop, productId, productTitle, group: result.sellingPlanGroup });
   return result.sellingPlanGroup.id;
 }

@@ -49,7 +49,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     intervalCount: Number(formData.get(`days_${i}`)),
     discountPercent: Number(formData.get(`discount_${i}`) || 0),
     planId: formData.get(`planId_${i}`) ? String(formData.get(`planId_${i}`)) : null,
-    imageUrl: formData.get(`image_${i}`) ? String(formData.get(`image_${i}`)) : null,
   })).filter((tier) => tier.intervalCount > 0);
 
   try {
@@ -180,7 +179,6 @@ function ProductTiersForm({ productData }: { productData: ProductSellingPlanData
     intervalCount: tier?.intervalCount ?? 30,
     discountPercent: tier?.discountPercent ?? 0,
     planId: tier?.planId ?? null,
-    imageUrl: tier?.imageUrl ?? null,
     key: nextKey.current++,
   });
 
@@ -207,61 +205,9 @@ function ProductTiersForm({ productData }: { productData: ProductSellingPlanData
       const usedDays = new Set(prev.map((t) => t.intervalCount));
       let days = 30;
       while (usedDays.has(days)) days += 15;
-      return [...prev, makeRow({ intervalCount: days, discountPercent: 0, planId: null, imageUrl: null })];
+      return [...prev, makeRow({ intervalCount: days, discountPercent: 0, planId: null })];
     });
   const removeTier = (key: number) => setTiers((prev) => prev.filter((t) => t.key !== key));
-
-  const [uploadState, setUploadState] = useState<Record<number, { uploading: boolean; error: string | null }>>({});
-
-  /**
-   * Direct-to-Shopify upload: ask our action for a pre-signed staged URL,
-   * POST the raw file straight to Shopify from the browser (never through
-   * our server), then ask our action to register it as a real File and
-   * return its ready CDN url. Uses plain fetch rather than a fetcher because
-   * step 2 posts to a Shopify-owned URL, not this route -- and steps 1/3 hit
-   * a separate resource route (app.selling-plan-images.tsx) rather than this
-   * page's own action, since a page route with a UI always serves a plain
-   * fetch() the full rendered HTML document instead of raw JSON.
-   */
-  const uploadTierImage = async (key: number, file: File) => {
-    setUploadState((prev) => ({ ...prev, [key]: { uploading: true, error: null } }));
-    const actionUrl = "/app/selling-plan-images";
-
-    try {
-      const requestBody = new FormData();
-      requestBody.set("intent", "requestImageUpload");
-      requestBody.set("filename", file.name);
-      requestBody.set("mimeType", file.type || "image/jpeg");
-      requestBody.set("fileSize", String(file.size));
-      const requestResponse = await fetch(actionUrl, { method: "post", body: requestBody });
-      if (!requestResponse.ok) throw new Error("Couldn't start the upload.");
-      const { target } = (await requestResponse.json()) as {
-        target: { url: string; resourceUrl: string; parameters: { name: string; value: string }[] };
-      };
-
-      const uploadBody = new FormData();
-      target.parameters.forEach((param) => uploadBody.append(param.name, param.value));
-      uploadBody.append("file", file);
-      const uploadResponse = await fetch(target.url, { method: "POST", body: uploadBody });
-      if (!uploadResponse.ok) throw new Error("Shopify rejected the upload.");
-
-      const confirmBody = new FormData();
-      confirmBody.set("intent", "confirmImageUpload");
-      confirmBody.set("resourceUrl", target.resourceUrl);
-      confirmBody.set("filename", file.name);
-      const confirmResponse = await fetch(actionUrl, { method: "post", body: confirmBody });
-      if (!confirmResponse.ok) throw new Error("Shopify is still processing the image -- try again shortly.");
-      const { imageUrl } = (await confirmResponse.json()) as { imageUrl: string };
-
-      setTiers((prev) => prev.map((t) => (t.key === key ? { ...t, imageUrl } : t)));
-      setUploadState((prev) => ({ ...prev, [key]: { uploading: false, error: null } }));
-    } catch (error) {
-      setUploadState((prev) => ({
-        ...prev,
-        [key]: { uploading: false, error: error instanceof Error ? error.message : "Upload failed." },
-      }));
-    }
-  };
 
   const saveTiers = () => {
     if (formRef.current) {
@@ -301,7 +247,6 @@ function ProductTiersForm({ productData }: { productData: ProductSellingPlanData
           {tiers.map((tier, i) => (
             <s-box key={tier.key} padding="base" borderWidth="base" borderRadius="base">
               {tier.planId && <input type="hidden" name={`planId_${i}`} value={tier.planId} />}
-              <input type="hidden" name={`image_${i}`} value={tier.imageUrl ?? ""} />
               <s-stack direction="inline" gap="base" alignItems="center">
                 <s-stack direction="block" gap="small-300">
                   <s-text>Every {tier.intervalCount} days</s-text>
@@ -326,37 +271,6 @@ function ProductTiersForm({ productData }: { productData: ProductSellingPlanData
                 <s-button type="button" variant="tertiary" onClick={() => removeTier(tier.key)}>
                   Remove
                 </s-button>
-              </s-stack>
-
-              <s-stack direction="inline" gap="base" alignItems="center">
-                {tier.imageUrl && (
-                  <img
-                    src={tier.imageUrl}
-                    alt=""
-                    width={48}
-                    height={48}
-                    style={{ objectFit: "cover", borderRadius: 6 }}
-                  />
-                )}
-                <label>
-                  <span style={{ display: "block", fontSize: 12, color: "#6b6459", marginBottom: 4 }}>
-                    Bundle image (shown for this plan on the storefront widget)
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={uploadState[tier.key]?.uploading}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) uploadTierImage(tier.key, file);
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
-                {uploadState[tier.key]?.uploading && <s-text color="subdued">Uploading...</s-text>}
-                {uploadState[tier.key]?.error && (
-                  <s-text tone="critical">{uploadState[tier.key]?.error}</s-text>
-                )}
               </s-stack>
             </s-box>
           ))}
