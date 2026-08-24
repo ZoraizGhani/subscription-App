@@ -235,7 +235,17 @@
       selection state the bundle grid uses, not hardcoded per plan.
     {%- endcomment -%}
     <div class="subscription-widget__order-summary">
-      <p class="subscription-widget__order-summary-banner">{{ block.settings.order_summary_badge_text }}</p>
+      {%- for plan in selling_plan_group.selling_plans -%}
+        {%- case forloop.index -%}
+          {%- when 1 -%}{%- assign plan_badge_text = block.settings.order_summary_badge_text_1 -%}
+          {%- when 2 -%}{%- assign plan_badge_text = block.settings.order_summary_badge_text_2 -%}
+          {%- when 3 -%}{%- assign plan_badge_text = block.settings.order_summary_badge_text_3 -%}
+          {%- else -%}{%- assign plan_badge_text = nil -%}
+        {%- endcase -%}
+        {%- if plan_badge_text != blank -%}
+          <p class="subscription-widget__order-summary-banner" data-summary-banner-plan="{{ plan.id }}" {% unless forloop.first %}hidden{% endunless %}>{{ plan_badge_text }}</p>
+        {%- endif -%}
+      {%- endfor -%}
       <div class="subscription-widget__order-summary-body">
         <div class="subscription-widget__order-summary-top">
           <span class="subscription-widget__order-summary-title-group">
@@ -328,7 +338,9 @@
     { "type": "image_picker", "id": "bundle_image_3", "label": "Bundle image -- 3rd plan" },
 
     { "type": "header", "content": "Order summary card" },
-    { "type": "text", "id": "order_summary_badge_text", "label": "Banner text", "default": "Most Popular" },
+
+    { "type": "header", "content": "Order summary -- 1st plan" },
+    { "type": "text", "id": "order_summary_badge_text_1", "label": "Banner text -- 1st plan", "default": "Most Popular" },
     {
       "type": "richtext",
       "id": "order_summary_benefits_1",
@@ -336,6 +348,9 @@
       "info": "Rendered as a bulleted list with a custom checkmark icon. To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
       "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
     },
+
+    { "type": "header", "content": "Order summary -- 2nd plan" },
+    { "type": "text", "id": "order_summary_badge_text_2", "label": "Banner text -- 2nd plan", "default": "Most Popular" },
     {
       "type": "richtext",
       "id": "order_summary_benefits_2",
@@ -343,6 +358,9 @@
       "info": "Rendered as a bulleted list with a custom checkmark icon. To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
       "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
     },
+
+    { "type": "header", "content": "Order summary -- 3rd plan" },
+    { "type": "text", "id": "order_summary_badge_text_3", "label": "Banner text -- 3rd plan", "default": "Most Popular" },
     {
       "type": "richtext",
       "id": "order_summary_benefits_3",
@@ -350,6 +368,8 @@
       "info": "Rendered as a bulleted list with a custom checkmark icon. To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
       "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
     },
+
+    { "type": "header", "content": "Order summary -- shared" },
     { "type": "text", "id": "order_summary_button_label", "label": "Button label", "default": "Add to cart" },
 
     { "type": "header", "content": "Buttons" },
