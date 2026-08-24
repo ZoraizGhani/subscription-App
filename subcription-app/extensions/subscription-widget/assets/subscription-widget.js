@@ -65,7 +65,7 @@
     // Set by render() every time the selected plan changes -- the add-to-
     // cart buttons read these at click time rather than recomputing them,
     // since they need the exact same values render() already derived.
-    let currentPlanDays = 0;
+    let currentPlanCount = 1;
     let currentPlanQuantity = 1;
 
     function selectedOptionValues() {
@@ -142,14 +142,15 @@
       const label = selectedCard ? selectedCard.querySelector(".subscription-widget__bundle-title").textContent : "";
       submitBtn.textContent = `${settings.subscribeButtonLabel} — ${formatMoney(selectedPrice, moneyFormat)} / ${label}`;
 
-      // Assumes one unit ships per day (true for this app's only product so
-      // far); days doubles as both the serving count and the quantity, so
-      // "per serving" and "per day" below are the same number by design,
-      // not a coincidence.
+      // `days` is the delivery cadence ("every N days"), purely a scheduling
+      // concept -- it does NOT necessarily match how many servings actually
+      // ship. That's `count` (the plan's own "Count" option, e.g. a 30-count
+      // bottle), which is what per-serving/per-day pricing has to divide by.
       const days = selectedRadio ? Number(selectedRadio.dataset.days) || 0 : 0;
-      currentPlanDays = days;
+      const count = selectedRadio ? Number(selectedRadio.dataset.count) || days : days;
+      currentPlanCount = count;
       currentPlanQuantity = selectedRadio ? Math.max(1, Number(selectedRadio.dataset.quantity) || 1) : 1;
-      const perServing = days ? selectedPrice / days : selectedPrice;
+      const perServing = count ? selectedPrice / count : selectedPrice;
 
       // Sticky bar mirrors whichever plan/variant is selected above -- image,
       // plan label and price all recompute here so picking a plan/flavor in
@@ -188,7 +189,8 @@
           ? optCard.querySelector(".subscription-widget__bundle-title").textContent
           : "";
         const optDays = optRadio ? Number(optRadio.dataset.days) || 0 : 0;
-        const optPerServing = optDays ? optPrice / optDays : optPrice;
+        const optCount = optRadio ? Number(optRadio.dataset.count) || optDays : optDays;
+        const optPerServing = optCount ? optPrice / optCount : optPrice;
 
         const labelEl = optionBtn.querySelector("[data-option-label]");
         const subEl = optionBtn.querySelector("[data-option-sub]");
@@ -227,10 +229,10 @@
       }
       if (summaryPerServingEl) summaryPerServingEl.textContent = `${formatMoney(perServing, moneyFormat)} USD / SERVING`;
 
-      // One-time comparison: the same quantity (one unit per day) at the
+      // One-time comparison: the same number of servings (`count`) at the
       // plain, undiscounted per-unit price -- what it would cost without
       // subscribing at all.
-      const oneTimeTotal = days ? variant.price * days : variant.price;
+      const oneTimeTotal = count ? variant.price * count : variant.price;
       if (summaryOnetimeCompareEl) {
         summaryOnetimeCompareEl.hidden = selectedDiscount <= 0;
         summaryOnetimeCompareEl.textContent = selectedDiscount > 0 ? formatMoney(oneTimeTotal, moneyFormat) : "";
@@ -260,13 +262,14 @@
     // to cart" button, and its "One-time purchase" button -- all three are
     // entry points to the same cart, not independent flows. oneTime skips
     // selling_plan entirely (a real one-time purchase, not a subscription)
-    // and uses the selected plan's day count as the quantity, matching the
-    // total price shown next to it. A subscription uses whatever quantity
-    // the merchant configured for that specific plan in the app's admin
-    // (Selling Plan Settings), which can differ per plan -- not always 1.
+    // and uses the selected plan's serving count as the quantity, matching
+    // the total price shown next to it. A subscription uses whatever
+    // quantity the merchant configured for that specific plan in the app's
+    // admin (Selling Plan Settings), which can differ per plan -- not
+    // always 1.
     async function addToCart({ oneTime } = {}) {
       const variant = currentVariant();
-      const quantity = oneTime ? Math.max(1, currentPlanDays) : currentPlanQuantity;
+      const quantity = oneTime ? Math.max(1, currentPlanCount) : currentPlanQuantity;
 
       const payload = {
         items: [

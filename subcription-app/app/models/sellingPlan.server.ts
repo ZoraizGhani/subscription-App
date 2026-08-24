@@ -262,6 +262,11 @@ const SELLING_PLAN_GROUP_UPDATE = `#graphql
   }
 `;
 
+interface SellingPlanUserError {
+  field: string[] | null;
+  message: string;
+}
+
 interface SavedGroup {
   id: string;
   name: string;
@@ -387,11 +392,31 @@ export async function saveSellingPlanTiers({
       },
     });
     const body = (await response.json()) as {
-      data: { sellingPlanGroupUpdate: { sellingPlanGroup: SavedGroup | null; userErrors: unknown[] } };
+      data?: {
+        sellingPlanGroupUpdate: { sellingPlanGroup: SavedGroup | null; userErrors: SellingPlanUserError[] };
+      };
+      errors?: { message: string }[];
     };
+    // A GraphQL-level error (bad input, permissions, etc.) comes back as a
+    // top-level `errors` array with no `data` at all -- distinct from the
+    // business-logic `userErrors` below, and would otherwise crash trying
+    // to read `.sellingPlanGroupUpdate` off undefined.
+    if (!body.data) {
+      throw new SellingPlanValidationError(
+        body.errors?.map((e) => e.message).join(" ") || "Couldn't save these plans.",
+      );
+    }
     const result = body.data.sellingPlanGroupUpdate;
-    if (result.userErrors.length || !result.sellingPlanGroup) {
-      throw new Error(`sellingPlanGroupUpdate failed: ${JSON.stringify(result.userErrors)}`);
+    // Shopify rejects some edits outright -- e.g. changing the billing
+    // interval of a plan that already has active subscribers -- as a
+    // userError rather than a GraphQL-level failure. Surface that as a
+    // validation error the merchant sees as a toast, not an unhandled
+    // exception that crashes the whole page.
+    if (result.userErrors.length) {
+      throw new SellingPlanValidationError(result.userErrors.map((e) => e.message).join(" "));
+    }
+    if (!result.sellingPlanGroup) {
+      throw new Error("sellingPlanGroupUpdate failed: no selling plan group returned");
     }
     await mirrorSellingPlanGroup({ shop, productId, productTitle, group: result.sellingPlanGroup });
     return result.sellingPlanGroup.id;
@@ -409,11 +434,20 @@ export async function saveSellingPlanTiers({
     },
   });
   const body = (await response.json()) as {
-    data: { sellingPlanGroupCreate: { sellingPlanGroup: SavedGroup | null; userErrors: unknown[] } };
+    data?: { sellingPlanGroupCreate: { sellingPlanGroup: SavedGroup | null; userErrors: SellingPlanUserError[] } };
+    errors?: { message: string }[];
   };
+  if (!body.data) {
+    throw new SellingPlanValidationError(
+      body.errors?.map((e) => e.message).join(" ") || "Couldn't save these plans.",
+    );
+  }
   const result = body.data.sellingPlanGroupCreate;
-  if (result.userErrors.length || !result.sellingPlanGroup) {
-    throw new Error(`sellingPlanGroupCreate failed: ${JSON.stringify(result.userErrors)}`);
+  if (result.userErrors.length) {
+    throw new SellingPlanValidationError(result.userErrors.map((e) => e.message).join(" "));
+  }
+  if (!result.sellingPlanGroup) {
+    throw new Error("sellingPlanGroupCreate failed: no selling plan group returned");
   }
   await mirrorSellingPlanGroup({ shop, productId, productTitle, group: result.sellingPlanGroup });
   return result.sellingPlanGroup.id;
