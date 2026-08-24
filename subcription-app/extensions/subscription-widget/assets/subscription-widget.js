@@ -30,6 +30,17 @@
     const bundleCards = Array.from(root.querySelectorAll("[data-bundle-card]"));
     const bundleRadios = Array.from(root.querySelectorAll("[data-plan-radio]"));
 
+    const summarySubmitBtn = root.querySelector("[data-add-to-cart-summary]");
+    const summaryTitleEl = root.querySelector("[data-summary-title]");
+    const summarySaveEl = root.querySelector("[data-summary-save]");
+    const summaryPriceEl = root.querySelector("[data-summary-price]");
+    const summaryCompareEl = root.querySelector("[data-summary-compare]");
+    const summaryBillingEl = root.querySelector("[data-summary-billing]");
+    const summaryPerServingEl = root.querySelector("[data-summary-per-serving]");
+    const summaryOnetimeCompareEl = root.querySelector("[data-summary-onetime-compare]");
+    const summaryOnetimePriceEl = root.querySelector("[data-summary-onetime-price]");
+    const summaryOnetimePerDayEl = root.querySelector("[data-summary-onetime-perday]");
+
     const moneyFormat = settings.moneyFormat || (window.Shopify && window.Shopify.money_format);
 
     function selectedOptionValues() {
@@ -89,10 +100,54 @@
       });
 
       const planId = selectedPlanId();
-      const { price: selectedPrice } = planDiscount(variant, planId);
-      const selectedCard = bundleCards.find((card) => Number(card.querySelector("[data-plan-radio]").value) === planId);
+      const { price: selectedPrice, discount: selectedDiscount } = planDiscount(variant, planId);
+      const selectedRadio = bundleRadios.find((input) => Number(input.value) === planId);
+      const selectedCard = selectedRadio ? selectedRadio.closest("[data-bundle-card]") : null;
       const label = selectedCard ? selectedCard.querySelector(".subscription-widget__bundle-title").textContent : "";
       submitBtn.textContent = `${settings.subscribeButtonLabel} — ${formatMoney(selectedPrice, moneyFormat)} / ${label}`;
+
+      // Order summary card -- mirrors whichever plan is selected above.
+      // Assumes one unit ships per day (true for this app's only product so
+      // far); days doubles as both the serving count and the quantity, so
+      // "per serving" and "per day" below are the same number by design,
+      // not a coincidence.
+      const days = selectedRadio ? Number(selectedRadio.dataset.days) || 0 : 0;
+      if (summaryTitleEl) summaryTitleEl.textContent = `${days}-Day Supply`;
+      if (summarySaveEl) {
+        summarySaveEl.hidden = selectedDiscount <= 0;
+        summarySaveEl.textContent = selectedDiscount > 0 ? `SAVE ${selectedDiscount}%` : "";
+      }
+
+      // A plan's sticker price is for its whole multi-day cycle, not a
+      // month -- normalize to a monthly-equivalent for display only when
+      // the cycle is at least a month; a handful of days doesn't convert
+      // meaningfully into "per month".
+      const monthsInCycle = days / 30;
+      const displayPrice = monthsInCycle >= 1 ? selectedPrice / monthsInCycle : selectedPrice;
+      const displayCompare = monthsInCycle >= 1 ? variant.price / monthsInCycle : variant.price;
+      if (summaryPriceEl) summaryPriceEl.textContent = formatMoney(displayPrice, moneyFormat);
+      if (summaryCompareEl) {
+        summaryCompareEl.hidden = selectedDiscount <= 0;
+        summaryCompareEl.textContent = selectedDiscount > 0 ? `${formatMoney(displayCompare, moneyFormat)}/mo` : "";
+      }
+
+      const weeks = days ? Math.round(days / 7) || 1 : 0;
+      const perServing = days ? selectedPrice / days : selectedPrice;
+      if (summaryBillingEl) {
+        summaryBillingEl.textContent = `Billed ${formatMoney(selectedPrice, moneyFormat)} USD every ${weeks} week${weeks === 1 ? "" : "s"}`;
+      }
+      if (summaryPerServingEl) summaryPerServingEl.textContent = `${formatMoney(perServing, moneyFormat)} USD / SERVING`;
+
+      // One-time comparison: the same quantity (one unit per day) at the
+      // plain, undiscounted per-unit price -- what it would cost without
+      // subscribing at all.
+      const oneTimeTotal = days ? variant.price * days : variant.price;
+      if (summaryOnetimeCompareEl) {
+        summaryOnetimeCompareEl.hidden = selectedDiscount <= 0;
+        summaryOnetimeCompareEl.textContent = selectedDiscount > 0 ? formatMoney(oneTimeTotal, moneyFormat) : "";
+      }
+      if (summaryOnetimePriceEl) summaryOnetimePriceEl.textContent = formatMoney(selectedPrice, moneyFormat);
+      if (summaryOnetimePerDayEl) summaryOnetimePerDayEl.textContent = formatMoney(perServing, moneyFormat);
     }
 
     optionEls.forEach((optionEl) => {
@@ -121,7 +176,10 @@
 
     bundleRadios.forEach((input) => input.addEventListener("change", render));
 
-    submitBtn.addEventListener("click", async () => {
+    // Shared by both the main submit button and the order summary card's
+    // own "Add to cart" button below -- they're two entry points to the
+    // exact same add-to-cart action, not independent flows.
+    async function addToCart() {
       const variant = currentVariant();
       const quantity = quantityInput ? Math.max(1, Number(quantityInput.value)) : 1;
 
@@ -136,6 +194,7 @@
       };
 
       submitBtn.disabled = true;
+      if (summarySubmitBtn) summarySubmitBtn.disabled = true;
       statusEl.textContent = "Adding to cart…";
 
       try {
@@ -154,8 +213,12 @@
       } catch (error) {
         statusEl.textContent = error.message;
         submitBtn.disabled = false;
+        if (summarySubmitBtn) summarySubmitBtn.disabled = false;
       }
-    });
+    }
+
+    submitBtn.addEventListener("click", addToCart);
+    if (summarySubmitBtn) summarySubmitBtn.addEventListener("click", addToCart);
 
     render();
   }

@@ -393,6 +393,176 @@ input.subscription-widget__bundle-radio-input {
   color: #1e1e1e;
 }
 
+/* --- Order summary card (mirrors the currently selected bundle plan --
+   values populated live by subscription-widget.js's render(), nothing here
+   is plan-specific in the markup) --- */
+
+.subscription-widget__order-summary {
+  border: 1px solid #1e1e1e;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  background: #fff;
+}
+
+.subscription-widget__order-summary-banner {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #1e1e1e;
+  background: #e6ddd3;
+  text-align: center;
+  font-family: "Geist", sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 15px;
+  letter-spacing: 1px;
+  color: #1e1e1e;
+}
+
+.subscription-widget__order-summary-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem;
+}
+
+.subscription-widget__order-summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.subscription-widget__order-summary-title {
+  font-family: "Geist", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 32px;
+  letter-spacing: 0;
+  color: #1e1e1e;
+}
+
+.subscription-widget__order-summary-save {
+  flex-shrink: 0;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: #e6ddd3;
+  font-family: "Geist", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16.5px;
+  letter-spacing: 0;
+  color: #1e1e1e;
+}
+
+.subscription-widget__order-summary-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.subscription-widget__order-summary-price {
+  font-family: "Geist", sans-serif;
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 48px;
+  letter-spacing: -1.2px;
+  color: #1e1e1e;
+}
+
+.subscription-widget__order-summary-compare {
+  font-family: "Geist", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: #a89c8a;
+  text-decoration: line-through;
+}
+
+.subscription-widget__order-summary-billing {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: -0.35px;
+  color: #1e1e1e;
+}
+
+.subscription-widget__order-summary-per-serving {
+  color: #5a0b0b;
+}
+
+.subscription-widget__order-summary-benefits ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.subscription-widget__order-summary-benefits li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-family: "Geist", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22.5px;
+  letter-spacing: 0;
+  color: #1e1e1e;
+}
+
+.subscription-widget__order-summary-benefits li::before {
+  content: "";
+  flex-shrink: 0;
+  width: 10px;
+  height: 11px;
+  margin-top: 0.5em;
+  background: no-repeat center / contain
+    url("data:image/svg+xml,%3Csvg width='10' height='11' viewBox='0 0 10 11' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.74854 0.300293C7.36084 3.7085 4.90723 6.86279 2.3877 9.76318C2.19727 9.98291 2.03125 10.0928 1.88965 10.0928C1.72852 10.0928 1.43799 9.66797 1.01807 8.81836C0.339355 7.44629 0 6.62598 0 6.35742C0 6.25977 0.065918 6.14502 0.197754 6.01318C0.480957 5.71533 0.681152 5.56641 0.79834 5.56641C0.905762 5.56641 1.02051 5.7373 1.14258 6.0791C1.46484 6.94824 1.8042 7.72217 2.16064 8.40088C4.63135 5.90088 7.0752 3.10059 9.49219 0L9.74854 0.300293Z' fill='%231E1E1E'/%3E%3C/svg%3E");
+}
+
+.subscription-widget__order-summary-submit {
+  width: 100%;
+  padding: 1rem 1.125rem;
+  border: none;
+  border-radius: 9999px;
+  background: #1e1e1e;
+  color: #fff;
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: 1.4px;
+  text-align: center;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.subscription-widget__order-summary-onetime {
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e6ddd3;
+  text-align: center;
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: #1e1e1e;
+}
+
+.subscription-widget__order-summary-onetime [data-summary-onetime-compare] {
+  text-decoration: line-through;
+  color: #a89c8a;
+}
+
 /* --- Benefits list --- */
 
 .subscription-widget__benefits {

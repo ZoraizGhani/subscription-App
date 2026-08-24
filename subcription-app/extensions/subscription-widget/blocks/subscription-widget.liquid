@@ -212,6 +212,7 @@
               value="{{ plan.id }}"
               class="subscription-widget__bundle-radio-input"
               data-plan-radio
+              data-days="{{ day_count }}"
               {% if forloop.first %}checked{% endif %}
             >
             <span class="subscription-widget__bundle-media">
@@ -258,6 +259,44 @@
           {%- endif -%}
         </ul>
       {%- endif -%}
+    </div>
+
+    {%- comment -%}
+      Order summary card: mirrors whichever bundle card is currently
+      selected above (title, discount, price, billing breakdown) -- all of
+      it is computed live in subscription-widget.js off the same plan
+      selection state the bundle grid uses, not hardcoded per plan.
+    {%- endcomment -%}
+    <div class="subscription-widget__order-summary">
+      <p class="subscription-widget__order-summary-banner">{{ block.settings.order_summary_badge_text }}</p>
+      <div class="subscription-widget__order-summary-body">
+        <div class="subscription-widget__order-summary-top">
+          <span class="subscription-widget__order-summary-title" data-summary-title></span>
+          <span class="subscription-widget__order-summary-save" data-summary-save></span>
+        </div>
+        <div class="subscription-widget__order-summary-price-row">
+          <span class="subscription-widget__order-summary-price" data-summary-price></span>
+          <span class="subscription-widget__order-summary-compare" data-summary-compare></span>
+        </div>
+        <div class="subscription-widget__order-summary-billing">
+          <span data-summary-billing></span>
+          <span class="subscription-widget__order-summary-per-serving" data-summary-per-serving></span>
+        </div>
+
+        {%- if block.settings.order_summary_benefits != blank -%}
+          <div class="subscription-widget__order-summary-benefits">{{ block.settings.order_summary_benefits }}</div>
+        {%- endif -%}
+
+        <button type="button" class="subscription-widget__order-summary-submit" data-add-to-cart-summary>
+          {{ block.settings.order_summary_button_label }}
+        </button>
+
+        <p class="subscription-widget__order-summary-onetime">
+          One-time purchase - <span data-summary-onetime-compare></span>
+          <span data-summary-onetime-price></span>
+          (<span data-summary-onetime-perday></span> / Day)
+        </p>
+      </div>
     </div>
 
     <button type="button" class="subscription-widget__submit" data-add-to-cart>
@@ -310,6 +349,17 @@
     { "type": "text", "id": "benefit_1", "label": "Benefit 1", "default": "Free shipping on every order" },
     { "type": "text", "id": "benefit_2", "label": "Benefit 2", "default": "Pause, skip, or cancel anytime" },
     { "type": "text", "id": "benefit_3", "label": "Benefit 3", "default": "30-day empty-bottle guarantee" },
+
+    { "type": "header", "content": "Order summary card" },
+    { "type": "text", "id": "order_summary_badge_text", "label": "Banner text", "default": "Most Popular" },
+    {
+      "type": "richtext",
+      "id": "order_summary_benefits",
+      "label": "Benefits list",
+      "info": "Rendered as a bulleted list with a custom checkmark icon. Same for every plan -- only the price/title above it changes per plan.",
+      "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
+    },
+    { "type": "text", "id": "order_summary_button_label", "label": "Button label", "default": "Add to cart" },
 
     { "type": "header", "content": "Buttons & reassurance copy" },
     { "type": "text", "id": "subscribe_button_label", "label": "Subscribe button label", "default": "Subscribe" },
