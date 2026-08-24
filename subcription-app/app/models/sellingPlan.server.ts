@@ -6,6 +6,12 @@ export interface SellingPlanTier {
   intervalCount: number;
   discountPercent: number;
   planId: string | null;
+  // Bundle-size count shown on the storefront widget (e.g. "90 Count"). A
+  // second selling plan option dimension ("Count"), alongside "Delivery
+  // every" -- not stored in our own DB, so it round-trips through Shopify's
+  // own SellingPlan.options rather than needing a Liquid-inaccessible mirror
+  // column (Liquid has no way to query this app's database at render time).
+  count: number;
 }
 
 export interface ProductSummary {
@@ -66,6 +72,7 @@ const PRODUCT_SELLING_PLANS_QUERY = `#graphql
             nodes {
               id
               name
+              options
               billingPolicy {
                 ... on SellingPlanRecurringBillingPolicy {
                   interval
@@ -101,6 +108,7 @@ interface ProductSellingPlansNode {
         nodes: {
           id: string;
           name: string;
+          options: string[];
           billingPolicy: { interval?: string; intervalCount?: number };
           pricingPolicies: { adjustmentType?: string; adjustmentValue?: { percentage?: number } }[];
         }[];
@@ -149,6 +157,10 @@ export async function getProductSellingPlans({
       intervalCount: plan.billingPolicy.intervalCount as number,
       discountPercent: plan.pricingPolicies[0]?.adjustmentValue?.percentage ?? 0,
       planId: plan.id,
+      // options[1] is the "Count" dimension (options[0] is "Delivery every")
+      // -- plans saved before this feature existed only have one dimension,
+      // so this falls back to the day count rather than showing 0.
+      count: Number(plan.options[1] ?? plan.billingPolicy.intervalCount ?? 0),
     }));
 
   return {
@@ -168,8 +180,9 @@ function sellingPlanInput(tier: SellingPlanTier) {
     name: `Every ${tier.intervalCount} days`,
     category: "SUBSCRIPTION",
     // Required even when updating an existing plan -- must match the group's
-    // "Delivery every" option with this plan's specific value.
-    options: [`Every ${tier.intervalCount} days`],
+    // two option dimensions ("Delivery every", "Count") with this plan's
+    // specific values, in the same order.
+    options: [`Every ${tier.intervalCount} days`, String(tier.count)],
     billingPolicy: { recurring: { interval: "DAY", intervalCount: tier.intervalCount } },
     deliveryPolicy: { recurring: { interval: "DAY", intervalCount: tier.intervalCount } },
     pricingPolicies: [
@@ -356,6 +369,11 @@ export async function saveSellingPlanTiers({
         input: {
           name: "Subscribe & Save",
           merchantCode: "subscribe-and-save",
+          // Set on every update too, not just on create -- a group saved
+          // before the "Count" option existed only has one dimension, and
+          // this brings it up to two so its plans' two-value options (see
+          // sellingPlanInput) stay valid the next time the merchant saves.
+          options: ["Delivery every", "Count"],
           sellingPlansToUpdate: tiers.filter((t) => t.planId).map(sellingPlanInput),
           sellingPlansToCreate: tiers.filter((t) => !t.planId).map(sellingPlanInput),
           sellingPlansToDelete,
@@ -378,7 +396,7 @@ export async function saveSellingPlanTiers({
       input: {
         name: "Subscribe & Save",
         merchantCode: "subscribe-and-save",
-        options: ["Delivery every"],
+        options: ["Delivery every", "Count"],
         sellingPlansToCreate: tiers.map(sellingPlanInput),
       },
       resources: { productIds: [productId] },

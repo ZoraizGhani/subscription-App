@@ -161,7 +161,7 @@
     </div>
 
     <div class="subscription-widget__section">
-      <p class="subscription-widget__section-label">{{ block.settings.plan_section_label }}</p>
+      <p class="subscription-widget__plan-heading">{{ block.settings.plan_section_label }}</p>
 
       {%- comment -%}
         Bundle images come straight from the theme editor -- a merchant picks
@@ -189,6 +189,11 @@
             30+ days displays as whole months (30 -> "1 Month", 90 -> "3
             Months"); anything shorter stays as "Every N days" since it isn't
             evenly expressible in months.
+
+            The bundle count comes from the plan's own second option value
+            (options[1], the "Count" dimension the merchant fills in when
+            saving plans in the app's admin) -- falls back to the day count
+            for any plan saved before that field existed.
           {%- endcomment -%}
           {%- assign name_parts = plan.name | split: " " -%}
           {%- assign day_count = name_parts[1] | plus: 0 -%}
@@ -198,6 +203,7 @@
           {%- else -%}
             {%- assign bundle_title = plan.name | remove_first: "Every " -%}
           {%- endif -%}
+          {%- assign bundle_count = plan.options[1].value | default: day_count -%}
 
           <label class="subscription-widget__bundle-card" data-bundle-card>
             <input
@@ -215,7 +221,7 @@
               </span>
             {%- endif -%}
             <span class="subscription-widget__bundle-title">{{ bundle_title }}</span>
-            <span class="subscription-widget__bundle-count">{{ day_count }} Count</span>
+            <span class="subscription-widget__bundle-count">{{ bundle_count }} Count</span>
             <span class="subscription-widget__bundle-price" data-bundle-price></span>
           </label>
         {%- endfor -%}
@@ -290,7 +296,7 @@
     { "type": "text", "id": "mix_flavors_note", "label": "Mix-flavors note (leave blank to hide)", "default": "Mix flavors freely — 1 pouch selected, same price per pouch either way." },
 
     { "type": "header", "content": "Plan section" },
-    { "type": "text", "id": "plan_section_label", "label": "Plan section heading", "default": "2. Choose your plan" },
+    { "type": "text", "id": "plan_section_label", "label": "Plan section heading", "default": "Valuable Bundles" },
     { "type": "checkbox", "id": "show_best_value_badge", "label": "Show \"best value\" badge on the best-discount plan", "default": true },
     { "type": "text", "id": "best_value_badge_text", "label": "Best value badge text", "default": "Best value" },
     { "type": "image_picker", "id": "bundle_image_1", "label": "Bundle image -- 1st plan" },

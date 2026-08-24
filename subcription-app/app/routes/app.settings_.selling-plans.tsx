@@ -49,6 +49,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     intervalCount: Number(formData.get(`days_${i}`)),
     discountPercent: Number(formData.get(`discount_${i}`) || 0),
     planId: formData.get(`planId_${i}`) ? String(formData.get(`planId_${i}`)) : null,
+    count: Number(formData.get(`count_${i}`) || 0),
   })).filter((tier) => tier.intervalCount > 0);
 
   try {
@@ -179,6 +180,7 @@ function ProductTiersForm({ productData }: { productData: ProductSellingPlanData
     intervalCount: tier?.intervalCount ?? 30,
     discountPercent: tier?.discountPercent ?? 0,
     planId: tier?.planId ?? null,
+    count: tier?.count ?? 0,
     key: nextKey.current++,
   });
 
@@ -205,7 +207,7 @@ function ProductTiersForm({ productData }: { productData: ProductSellingPlanData
       const usedDays = new Set(prev.map((t) => t.intervalCount));
       let days = 30;
       while (usedDays.has(days)) days += 15;
-      return [...prev, makeRow({ intervalCount: days, discountPercent: 0, planId: null })];
+      return [...prev, makeRow({ intervalCount: days, discountPercent: 0, planId: null, count: days })];
     });
   const removeTier = (key: number) => setTiers((prev) => prev.filter((t) => t.key !== key));
 
@@ -267,6 +269,13 @@ function ProductTiersForm({ productData }: { productData: ProductSellingPlanData
                   labelAccessibilityVisibility="exclusive"
                   defaultValue={String(tier.discountPercent)}
                   suffix="% off"
+                />
+                <s-text-field
+                  name={`count_${i}`}
+                  label="Count"
+                  labelAccessibilityVisibility="exclusive"
+                  defaultValue={String(tier.count)}
+                  suffix="Count"
                 />
                 <s-button type="button" variant="tertiary" onClick={() => removeTier(tier.key)}>
                   Remove
