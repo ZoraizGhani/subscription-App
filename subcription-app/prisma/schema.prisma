@@ -124,6 +124,11 @@ model SellingPlan {
   maxCycles Int?
   position  Int    @default(0)
 
+  // Shopify CDN URL for the bundle image shown for this plan on the storefront
+  // widget (e.g. subscription-widget's plan picker). Uploaded via Files API,
+  // has no Shopify SellingPlan counterpart -- ours alone, like ShopSettings.
+  imageUrl String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

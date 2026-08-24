@@ -163,7 +163,14 @@
     <div class="subscription-widget__section">
       <p class="subscription-widget__section-label">{{ block.settings.plan_section_label }}</p>
 
-      {%- assign bundle_image = current_variant.featured_image | default: product.featured_image -%}
+      {%- comment -%}
+        Bundle images are hidden for now -- there's no real per-plan bundle
+        photography wired up to this widget yet (it would need each plan's
+        image synced onto a product/variant metafield the storefront can
+        actually read, since Liquid has no way to query this app's own
+        database at render time). Re-enable by un-commenting the image span
+        below once that sync exists.
+      {%- endcomment -%}
       <div class="subscription-widget__bundle-grid">
         {%- for plan in selling_plan_group.selling_plans -%}
           <label class="subscription-widget__bundle-card" data-bundle-card>
@@ -176,11 +183,6 @@
               {% if forloop.first %}checked{% endif %}
             >
             <span class="subscription-widget__bundle-badge" data-bundle-best-badge hidden>{{ block.settings.best_value_badge_text }}</span>
-            <span class="subscription-widget__bundle-image">
-              {%- if bundle_image -%}
-                {{ bundle_image | image_url: width: 160 | image_tag: loading: "lazy", alt: plan.name, widths: "80,160" }}
-              {%- endif -%}
-            </span>
             <span class="subscription-widget__bundle-title">{{ plan.name | remove_first: "Every " }}</span>
             <span class="subscription-widget__bundle-price" data-bundle-price></span>
           </label>
