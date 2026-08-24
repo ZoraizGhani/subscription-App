@@ -326,12 +326,14 @@ input.subscription-widget__bundle-radio-input {
   border-radius: 1.5rem;
   overflow: hidden;
   background: #fff;
+  margin-top: 15px !important;
 }
 
 .subscription-widget__order-summary-banner {
   margin: 0;
   margin-bottom: 0px;
   padding: 16px 0;
+  padding-bottom: 26px;
   border-radius: 0;
   border: 0;
   background: #e6ddd3;
@@ -348,9 +350,11 @@ input.subscription-widget__bundle-radio-input {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 1.5rem;
+  padding: 26px 16px;
   border-radius: 1.5rem 1.5rem 0rem 0rem;
   border-top: 1px solid #5a0b0b;
+  background: #fff;
+  margin-top: -11px !important;
 }
 
 .subscription-widget__order-summary-top {
@@ -507,7 +511,7 @@ input.subscription-widget__bundle-radio-input {
   text-align: left;
   cursor: pointer;
   font-family: "Geist", sans-serif;
-  font-size: 14px;
+  font-size: 19px;
   font-weight: 700;
   line-height: 20px;
   letter-spacing: 0;
@@ -517,6 +521,7 @@ input.subscription-widget__bundle-radio-input {
 button.subscription-widget__order-summary-onetime {
   border-bottom: 2px solid #1e1e1e;
   max-width: max-content;
+  margin: 0 auto;
 }
 
 .subscription-widget__order-summary-onetime:disabled {
@@ -524,12 +529,12 @@ button.subscription-widget__order-summary-onetime {
   cursor: default;
 }
 
-.subscription-widget__order-summary-onetime-label {
-  text-decoration: underline;
+span.subscription-widget__order-summary-onetime-label {
+  text-decoration: unset;
 }
 
 .subscription-widget__order-summary-onetime [data-summary-onetime-compare] {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 400;
   line-height: 28px;
   text-decoration: line-through;
@@ -537,6 +542,8 @@ button.subscription-widget__order-summary-onetime {
 }
 
 .subscription-widget__order-summary-onetime-perday-wrap {
+  font-size: 19px;
+  font-weight: 400;
   color: #e6ddd3;
 }
 
