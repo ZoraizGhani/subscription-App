@@ -51,6 +51,13 @@
     const stickySubmitBtn = root.querySelector("[data-sticky-add-to-cart]");
     const stickySubmitLabel = root.querySelector("[data-sticky-submit-label]");
 
+    // Moved to a direct child of <body> so it always stays pinned to the
+    // viewport -- theme sections often wrap content in an ancestor with a
+    // transform/filter/will-change (common for scroll animations), which
+    // silently turns `position: fixed` into something scoped to that
+    // ancestor instead of the real viewport.
+    if (stickyBar) document.body.appendChild(stickyBar);
+
     const moneyFormat = settings.moneyFormat || (window.Shopify && window.Shopify.money_format);
 
     // Set by render() every time the selected plan changes -- the add-to-
@@ -147,7 +154,7 @@
       // the main widget updates it too, not just the reverse (see the sticky
       // option click handler below for that direction).
       if (stickyImage) {
-        const image = variant.featured_image || product.featured_image;
+        const image = product.featured_image || variant.featured_image;
         if (image) {
           stickyImage.src = image.src;
           stickyImage.alt = product.title;
