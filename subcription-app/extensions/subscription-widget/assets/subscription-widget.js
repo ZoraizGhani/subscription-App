@@ -40,8 +40,14 @@
     const summaryOnetimeCompareEl = root.querySelector("[data-summary-onetime-compare]");
     const summaryOnetimePriceEl = root.querySelector("[data-summary-onetime-price]");
     const summaryOnetimePerDayEl = root.querySelector("[data-summary-onetime-perday]");
+    const onetimeBtn = root.querySelector("[data-add-to-cart-onetime]");
 
     const moneyFormat = settings.moneyFormat || (window.Shopify && window.Shopify.money_format);
+
+    // Set by render() every time the selected plan changes -- the one-time
+    // purchase button reads it at click time rather than recomputing it,
+    // since it needs the exact same day count render() already derived.
+    let currentPlanDays = 0;
 
     function selectedOptionValues() {
       return optionEls.map((optionEl) => {
@@ -112,6 +118,7 @@
       // "per serving" and "per day" below are the same number by design,
       // not a coincidence.
       const days = selectedRadio ? Number(selectedRadio.dataset.days) || 0 : 0;
+      currentPlanDays = days;
       if (summaryTitleEl) summaryTitleEl.textContent = `${days}-Day Supply`;
       if (summarySaveEl) {
         summarySaveEl.hidden = selectedDiscount <= 0;
@@ -176,25 +183,33 @@
 
     bundleRadios.forEach((input) => input.addEventListener("change", render));
 
-    // Shared by both the main submit button and the order summary card's
-    // own "Add to cart" button below -- they're two entry points to the
-    // exact same add-to-cart action, not independent flows.
-    async function addToCart() {
+    // Shared by the main submit button, the order summary card's own "Add
+    // to cart" button, and its "One-time purchase" button -- all three are
+    // entry points to the same cart, not independent flows. oneTime skips
+    // selling_plan entirely (a real one-time purchase, not a subscription)
+    // and defaults quantity to the selected plan's day count rather than
+    // the quantity stepper, matching the total price shown next to it.
+    async function addToCart({ oneTime } = {}) {
       const variant = currentVariant();
-      const quantity = quantityInput ? Math.max(1, Number(quantityInput.value)) : 1;
+      const quantity = oneTime
+        ? Math.max(1, currentPlanDays)
+        : quantityInput
+          ? Math.max(1, Number(quantityInput.value))
+          : 1;
 
       const payload = {
         items: [
           {
             id: variant.id,
             quantity,
-            selling_plan: selectedPlanId(),
+            ...(oneTime ? {} : { selling_plan: selectedPlanId() }),
           },
         ],
       };
 
       submitBtn.disabled = true;
       if (summarySubmitBtn) summarySubmitBtn.disabled = true;
+      if (onetimeBtn) onetimeBtn.disabled = true;
       statusEl.textContent = "Adding to cart…";
 
       try {
@@ -214,11 +229,13 @@
         statusEl.textContent = error.message;
         submitBtn.disabled = false;
         if (summarySubmitBtn) summarySubmitBtn.disabled = false;
+        if (onetimeBtn) onetimeBtn.disabled = false;
       }
     }
 
-    submitBtn.addEventListener("click", addToCart);
-    if (summarySubmitBtn) summarySubmitBtn.addEventListener("click", addToCart);
+    submitBtn.addEventListener("click", () => addToCart());
+    if (summarySubmitBtn) summarySubmitBtn.addEventListener("click", () => addToCart());
+    if (onetimeBtn) onetimeBtn.addEventListener("click", () => addToCart({ oneTime: true }));
 
     render();
   }

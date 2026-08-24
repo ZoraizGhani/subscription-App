@@ -407,6 +407,10 @@ input.subscription-widget__bundle-radio-input {
 .subscription-widget__order-summary-banner {
   margin: 0;
   padding: 0.75rem 1rem;
+  /* Matches the card's own outer radius explicitly rather than relying on
+     the parent's overflow:hidden to clip it -- that clipping interacts with
+     the 1px border in a way that left a visible square seam in one corner. */
+  border-radius: 1.5rem 1.5rem 0 0;
   border-bottom: 1px solid #1e1e1e;
   background: #e6ddd3;
   text-align: center;
@@ -421,7 +425,7 @@ input.subscription-widget__bundle-radio-input {
 .subscription-widget__order-summary-body {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.25rem;
   padding: 1.5rem;
 }
 
@@ -430,6 +434,17 @@ input.subscription-widget__bundle-radio-input {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  text-align: left;
+}
+
+.subscription-widget__order-summary-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.subscription-widget__order-summary-title-icon {
+  flex-shrink: 0;
 }
 
 .subscription-widget__order-summary-title {
@@ -485,6 +500,8 @@ input.subscription-widget__bundle-radio-input {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
   font-family: "Geist", sans-serif;
   font-size: 14px;
   font-weight: 600;
@@ -518,6 +535,14 @@ input.subscription-widget__bundle-radio-input {
   color: #1e1e1e;
 }
 
+/* The richtext editor lets merchants add a link to any benefit line (e.g.
+   "...blood test at $49 (75% off)") -- underline it explicitly since the
+   theme's own link reset elsewhere could otherwise leave it unstyled. */
+.subscription-widget__order-summary-benefits a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .subscription-widget__order-summary-benefits li::before {
   content: "";
   flex-shrink: 0;
@@ -546,10 +571,16 @@ input.subscription-widget__bundle-radio-input {
 }
 
 .subscription-widget__order-summary-onetime {
+  display: block;
+  width: 100%;
   margin: 0;
-  padding-top: 0.75rem;
-  border-top: 1px solid #e6ddd3;
-  text-align: center;
+  padding: 0.75rem 0 0;
+  background: none;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0;
+  text-align: left;
+  cursor: pointer;
   font-family: "Geist", sans-serif;
   font-size: 14px;
   font-weight: 400;
@@ -558,9 +589,21 @@ input.subscription-widget__bundle-radio-input {
   color: #1e1e1e;
 }
 
+.subscription-widget__order-summary-onetime:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.subscription-widget__order-summary-onetime-label {
+  text-decoration: underline;
+}
+
 .subscription-widget__order-summary-onetime [data-summary-onetime-compare] {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
   text-decoration: line-through;
-  color: #a89c8a;
+  color: #e6ddd3;
 }
 
 /* --- Benefits list --- */
