@@ -330,7 +330,7 @@ input.subscription-widget__bundle-radio-input {
 
 .subscription-widget__order-summary-banner {
   margin: 0;
-  margin-bottom: -3px;
+  margin-bottom: 0px;
   padding: 16px 0;
   border-radius: 0;
   border: 0;
@@ -349,7 +349,6 @@ input.subscription-widget__bundle-radio-input {
   flex-direction: column;
   gap: 20px;
   padding: 1.5rem;
-  padding-top: 20px !important;
   border-radius: 1.5rem 1.5rem 0rem 0rem;
   border-top: 1px solid #5a0b0b;
 }
@@ -509,10 +508,15 @@ input.subscription-widget__bundle-radio-input {
   cursor: pointer;
   font-family: "Geist", sans-serif;
   font-size: 14px;
-  font-weight: 400;
+  font-weight: 700;
   line-height: 20px;
   letter-spacing: 0;
-  color: #1e1e1e;
+  color: #000000;
+}
+
+button.subscription-widget__order-summary-onetime {
+  border-bottom: 2px solid #1e1e1e;
+  max-width: max-content;
 }
 
 .subscription-widget__order-summary-onetime:disabled {
@@ -529,6 +533,10 @@ input.subscription-widget__bundle-radio-input {
   font-weight: 400;
   line-height: 28px;
   text-decoration: line-through;
+  color: #e6ddd3;
+}
+
+.subscription-widget__order-summary-onetime-perday-wrap {
   color: #e6ddd3;
 }
 
