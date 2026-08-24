@@ -15,10 +15,8 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import {
   SellingPlanValidationError,
-  confirmPlanImageUpload,
   getProductSellingPlans,
   listSellingPlanGroups,
-  requestPlanImageUpload,
   saveSellingPlanTiers,
   type ProductSellingPlanData,
   type SellingPlanTier,
@@ -40,26 +38,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
-  const intent = String(formData.get("intent") ?? "save");
-
-  if (intent === "requestImageUpload") {
-    const target = await requestPlanImageUpload({
-      graphql: admin.graphql,
-      filename: String(formData.get("filename")),
-      mimeType: String(formData.get("mimeType")),
-      fileSize: Number(formData.get("fileSize")),
-    });
-    return { intent, target };
-  }
-
-  if (intent === "confirmImageUpload") {
-    const imageUrl = await confirmPlanImageUpload({
-      graphql: admin.graphql,
-      resourceUrl: String(formData.get("resourceUrl")),
-      filename: String(formData.get("filename")),
-    });
-    return { intent, imageUrl };
-  }
 
   const productId = String(formData.get("productId"));
   const productTitle = String(formData.get("productTitle") ?? "Untitled product");
@@ -240,11 +218,14 @@ function ProductTiersForm({ productData }: { productData: ProductSellingPlanData
    * POST the raw file straight to Shopify from the browser (never through
    * our server), then ask our action to register it as a real File and
    * return its ready CDN url. Uses plain fetch rather than a fetcher because
-   * step 2 posts to a Shopify-owned URL, not this route.
+   * step 2 posts to a Shopify-owned URL, not this route -- and steps 1/3 hit
+   * a separate resource route (app.selling-plan-images.tsx) rather than this
+   * page's own action, since a page route with a UI always serves a plain
+   * fetch() the full rendered HTML document instead of raw JSON.
    */
   const uploadTierImage = async (key: number, file: File) => {
     setUploadState((prev) => ({ ...prev, [key]: { uploading: true, error: null } }));
-    const actionUrl = `${location.pathname}${location.search}`;
+    const actionUrl = "/app/selling-plan-images";
 
     try {
       const requestBody = new FormData();
