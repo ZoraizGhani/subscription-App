@@ -98,9 +98,11 @@
   font: inherit;
   color: inherit;
   overflow: hidden;
+  opacity: 0.6;
 }
 
 .subscription-widget__swatch.is-selected {
+  opacity: 1;
   border-width: 2px;
   border-color: var(--subscription-widget-swatch-selected, #8c9e56);
 }
