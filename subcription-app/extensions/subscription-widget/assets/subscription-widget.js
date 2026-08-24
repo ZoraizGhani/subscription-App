@@ -75,9 +75,7 @@
       let bestDiscount = -1;
       bundleCards.forEach((card) => {
         const radio = card.querySelector("[data-plan-radio]");
-        const priceEl = card.querySelector("[data-bundle-price]");
-        const { price, discount } = planDiscount(variant, Number(radio.value));
-        if (priceEl) priceEl.textContent = formatMoney(price, moneyFormat);
+        const { discount } = planDiscount(variant, Number(radio.value));
         if (discount > bestDiscount) {
           bestDiscount = discount;
           bestCard = card;

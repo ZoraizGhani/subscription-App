@@ -214,15 +214,18 @@
               data-plan-radio
               {% if forloop.first %}checked{% endif %}
             >
-            <span class="subscription-widget__bundle-badge" data-bundle-best-badge hidden>{{ block.settings.best_value_badge_text }}</span>
-            {%- if bundle_image -%}
-              <span class="subscription-widget__bundle-image">
-                {{ bundle_image | image_url: width: 160 | image_tag: loading: "lazy", alt: plan.name, widths: "80,160" }}
-              </span>
-            {%- endif -%}
-            <span class="subscription-widget__bundle-title">{{ bundle_title }}</span>
-            <span class="subscription-widget__bundle-count">{{ bundle_count }} Count</span>
-            <span class="subscription-widget__bundle-price" data-bundle-price></span>
+            <span class="subscription-widget__bundle-media">
+              {%- if bundle_image -%}
+                <span class="subscription-widget__bundle-image">
+                  {{ bundle_image | image_url: width: 160 | image_tag: loading: "lazy", alt: plan.name, widths: "80,160" }}
+                </span>
+              {%- endif -%}
+              <span class="subscription-widget__bundle-badge" data-bundle-best-badge hidden>{{ block.settings.best_value_badge_text }}</span>
+            </span>
+            <span class="subscription-widget__bundle-text">
+              <span class="subscription-widget__bundle-title">{{ bundle_title }}</span>
+              <span class="subscription-widget__bundle-count">{{ bundle_count }} Count</span>
+            </span>
           </label>
         {%- endfor -%}
       </div>
@@ -298,7 +301,7 @@
     { "type": "header", "content": "Plan section" },
     { "type": "text", "id": "plan_section_label", "label": "Plan section heading", "default": "Valuable Bundles" },
     { "type": "checkbox", "id": "show_best_value_badge", "label": "Show \"best value\" badge on the best-discount plan", "default": true },
-    { "type": "text", "id": "best_value_badge_text", "label": "Best value badge text", "default": "Best value" },
+    { "type": "text", "id": "best_value_badge_text", "label": "Best value badge text", "default": "Best Value" },
     { "type": "image_picker", "id": "bundle_image_1", "label": "Bundle image -- 1st plan" },
     { "type": "image_picker", "id": "bundle_image_2", "label": "Bundle image -- 2nd plan" },
     { "type": "image_picker", "id": "bundle_image_3", "label": "Bundle image -- 3rd plan" },
