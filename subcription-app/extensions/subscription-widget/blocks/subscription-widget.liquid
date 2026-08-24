@@ -54,6 +54,60 @@
       }
     </script>
 
+    {%- comment -%}
+      Sticky add-to-cart bar: hidden by default, shown by subscription-widget.js
+      once the main order summary's own submit button scrolls out of view. Its
+      plan selector and price mirror whichever plan/variant is selected in the
+      main widget above -- and picking a plan here updates that same state, so
+      both stay in sync in either direction. Content is filled in/kept in sync
+      entirely by render() in subscription-widget.js; the option buttons below
+      are just empty shells keyed by plan id.
+    {%- endcomment -%}
+    <div class="subscription-widget__sticky-bar" data-sticky-bar hidden>
+      <span class="subscription-widget__sticky-bar-media">
+        <img data-sticky-image alt="" loading="lazy" width="40" height="40" hidden>
+      </span>
+      <span class="subscription-widget__sticky-bar-title" data-sticky-title>{{ product.title }}</span>
+
+      <div class="subscription-widget__sticky-bar-plan" data-sticky-plan>
+        <button
+          type="button"
+          class="subscription-widget__sticky-bar-plan-trigger"
+          data-sticky-plan-trigger
+          aria-haspopup="listbox"
+          aria-expanded="false"
+        >
+          <span class="subscription-widget__sticky-bar-plan-text">
+            <span class="subscription-widget__sticky-bar-plan-label" data-sticky-plan-label></span>
+            <span class="subscription-widget__sticky-bar-plan-sub" data-sticky-plan-sub></span>
+          </span>
+          <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <ul class="subscription-widget__sticky-bar-plan-list" data-sticky-plan-list role="listbox" hidden>
+          {%- for plan in selling_plan_group.selling_plans -%}
+            <li role="presentation">
+              <button
+                type="button"
+                class="subscription-widget__sticky-bar-plan-option"
+                data-sticky-plan-option
+                data-plan-id="{{ plan.id }}"
+                role="option"
+              >
+                <span class="subscription-widget__sticky-bar-plan-option-label" data-option-label></span>
+                <span class="subscription-widget__sticky-bar-plan-option-sub" data-option-sub></span>
+              </button>
+            </li>
+          {%- endfor -%}
+        </ul>
+      </div>
+
+      <button type="button" class="subscription-widget__sticky-bar-submit" data-sticky-add-to-cart>
+        <span data-sticky-submit-label></span>
+      </button>
+    </div>
+
     {%- if product.has_only_default_variant == false -%}
       {%- assign first_option = product.options_with_values.first -%}
       {%- assign new_values_list = block.settings.new_values | split: "," -%}
@@ -337,8 +391,6 @@
     { "type": "image_picker", "id": "bundle_image_2", "label": "Bundle image -- 2nd plan" },
     { "type": "image_picker", "id": "bundle_image_3", "label": "Bundle image -- 3rd plan" },
 
-    { "type": "header", "content": "Order summary card" },
-
     { "type": "header", "content": "Order summary -- 1st plan" },
     { "type": "text", "id": "order_summary_badge_text_1", "label": "Banner text -- 1st plan", "default": "Most Popular" },
     {
@@ -369,13 +421,9 @@
       "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
     },
 
-    { "type": "header", "content": "Order summary -- shared" },
-    { "type": "text", "id": "order_summary_button_label", "label": "Button label", "default": "Add to cart" },
-
-    { "type": "header", "content": "Buttons" },
+    { "type": "header", "content": "Buttons & appearance" },
+    { "type": "text", "id": "order_summary_button_label", "label": "Order summary button label", "default": "Add to cart" },
     { "type": "text", "id": "subscribe_button_label", "label": "Subscribe button label", "default": "Subscribe" },
-
-    { "type": "header", "content": "Appearance" },
     { "type": "color", "id": "accent_color", "label": "Accent color", "default": "#1a1a1a" }
   ]
 }

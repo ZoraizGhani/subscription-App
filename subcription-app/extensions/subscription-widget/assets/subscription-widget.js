@@ -41,6 +41,16 @@
     const summaryBenefitsEls = Array.from(root.querySelectorAll("[data-summary-benefits-plan]"));
     const summaryBannerEls = Array.from(root.querySelectorAll("[data-summary-banner-plan]"));
 
+    const stickyBar = root.querySelector("[data-sticky-bar]");
+    const stickyImage = root.querySelector("[data-sticky-image]");
+    const stickyPlanTrigger = root.querySelector("[data-sticky-plan-trigger]");
+    const stickyPlanLabel = root.querySelector("[data-sticky-plan-label]");
+    const stickyPlanSub = root.querySelector("[data-sticky-plan-sub]");
+    const stickyPlanList = root.querySelector("[data-sticky-plan-list]");
+    const stickyPlanOptions = Array.from(root.querySelectorAll("[data-sticky-plan-option]"));
+    const stickySubmitBtn = root.querySelector("[data-sticky-add-to-cart]");
+    const stickySubmitLabel = root.querySelector("[data-sticky-submit-label]");
+
     const moneyFormat = settings.moneyFormat || (window.Shopify && window.Shopify.money_format);
 
     // Set by render() every time the selected plan changes -- the add-to-
@@ -117,12 +127,12 @@
       summaryBannerEls.forEach((el) => {
         el.hidden = Number(el.dataset.summaryBannerPlan) !== planId;
       });
+
       const selectedRadio = bundleRadios.find((input) => Number(input.value) === planId);
       const selectedCard = selectedRadio ? selectedRadio.closest("[data-bundle-card]") : null;
       const label = selectedCard ? selectedCard.querySelector(".subscription-widget__bundle-title").textContent : "";
       submitBtn.textContent = `${settings.subscribeButtonLabel} — ${formatMoney(selectedPrice, moneyFormat)} / ${label}`;
 
-      // Order summary card -- mirrors whichever plan is selected above.
       // Assumes one unit ships per day (true for this app's only product so
       // far); days doubles as both the serving count and the quantity, so
       // "per serving" and "per day" below are the same number by design,
@@ -130,6 +140,51 @@
       const days = selectedRadio ? Number(selectedRadio.dataset.days) || 0 : 0;
       currentPlanDays = days;
       currentPlanQuantity = selectedRadio ? Math.max(1, Number(selectedRadio.dataset.quantity) || 1) : 1;
+
+      // Sticky bar mirrors whichever plan/variant is selected above -- image,
+      // plan label and price all recompute here so picking a plan/flavor in
+      // the main widget updates it too, not just the reverse (see the sticky
+      // option click handler below for that direction).
+      if (stickyImage) {
+        const image = variant.featured_image || product.featured_image;
+        if (image) {
+          stickyImage.src = image.src;
+          stickyImage.alt = product.title;
+          stickyImage.hidden = false;
+        } else {
+          stickyImage.hidden = true;
+        }
+      }
+      if (stickyPlanLabel) stickyPlanLabel.textContent = `${days}-Day Supply`;
+      if (stickySubmitLabel) {
+        stickySubmitLabel.textContent = `${settings.subscribeButtonLabel} - ${formatMoney(selectedPrice, moneyFormat)}`;
+      }
+
+      stickyPlanOptions.forEach((optionBtn) => {
+        const optPlanId = Number(optionBtn.dataset.planId);
+        const isSelected = optPlanId === planId;
+        const { price: optPrice, discount: optDiscount } = planDiscount(variant, optPlanId);
+        const optRadio = bundleRadios.find((input) => Number(input.value) === optPlanId);
+        const optCard = optRadio ? optRadio.closest("[data-bundle-card]") : null;
+        const optTitle = optCard
+          ? optCard.querySelector(".subscription-widget__bundle-title").textContent
+          : "";
+        const optSubtext =
+          optDiscount > 0
+            ? `Save ${optDiscount}% — ${formatMoney(optPrice, moneyFormat)}`
+            : formatMoney(optPrice, moneyFormat);
+
+        const labelEl = optionBtn.querySelector("[data-option-label]");
+        const subEl = optionBtn.querySelector("[data-option-sub]");
+        if (labelEl) labelEl.textContent = `${optTitle} Supply`;
+        if (subEl) subEl.textContent = optSubtext;
+        optionBtn.classList.toggle("is-selected", isSelected);
+        optionBtn.setAttribute("aria-selected", String(isSelected));
+
+        if (isSelected && stickyPlanSub) stickyPlanSub.textContent = optSubtext;
+      });
+
+      // Order summary card -- mirrors whichever plan is selected above.
       if (summaryTitleEl) summaryTitleEl.textContent = `${days}-Day Supply`;
       if (summarySaveEl) {
         summarySaveEl.hidden = selectedDiscount <= 0;
@@ -236,6 +291,50 @@
     submitBtn.addEventListener("click", () => addToCart());
     if (summarySubmitBtn) summarySubmitBtn.addEventListener("click", () => addToCart());
     if (onetimeBtn) onetimeBtn.addEventListener("click", () => addToCart({ oneTime: true }));
+    if (stickySubmitBtn) stickySubmitBtn.addEventListener("click", () => addToCart());
+
+    function closeStickyPlanList() {
+      if (!stickyPlanList || stickyPlanList.hidden) return;
+      stickyPlanList.hidden = true;
+      if (stickyPlanTrigger) stickyPlanTrigger.setAttribute("aria-expanded", "false");
+    }
+
+    if (stickyPlanTrigger && stickyPlanList) {
+      stickyPlanTrigger.addEventListener("click", () => {
+        const isOpen = !stickyPlanList.hidden;
+        stickyPlanList.hidden = isOpen;
+        stickyPlanTrigger.setAttribute("aria-expanded", String(!isOpen));
+      });
+      document.addEventListener("click", (event) => {
+        if (!stickyBar.contains(event.target)) closeStickyPlanList();
+      });
+    }
+
+    // Picking a plan here is the reverse sync direction: check the matching
+    // bundle radio and re-render, which updates the main widget's bundle
+    // grid/order summary exactly as if that card had been clicked directly.
+    stickyPlanOptions.forEach((optionBtn) => {
+      optionBtn.addEventListener("click", () => {
+        const radio = bundleRadios.find((input) => input.value === optionBtn.dataset.planId);
+        if (radio && !radio.checked) {
+          radio.checked = true;
+          render();
+        }
+        closeStickyPlanList();
+      });
+    });
+
+    // Shows the sticky bar once the main order summary's own submit button
+    // scrolls out of view, hides it again once that button is back on screen.
+    if (stickyBar && summarySubmitBtn && "IntersectionObserver" in window) {
+      const stickyBarObserver = new IntersectionObserver(
+        ([entry]) => {
+          stickyBar.hidden = entry.isIntersecting;
+        },
+        { threshold: 0 },
+      );
+      stickyBarObserver.observe(summarySubmitBtn);
+    }
 
     render();
   }
