@@ -179,6 +179,26 @@
             {%- when 3 -%}{%- assign bundle_image = block.settings.bundle_image_3 -%}
             {%- else -%}{%- assign bundle_image = nil -%}
           {%- endcase -%}
+
+          {%- comment -%}
+            Liquid's selling_plan object has no billing_policy/interval_count
+            field (unlike the Admin/Storefront GraphQL APIs) -- the day count
+            only exists in plan.name, which this app itself always sets to
+            "Every {N} days" when it creates the plan (see sellingPlanInput in
+            app/models/sellingPlan.server.ts), so it's safe to parse back out.
+            30+ days displays as whole months (30 -> "1 Month", 90 -> "3
+            Months"); anything shorter stays as "Every N days" since it isn't
+            evenly expressible in months.
+          {%- endcomment -%}
+          {%- assign name_parts = plan.name | split: " " -%}
+          {%- assign day_count = name_parts[1] | plus: 0 -%}
+          {%- if day_count >= 30 -%}
+            {%- assign bundle_months = day_count | divided_by: 30 -%}
+            {%- capture bundle_title -%}{{ bundle_months }} Month{% if bundle_months != 1 %}s{% endif %}{%- endcapture -%}
+          {%- else -%}
+            {%- assign bundle_title = plan.name | remove_first: "Every " -%}
+          {%- endif -%}
+
           <label class="subscription-widget__bundle-card" data-bundle-card>
             <input
               type="radio"
@@ -194,7 +214,8 @@
                 {{ bundle_image | image_url: width: 160 | image_tag: loading: "lazy", alt: plan.name, widths: "80,160" }}
               </span>
             {%- endif -%}
-            <span class="subscription-widget__bundle-title">{{ plan.name | remove_first: "Every " }}</span>
+            <span class="subscription-widget__bundle-title">{{ bundle_title }}</span>
+            <span class="subscription-widget__bundle-count">{{ day_count }} Count</span>
             <span class="subscription-widget__bundle-price" data-bundle-price></span>
           </label>
         {%- endfor -%}

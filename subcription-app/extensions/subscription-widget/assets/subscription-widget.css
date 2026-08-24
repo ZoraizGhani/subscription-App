@@ -331,6 +331,15 @@
   color: #1e1e1e;
 }
 
+.subscription-widget__bundle-count {
+  font-family: "Geist", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: 0;
+  color: #6b7280;
+}
+
 .subscription-widget__bundle-price {
   font-family: "Geist", sans-serif;
   font-size: 13px;
