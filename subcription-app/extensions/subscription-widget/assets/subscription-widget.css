@@ -381,6 +381,7 @@ input.subscription-widget__bundle-radio-input {
 }
 
 .subscription-widget__order-summary-save {
+  display: inline-block;
   flex-shrink: 0;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
