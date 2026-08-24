@@ -331,11 +331,8 @@ input.subscription-widget__bundle-radio-input {
 .subscription-widget__order-summary-banner {
   margin: 0;
   padding: 0.75rem 1rem;
-  /* Matches the card's own outer radius explicitly rather than relying on
-     the parent's overflow:hidden to clip it -- that clipping interacts with
-     the 1px border in a way that left a visible square seam in one corner. */
-  border-radius: 1.5rem 1.5rem 0 0;
-  border-bottom: 1px solid #1e1e1e;
+  border-radius: 1.5rem 1.5rem 1.5rem 1.5rem;
+  border: 1px solid #5a0b0b;
   background: #e6ddd3;
   text-align: center;
   font-family: "Geist", sans-serif;
@@ -426,7 +423,7 @@ input.subscription-widget__bundle-radio-input {
   flex-wrap: wrap;
   gap: 0.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #5a0b0b;
   font-family: "Geist", sans-serif;
   font-size: 14px;
   font-weight: 600;
@@ -502,7 +499,7 @@ input.subscription-widget__bundle-radio-input {
   padding: 0.75rem 0 0;
   background: none;
   border: none;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #5a0b0b;
   border-radius: 0;
   text-align: left;
   cursor: pointer;
