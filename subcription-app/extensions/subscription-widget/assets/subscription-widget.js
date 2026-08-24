@@ -38,6 +38,7 @@
     const summaryOnetimePriceEl = root.querySelector("[data-summary-onetime-price]");
     const summaryOnetimePerDayEl = root.querySelector("[data-summary-onetime-perday]");
     const onetimeBtn = root.querySelector("[data-add-to-cart-onetime]");
+    const summaryBenefitsEls = Array.from(root.querySelectorAll("[data-summary-benefits-plan]"));
 
     const moneyFormat = settings.moneyFormat || (window.Shopify && window.Shopify.money_format);
 
@@ -105,6 +106,13 @@
 
       const planId = selectedPlanId();
       const { price: selectedPrice, discount: selectedDiscount } = planDiscount(variant, planId);
+
+      // Each plan gets its own benefits richtext (configured per bundle slot
+      // in the theme editor) -- only the one matching the selected plan is
+      // shown, the rest stay in the DOM but hidden.
+      summaryBenefitsEls.forEach((el) => {
+        el.hidden = Number(el.dataset.summaryBenefitsPlan) !== planId;
+      });
       const selectedRadio = bundleRadios.find((input) => Number(input.value) === planId);
       const selectedCard = selectedRadio ? selectedRadio.closest("[data-bundle-card]") : null;
       const label = selectedCard ? selectedCard.querySelector(".subscription-widget__bundle-title").textContent : "";

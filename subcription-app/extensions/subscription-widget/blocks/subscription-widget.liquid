@@ -256,9 +256,17 @@
           <span class="subscription-widget__order-summary-per-serving" data-summary-per-serving></span>
         </div>
 
-        {%- if block.settings.order_summary_benefits != blank -%}
-          <div class="subscription-widget__order-summary-benefits">{{ block.settings.order_summary_benefits }}</div>
-        {%- endif -%}
+        {%- for plan in selling_plan_group.selling_plans -%}
+          {%- case forloop.index -%}
+            {%- when 1 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_1 -%}
+            {%- when 2 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_2 -%}
+            {%- when 3 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_3 -%}
+            {%- else -%}{%- assign plan_benefits = nil -%}
+          {%- endcase -%}
+          {%- if plan_benefits != blank -%}
+            <div class="subscription-widget__order-summary-benefits" data-summary-benefits-plan="{{ plan.id }}" {% unless forloop.first %}hidden{% endunless %}>{{ plan_benefits }}</div>
+          {%- endif -%}
+        {%- endfor -%}
 
         <button type="button" class="subscription-widget__order-summary-submit" data-add-to-cart-summary>
           {{ block.settings.order_summary_button_label }}
@@ -284,11 +292,6 @@
       {{ block.settings.subscribe_button_label }}
     </button>
 
-    <div class="subscription-widget__footer-meta" hidden>
-      <span>Variant {{ current_variant.id }}</span>
-      {%- if block.settings.reassurance_text != blank -%}<span>{{ block.settings.reassurance_text }}</span>{%- endif -%}
-      {%- if block.settings.cancel_note != blank -%}<span>{{ block.settings.cancel_note }}</span>{%- endif -%}
-    </div>
 
     <p class="subscription-widget__status" data-status role="status" aria-live="polite"></p>
   </div>
@@ -328,17 +331,29 @@
     { "type": "text", "id": "order_summary_badge_text", "label": "Banner text", "default": "Most Popular" },
     {
       "type": "richtext",
-      "id": "order_summary_benefits",
-      "label": "Benefits list",
-      "info": "Rendered as a bulleted list with a custom checkmark icon. Same for every plan -- only the price/title above it changes per plan. To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
+      "id": "order_summary_benefits_1",
+      "label": "Benefits list -- 1st plan",
+      "info": "Rendered as a bulleted list with a custom checkmark icon. To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
+      "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
+    },
+    {
+      "type": "richtext",
+      "id": "order_summary_benefits_2",
+      "label": "Benefits list -- 2nd plan",
+      "info": "Rendered as a bulleted list with a custom checkmark icon. To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
+      "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
+    },
+    {
+      "type": "richtext",
+      "id": "order_summary_benefits_3",
+      "label": "Benefits list -- 3rd plan",
+      "info": "Rendered as a bulleted list with a custom checkmark icon. To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
       "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
     },
     { "type": "text", "id": "order_summary_button_label", "label": "Button label", "default": "Add to cart" },
 
-    { "type": "header", "content": "Buttons & reassurance copy" },
+    { "type": "header", "content": "Buttons" },
     { "type": "text", "id": "subscribe_button_label", "label": "Subscribe button label", "default": "Subscribe" },
-    { "type": "text", "id": "reassurance_text", "label": "Reassurance note 1 (leave blank to hide)", "default": "Charged at each delivery" },
-    { "type": "text", "id": "cancel_note", "label": "Reassurance note 2 (leave blank to hide)", "default": "Cancel from your account anytime" },
 
     { "type": "header", "content": "Appearance" },
     { "type": "color", "id": "accent_color", "label": "Accent color", "default": "#1a1a1a" }
