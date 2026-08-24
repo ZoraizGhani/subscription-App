@@ -330,7 +330,8 @@ input.subscription-widget__bundle-radio-input {
 
 .subscription-widget__order-summary-banner {
   margin: 0;
-  padding: 0.75rem 1rem;
+  margin-bottom: -3px;
+  padding: 16px 0;
   border-radius: 0;
   border: 0;
   background: #e6ddd3;
@@ -346,10 +347,11 @@ input.subscription-widget__bundle-radio-input {
 .subscription-widget__order-summary-body {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 20px;
   padding: 1.5rem;
+  padding-top: 20px !important;
   border-radius: 1.5rem 1.5rem 0rem 0rem;
-  border-top: 2px solid #5a0b0b;
+  border-top: 1px solid #5a0b0b;
 }
 
 .subscription-widget__order-summary-top {
@@ -430,6 +432,9 @@ input.subscription-widget__bundle-radio-input {
   line-height: 20px;
   letter-spacing: -0.35px;
   color: #1e1e1e;
+  border-bottom: 1px solid #E5E7EB;
+  width: fit-content;
+  padding-bottom: 18px;
 }
 
 .subscription-widget__order-summary-per-serving {
