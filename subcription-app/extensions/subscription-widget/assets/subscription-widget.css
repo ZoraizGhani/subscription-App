@@ -439,9 +439,17 @@
     height: 82px !important;
   }
 
+  span.subscription-widget__bundle-badge {
+    font-size: 10px !important;
+  }
+
   .subscription-widget__order-summary-title {
     font-size: 18px;
     line-height: 24px;
+  }
+
+  span.subscription-widget__order-summary-title {
+    font-size: 18px !important;
   }
 
   .subscription-widget__order-summary-save {
@@ -468,6 +476,10 @@
 
   .subscription-widget__order-summary-onetime-perday-wrap {
     font-size: 10px;
+  }
+
+  button.subscription-widget__order-summary-onetime * {
+    font-size: 10px !important;
   }
 
   .subscription-widget__order-summary-billing {
