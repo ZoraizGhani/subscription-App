@@ -229,19 +229,24 @@
       }
       if (summaryPerServingEl) summaryPerServingEl.textContent = `${formatMoney(perServing, moneyFormat)} USD / SERVING`;
 
-      // One-time comparison: the same number of servings (`count`) at the
-      // plain, undiscounted per-unit price -- what it would cost without
-      // subscribing at all.
-      const oneTimeTotal = count ? variant.price * count : variant.price;
+      // A one-time purchase skips the selling plan entirely, so it's priced
+      // off the variant's own price/compare-at price -- not the subscription
+      // discount (`selectedPrice`), which only applies when actually
+      // subscribing. Show the strikethrough only when the variant genuinely
+      // has a compare-at price higher than its price; otherwise just the
+      // plain price, with nothing to strike through.
+      const oneTimePrice = variant.price;
+      const oneTimeCompare = variant.compare_at_price;
+      const oneTimeHasCompare = Boolean(oneTimeCompare) && oneTimeCompare > oneTimePrice;
       if (summaryOnetimeCompareEl) {
-        summaryOnetimeCompareEl.hidden = selectedDiscount <= 0;
-        summaryOnetimeCompareEl.textContent = selectedDiscount > 0 ? formatMoney(oneTimeTotal, moneyFormat) : "";
+        summaryOnetimeCompareEl.hidden = !oneTimeHasCompare;
+        summaryOnetimeCompareEl.textContent = oneTimeHasCompare ? formatMoney(oneTimeCompare, moneyFormat) : "";
       }
-      if (summaryOnetimePriceEl) summaryOnetimePriceEl.textContent = formatMoney(selectedPrice, moneyFormat);
-      // Per-day price for the one-time line is always the sale price divided
-      // by 30 -- each unit of this product is a fixed 30-day/30-count supply,
+      if (summaryOnetimePriceEl) summaryOnetimePriceEl.textContent = formatMoney(oneTimePrice, moneyFormat);
+      // Per-day price for the one-time line is always the price divided by
+      // 30 -- each unit of this product is a fixed 30-day/30-count supply,
       // regardless of what "Count" a given plan happens to have configured.
-      if (summaryOnetimePerDayEl) summaryOnetimePerDayEl.textContent = formatMoney(selectedPrice / 30, moneyFormat);
+      if (summaryOnetimePerDayEl) summaryOnetimePerDayEl.textContent = formatMoney(oneTimePrice / 30, moneyFormat);
     }
 
     optionEls.forEach((optionEl) => {
