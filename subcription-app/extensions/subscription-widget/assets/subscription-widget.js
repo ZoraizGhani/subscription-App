@@ -210,17 +210,14 @@
         summarySaveEl.textContent = selectedDiscount > 0 ? `SAVE ${selectedDiscount}%` : "";
       }
 
-      // A plan's sticker price is for its whole multi-day cycle, not a
-      // month -- normalize to a monthly-equivalent for display only when
-      // the cycle is at least a month; a handful of days doesn't convert
-      // meaningfully into "per month".
-      const monthsInCycle = days / 30;
-      const displayPrice = monthsInCycle >= 1 ? selectedPrice / monthsInCycle : selectedPrice;
-      const displayCompare = monthsInCycle >= 1 ? variant.price / monthsInCycle : variant.price;
-      if (summaryPriceEl) summaryPriceEl.textContent = formatMoney(displayPrice, moneyFormat);
+      // Plain per-unit pricing, no monthly averaging -- the variant's own
+      // price as the compare-at, and Shopify's own selling-plan-discounted
+      // price (already the variant price with the plan's %-off applied) as
+      // the sale price.
+      if (summaryPriceEl) summaryPriceEl.textContent = formatMoney(selectedPrice, moneyFormat);
       if (summaryCompareEl) {
         summaryCompareEl.hidden = selectedDiscount <= 0;
-        summaryCompareEl.textContent = selectedDiscount > 0 ? `${formatMoney(displayCompare, moneyFormat)}/mo` : "";
+        summaryCompareEl.textContent = selectedDiscount > 0 ? formatMoney(variant.price, moneyFormat) : "";
       }
 
       const weeks = days ? Math.round(days / 7) || 1 : 0;
