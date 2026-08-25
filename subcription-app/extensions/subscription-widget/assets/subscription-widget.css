@@ -496,6 +496,33 @@
     font-size: 12px;
   }
 
+  button.subscription-widget__order-summary-submit {
+    font-size: 12px !important;
+  }
+
+  .subscription-widget__order-summary-benefits * {
+    font-size: 12px !important;
+  }
+
+  .subscription-widget__order-summary-body {
+    gap: 10px !important;
+    padding: 16px 10px !important;
+  }
+
+  span.subscription-widget__order-summary-price {
+    font-size: 26px !important;
+  }
+
+  .subscription-widget__order-summary-billing {
+    font-size: 12px !important;
+    padding-bottom: 10px !important;
+  }
+
+  p.subscription-widget__order-summary-banner {
+    font-size: 14px !important;
+    padding: 12px 0 20px 0 !important;
+  }
+
   /* Two rows on mobile: image + title on top, selector + button below --
      the ::after spacer is a flex-wrap trick (flex-basis: 100% forces
      everything after it onto a new line) rather than restructuring markup. */
