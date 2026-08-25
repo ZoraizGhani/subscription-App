@@ -164,9 +164,9 @@
               data-option-value="{{ value | escape }}"
               data-swatch-label="{{ value | escape }}"
             >
-              {%- if is_favourite -%}
+              {%- if is_favourite and block.settings.favourite_badge_text != blank -%}
                 <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--favourite">{{ block.settings.favourite_badge_text }}</span>
-              {%- elsif is_new -%}
+              {%- elsif is_new and block.settings.new_badge_text != blank -%}
                 <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--new">{{ block.settings.new_badge_text }}</span>
               {%- endif -%}
               <span class="subscription-widget__swatch-image">
