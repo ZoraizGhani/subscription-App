@@ -378,18 +378,18 @@
   }
 
   .subscription-widget__bundle-image {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
   }
 
   .subscription-widget__bundle-image img {
-    max-width: 44px !important;
+    max-width: 40px !important;
     height: 40px;
   }
 
   .subscription-widget__bundle-badge {
-    font-size: 8px;
-    padding: 0.1rem 0.3rem;
+    font-size: 7px;
+    padding: 0.1rem 0.25rem;
   }
 
   .subscription-widget__bundle-text,
@@ -407,9 +407,12 @@
 
   .subscription-widget__bundle-title,
   .subscription-widget__bundle-count {
-    font-size: 9px;
-    line-height: 12px;
-    white-space: nowrap;
+    /* No white-space: nowrap here -- the card clips overflow, so forcing
+       one line just truncated "45 Count" to "45 Cour" instead. Letting it
+       wrap at the word boundary (2 lines max, never mid-word) reads much
+       better than losing characters. */
+    font-size: 8px;
+    line-height: 11px;
   }
 
   /* The desktop -28px nudge is sized for a much wider card -- on a ~1/3-
