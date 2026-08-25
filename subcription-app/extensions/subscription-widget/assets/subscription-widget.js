@@ -215,14 +215,15 @@
         summarySaveEl.textContent = selectedDiscount > 0 ? `SAVE ${selectedDiscount}%` : "";
       }
 
-      // Plain per-unit pricing, no monthly averaging -- the variant's own
+      // The headline price is per single unit -- the variant's own original
       // price as the compare-at, and Shopify's own selling-plan-discounted
       // price (already the variant price with the plan's %-off applied) as
-      // the sale price.
-      if (summaryPriceEl) summaryPriceEl.textContent = formatMoney(totalPrice, moneyFormat);
+      // the sale price. The full quantity-scaled total lives on the Billed
+      // line below instead of being duplicated up here.
+      if (summaryPriceEl) summaryPriceEl.textContent = formatMoney(selectedPrice, moneyFormat);
       if (summaryCompareEl) {
         summaryCompareEl.hidden = selectedDiscount <= 0;
-        summaryCompareEl.textContent = selectedDiscount > 0 ? formatMoney(totalCompare, moneyFormat) : "";
+        summaryCompareEl.textContent = selectedDiscount > 0 ? `${formatMoney(variant.price, moneyFormat)}/month` : "";
       }
 
       const weeks = days ? Math.round(days / 7) || 1 : 0;
