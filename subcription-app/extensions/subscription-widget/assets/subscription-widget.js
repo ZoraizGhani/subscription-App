@@ -65,7 +65,6 @@
     // Set by render() every time the selected plan changes -- the add-to-
     // cart buttons read these at click time rather than recomputing them,
     // since they need the exact same values render() already derived.
-    let currentPlanCount = 1;
     let currentPlanQuantity = 1;
 
     function selectedOptionValues() {
@@ -148,9 +147,14 @@
       // bottle), which is what per-serving/per-day pricing has to divide by.
       const days = selectedRadio ? Number(selectedRadio.dataset.days) || 0 : 0;
       const count = selectedRadio ? Number(selectedRadio.dataset.count) || days : days;
-      currentPlanCount = count;
       currentPlanQuantity = selectedRadio ? Math.max(1, Number(selectedRadio.dataset.quantity) || 1) : 1;
-      const perServing = count ? selectedPrice / count : selectedPrice;
+      // selectedPrice/variant.price are both per single variant unit --
+      // multiply by quantity (how many units this plan actually ships) to
+      // get the real total, then divide by count (total servings) for the
+      // per-serving figure. A 3-quantity plan bills 3x the per-unit price.
+      const totalPrice = selectedPrice * currentPlanQuantity;
+      const totalCompare = variant.price * currentPlanQuantity;
+      const perServing = count ? totalPrice / count : totalPrice;
 
       // Sticky bar mirrors whichever plan/variant is selected above -- image,
       // plan label and price all recompute here so picking a plan/flavor in
@@ -176,7 +180,7 @@
       }
       if (stickyPlanSub) stickyPlanSub.textContent = `${formatMoney(perServing, moneyFormat)} USD / serving`;
       if (stickySubmitLabel) {
-        stickySubmitLabel.textContent = `${settings.subscribeButtonLabel} - ${formatMoney(selectedPrice, moneyFormat)}`;
+        stickySubmitLabel.textContent = `${settings.subscribeButtonLabel} - ${formatMoney(totalPrice, moneyFormat)}`;
       }
 
       stickyPlanOptions.forEach((optionBtn) => {
@@ -190,7 +194,8 @@
           : "";
         const optDays = optRadio ? Number(optRadio.dataset.days) || 0 : 0;
         const optCount = optRadio ? Number(optRadio.dataset.count) || optDays : optDays;
-        const optPerServing = optCount ? optPrice / optCount : optPrice;
+        const optQuantity = optRadio ? Math.max(1, Number(optRadio.dataset.quantity) || 1) : 1;
+        const optPerServing = optCount ? (optPrice * optQuantity) / optCount : optPrice * optQuantity;
 
         const labelEl = optionBtn.querySelector("[data-option-label]");
         const subEl = optionBtn.querySelector("[data-option-sub]");
@@ -214,36 +219,38 @@
       // price as the compare-at, and Shopify's own selling-plan-discounted
       // price (already the variant price with the plan's %-off applied) as
       // the sale price.
-      if (summaryPriceEl) summaryPriceEl.textContent = formatMoney(selectedPrice, moneyFormat);
+      if (summaryPriceEl) summaryPriceEl.textContent = formatMoney(totalPrice, moneyFormat);
       if (summaryCompareEl) {
         summaryCompareEl.hidden = selectedDiscount <= 0;
-        summaryCompareEl.textContent = selectedDiscount > 0 ? formatMoney(variant.price, moneyFormat) : "";
+        summaryCompareEl.textContent = selectedDiscount > 0 ? formatMoney(totalCompare, moneyFormat) : "";
       }
 
       const weeks = days ? Math.round(days / 7) || 1 : 0;
       if (summaryBillingEl) {
-        summaryBillingEl.textContent = `Billed ${formatMoney(selectedPrice, moneyFormat)} USD every ${weeks} week${weeks === 1 ? "" : "s"}`;
+        summaryBillingEl.textContent = `Billed ${formatMoney(totalPrice, moneyFormat)} USD every ${weeks} week${weeks === 1 ? "" : "s"}`;
       }
       if (summaryPerServingEl) summaryPerServingEl.textContent = `${formatMoney(perServing, moneyFormat)} USD / SERVING`;
 
       // A one-time purchase skips the selling plan entirely, so it's priced
       // off the variant's own price/compare-at price -- not the subscription
       // discount (`selectedPrice`), which only applies when actually
-      // subscribing. Show the strikethrough only when the variant genuinely
-      // has a compare-at price higher than its price; otherwise just the
-      // plain price, with nothing to strike through.
-      const oneTimePrice = variant.price;
-      const oneTimeCompare = variant.compare_at_price;
+      // subscribing. Multiplied by the same quantity the subscription would
+      // ship, since it's buying the same number of units. Show the
+      // strikethrough only when the variant genuinely has a compare-at price
+      // higher than its price; otherwise just the plain price.
+      const oneTimePrice = variant.price * currentPlanQuantity;
+      const oneTimeCompare = variant.compare_at_price ? variant.compare_at_price * currentPlanQuantity : null;
       const oneTimeHasCompare = Boolean(oneTimeCompare) && oneTimeCompare > oneTimePrice;
       if (summaryOnetimeCompareEl) {
         summaryOnetimeCompareEl.hidden = !oneTimeHasCompare;
         summaryOnetimeCompareEl.textContent = oneTimeHasCompare ? formatMoney(oneTimeCompare, moneyFormat) : "";
       }
       if (summaryOnetimePriceEl) summaryOnetimePriceEl.textContent = formatMoney(oneTimePrice, moneyFormat);
-      // Per-day price for the one-time line is always the price divided by
-      // 30 -- each unit of this product is a fixed 30-day/30-count supply,
-      // regardless of what "Count" a given plan happens to have configured.
-      if (summaryOnetimePerDayEl) summaryOnetimePerDayEl.textContent = formatMoney(oneTimePrice / 30, moneyFormat);
+      // Per-day price is a constant property of a single unit (each one is a
+      // fixed 30-day supply) -- buying more units doesn't change the price
+      // per day, so this divides the single-unit price, not the quantity-
+      // scaled total.
+      if (summaryOnetimePerDayEl) summaryOnetimePerDayEl.textContent = formatMoney(variant.price / 30, moneyFormat);
     }
 
     optionEls.forEach((optionEl) => {
@@ -267,14 +274,14 @@
     // to cart" button, and its "One-time purchase" button -- all three are
     // entry points to the same cart, not independent flows. oneTime skips
     // selling_plan entirely (a real one-time purchase, not a subscription)
-    // and uses the selected plan's serving count as the quantity, matching
-    // the total price shown next to it. A subscription uses whatever
-    // quantity the merchant configured for that specific plan in the app's
-    // admin (Selling Plan Settings), which can differ per plan -- not
-    // always 1.
+    // but adds the same number of units the subscription would've shipped,
+    // matching the total price shown next to it. A subscription uses
+    // whatever quantity the merchant configured for that specific plan in
+    // the app's admin (Selling Plan Settings), which can differ per plan --
+    // not always 1.
     async function addToCart({ oneTime } = {}) {
       const variant = currentVariant();
-      const quantity = oneTime ? Math.max(1, currentPlanCount) : currentPlanQuantity;
+      const quantity = currentPlanQuantity;
 
       const payload = {
         items: [
