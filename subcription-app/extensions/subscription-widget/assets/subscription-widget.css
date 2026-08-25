@@ -419,7 +419,24 @@
      screen-width mobile column it would shift the invisible click target
      mostly off the card, so it's neutralized here. */
   input.subscription-widget__bundle-radio-input {
-    margin-left: 0;
+    margin: -10px !important;
+  }
+
+  span.subscription-widget__bundle-text * {
+    font-size: 10px !important;
+  }
+
+  .subscription-widget__bundle-image img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    display: block !important;
+    max-width: 71px !important;
+    height: 40px !important;
+  }
+
+  span.subscription-widget__bundle-image {
+    height: 82px !important;
   }
 
   .subscription-widget__order-summary-title {
