@@ -252,17 +252,15 @@
      the image, whether or not this particular swatch has one -- keeps
      every swatch's image aligned to the same height either way. */
   padding: 2.25rem 0.75rem 1rem;
-  border: 1px solid #1e1e1e;
+  border: 1px solid var(--subscription-widget-swatch-selected, #8c9e56);
   border-radius: 0.875rem;
   background: #fdfdfd;
   font: inherit;
   color: inherit;
   overflow: hidden;
-  opacity: 0.6;
 }
 
 .subscription-widget__swatch.is-selected {
-  opacity: 1;
   border-width: 2px;
   border-color: var(--subscription-widget-swatch-selected, #8c9e56);
 }
@@ -318,23 +316,26 @@
 
 .subscription-widget__swatch-qty {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 0.625rem;
+  width: fit-content;
+  margin: 0 auto;
+  border: 1px solid #1e1e1e;
+  border-radius: 9999px;
+  overflow: hidden;
 }
 
 .subscription-widget__swatch-qty-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border: 1px solid #1e1e1e;
-  border-radius: 9999px;
-  background: #fff;
+  border: none;
+  background: none;
   color: #1e1e1e;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
 }
@@ -345,7 +346,14 @@
 }
 
 .subscription-widget__swatch-qty-count {
-  min-width: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 32px;
+  padding: 0 0.375rem;
+  border-left: 1px solid #1e1e1e;
+  border-right: 1px solid #1e1e1e;
   font-family: "Geist", sans-serif;
   font-size: 14px;
   font-weight: 700;
