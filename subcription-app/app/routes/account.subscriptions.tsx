@@ -51,6 +51,10 @@ interface ManageOptions {
   lines: { id: string; variantId: string | null; quantity: number }[];
   sellingPlanId: string | null;
   sellingPlanName: string | null;
+  // Cap on the flavor mix's total, from the selling plan's own "Quantity"
+  // option -- null for a legacy plan saved before that option existed
+  // (no cap).
+  maxQuantity: number | null;
   productTitle: string;
   variants: {
     id: string;
@@ -459,7 +463,13 @@ function ManageSubscriptionModal({
     }
     setFlavorQuantities(next);
   };
-  const incrementFlavor = (variantId: string) => setFlavorQty(variantId, (activeFlavorQuantities[variantId] ?? 0) + 1);
+  // The selling plan's own "Quantity" caps the mix's total -- a legacy plan
+  // with no cap (maxQuantity null) can grow without limit, same as before.
+  const atMaxQuantity = options?.maxQuantity != null && flavorTotal >= options.maxQuantity;
+  const incrementFlavor = (variantId: string) => {
+    if (atMaxQuantity) return;
+    setFlavorQty(variantId, (activeFlavorQuantities[variantId] ?? 0) + 1);
+  };
   const decrementFlavor = (variantId: string) =>
     setFlavorQty(variantId, Math.max(0, (activeFlavorQuantities[variantId] ?? 0) - 1));
 
@@ -794,7 +804,7 @@ function ManageSubscriptionModal({
                           <button
                             type="button"
                             onClick={() => incrementFlavor(variant.id)}
-                            disabled={!variant.availableForSale}
+                            disabled={!variant.availableForSale || atMaxQuantity}
                             aria-label={`Increase ${variant.title} quantity`}
                           >
                             +
@@ -805,8 +815,9 @@ function ManageSubscriptionModal({
                   })}
                 </div>
                 <p className={styles.manageMixNote}>
-                  Mix flavors freely &mdash; {flavorTotal} pouch{flavorTotal === 1 ? "" : "es"} selected, same price
-                  per pouch either way.
+                  Mix flavors freely &mdash; {flavorTotal}
+                  {options?.maxQuantity != null ? ` of ${options.maxQuantity}` : ""} pouch
+                  {flavorTotal === 1 ? "" : "es"} selected, same price per pouch either way.
                 </p>
               </div>
             )}
@@ -852,6 +863,7 @@ function ManageSubscriptionModal({
                   <button
                     type="button"
                     onClick={() => incrementFlavor(displayVariants[0].id)}
+                    disabled={atMaxQuantity}
                     aria-label="Increase quantity"
                   >
                     +

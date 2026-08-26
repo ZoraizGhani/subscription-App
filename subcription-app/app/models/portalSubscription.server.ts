@@ -972,6 +972,32 @@ export async function getPortalManageOptions({
   };
   const product = productBody.data?.product;
 
+  // The selling plan's own "Quantity" option (options[2] -- see
+  // sellingPlanInput in sellingPlan.server.ts, same three-dimension
+  // "Delivery every"/"Count"/"Quantity" scheme the storefront widget reads)
+  // caps how many total pouches this specific plan allows -- the flavor mix
+  // can redistribute that quantity across flavors, but never exceed it.
+  // Legacy plans saved before "Quantity" existed have fewer than 3 options,
+  // in which case there's no cap (defaults to 1, same as the widget's own
+  // `default: 1` fallback).
+  let maxQuantity: number | null = null;
+  if (line.sellingPlanId) {
+    const planResponse = await admin.graphql(
+      `#graphql
+        query PortalSellingPlanOptions($id: ID!) {
+          node(id: $id) {
+            ... on SellingPlan { options }
+          }
+        }
+      `,
+      { variables: { id: line.sellingPlanId } },
+    );
+    const planBody = (await planResponse.json()) as { data?: { node: { options: string[] } | null } };
+    const planOptions = planBody.data?.node?.options ?? [];
+    const parsed = Number(planOptions[2]);
+    maxQuantity = Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+
   // Same correction as the subscriptions list -- contract.nextBillingDate
   // from the GraphQL response above can't be trusted once a cycle's been
   // charged out-of-band (see findNextUnbilledCycle's doc comment).
@@ -989,6 +1015,7 @@ export async function getPortalManageOptions({
     lines: productLines.map((l) => ({ id: l.id, variantId: l.variantId, quantity: l.quantity })),
     sellingPlanId: line.sellingPlanId,
     sellingPlanName: line.sellingPlanName,
+    maxQuantity,
     productTitle: product?.title ?? "",
     variants: (product?.variants.edges ?? []).map((e) => ({
       id: e.node.id,
@@ -1513,6 +1540,29 @@ export async function updatePortalFlavorMix({
   const currencyCode = contract?.currencyCode ?? null;
   const country =
     contract?.deliveryMethod?.address?.countryCodeV2 ?? contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
+
+  // Never trust the client's own total -- re-derive the plan's cap here too
+  // (same options[2] "Quantity" scheme as getPortalManageOptions) and reject
+  // outright if the requested mix exceeds what this plan actually allows.
+  if (sellingPlanId) {
+    const planResponse = await admin.graphql(
+      `#graphql
+        query PortalFlavorMixPlanOptions($id: ID!) {
+          node(id: $id) {
+            ... on SellingPlan { options }
+          }
+        }
+      `,
+      { variables: { id: sellingPlanId } },
+    );
+    const planBody = (await planResponse.json()) as { data?: { node: { options: string[] } | null } };
+    const parsed = Number(planBody.data?.node?.options?.[2]);
+    const maxQuantity = Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    const requestedTotal = requested.reduce((sum, [, qty]) => sum + qty, 0);
+    if (maxQuantity != null && requestedTotal > maxQuantity) {
+      throw new Error(`This plan allows ${maxQuantity} total across flavors.`);
+    }
+  }
 
   const lineByVariantId = new Map(productLines.filter((l) => l.variantId).map((l) => [l.variantId as string, l]));
 
