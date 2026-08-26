@@ -824,7 +824,7 @@ const MANAGE_OPTIONS_QUERY = `#graphql
         }
       }
       lines(first: 20) {
-        nodes { id productId variantId variantTitle quantity sellingPlanId sellingPlanName currentPrice { amount } }
+        nodes { id productId variantId variantTitle quantity sellingPlanId sellingPlanName }
       }
     }
   }
@@ -908,7 +908,6 @@ export async function getPortalManageOptions({
             quantity: number;
             sellingPlanId: string | null;
             sellingPlanName: string | null;
-            currentPrice: { amount: string };
           }[];
         };
       } | null;
@@ -973,21 +972,16 @@ export async function getPortalManageOptions({
   };
   const product = productBody.data?.product;
 
+  // The selling plan's own configured percentage is the one source of truth
+  // for what this customer should be charged -- NOT whatever price already
+  // happens to be sitting on an existing line. That line's currentPrice
+  // could itself be wrong (e.g. from an earlier bug), and deriving a ratio
+  // from it would just silently perpetuate that mistake on every future
+  // read/write instead of correcting it.
   const { maxQuantity, discountPercent } = line.sellingPlanId
     ? await getSellingPlanTerms(admin, line.sellingPlanId)
     : { maxQuantity: null, discountPercent: 0 };
-
-  // Prefer the EXACT ratio Shopify already applied to this line -- its own
-  // currentPrice against that same variant's raw contextualPricing -- over
-  // re-deriving from the plan's percentage field, which can drift from
-  // Shopify's own internal rounding. Falls back to the percentage only if
-  // that variant isn't in the product's own variant list for some reason.
-  const currentVariantRawPrice = product?.variants.edges.find((e) => e.node.id === line.variantId)?.node
-    .contextualPricing.price.amount;
-  const priceRatio =
-    currentVariantRawPrice && Number(currentVariantRawPrice) > 0
-      ? Number(line.currentPrice.amount) / Number(currentVariantRawPrice)
-      : 1 - discountPercent / 100;
+  const priceRatio = 1 - discountPercent / 100;
 
   // Same correction as the subscriptions list -- contract.nextBillingDate
   // from the GraphQL response above can't be trusted once a cycle's been
@@ -1500,7 +1494,7 @@ const FLAVOR_MIX_CONTEXT_QUERY = `#graphql
         }
       }
       lines(first: 20) {
-        nodes { id productId variantId quantity sellingPlanId sellingPlanName currentPrice { amount } }
+        nodes { id productId variantId quantity sellingPlanId sellingPlanName }
       }
     }
   }
@@ -1569,7 +1563,6 @@ export async function updatePortalFlavorMix({
             quantity: number;
             sellingPlanId: string | null;
             sellingPlanName: string | null;
-            currentPrice: { amount: string };
           }[];
         };
       } | null;
@@ -1601,19 +1594,19 @@ export async function updatePortalFlavorMix({
 
   const lineByVariantId = new Map(productLines.filter((l) => l.variantId).map((l) => [l.variantId as string, l]));
 
+  // The plan's own configured percentage is the source of truth for pricing
+  // any newly-added flavor line -- not a ratio derived from whatever price
+  // already sits on an existing line, which could itself be wrong (see
+  // getPortalManageOptions's doc comment).
+  const priceRatio = 1 - discountPercent / 100;
+
   // Only prices for variants that need a brand-new line -- kept/removed
-  // lines don't need re-pricing. The primary line's own variant is always
-  // included too (even if it isn't a "new" line), purely to read its raw
-  // price back and derive the exact discount ratio Shopify already applied
-  // to it -- see getPortalManageOptions for why that beats re-deriving from
-  // the plan's percentage field.
+  // lines don't need re-pricing.
   const newVariantIds = requested.map(([variantId]) => variantId).filter((id) => !lineByVariantId.has(id));
-  const priceLookupIds = Array.from(new Set([...newVariantIds, ...(primaryLine.variantId ? [primaryLine.variantId] : [])]));
   const priceByVariantId = new Map<string, string>();
-  let priceRatio = 1 - discountPercent / 100;
-  if (priceLookupIds.length) {
+  if (newVariantIds.length) {
     const priceResponse = await admin.graphql(FLAVOR_MIX_VARIANT_PRICES_QUERY, {
-      variables: { ids: priceLookupIds, country },
+      variables: { ids: newVariantIds, country },
     });
     const priceBody = (await priceResponse.json()) as {
       data?: {
@@ -1623,21 +1616,7 @@ export async function updatePortalFlavorMix({
         )[];
       };
     };
-    const nodesById = new Map((priceBody.data?.nodes ?? []).filter((n): n is NonNullable<typeof n> => n != null).map((n) => [n.id, n]));
-
-    // Derive the exact ratio Shopify already applied to the primary line --
-    // its own currentPrice against that same variant's raw contextualPricing
-    // -- rather than trusting the plan's percentage field alone (see
-    // getPortalManageOptions's doc comment for why that can drift).
-    if (primaryLine.variantId) {
-      const rawPrice = Number(nodesById.get(primaryLine.variantId)?.contextualPricing.price.amount ?? 0);
-      if (rawPrice > 0) {
-        priceRatio = Number(primaryLine.currentPrice.amount) / rawPrice;
-      }
-    }
-
-    for (const variantId of newVariantIds) {
-      const node = nodesById.get(variantId);
+    for (const node of priceBody.data?.nodes ?? []) {
       if (!node) continue;
       if (!node.availableForSale) {
         throw new Error("One of the selected flavors is currently out of stock.");
@@ -1828,7 +1807,7 @@ export async function swapPortalProductVariant({
               address { countryCodeV2 }
             }
           }
-          lines(first: 20) { nodes { id variantId sellingPlanId currentPrice { amount } } }
+          lines(first: 20) { nodes { id sellingPlanId } }
         }
       }
     `,
@@ -1840,7 +1819,7 @@ export async function swapPortalProductVariant({
         currencyCode: string;
         customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
         deliveryMethod: { address?: { countryCodeV2: string } } | null;
-        lines: { nodes: { id: string; variantId: string | null; sellingPlanId: string | null; currentPrice: { amount: string } }[] };
+        lines: { nodes: { id: string; sellingPlanId: string | null }[] };
       } | null;
     };
   };
@@ -1851,38 +1830,13 @@ export async function swapPortalProductVariant({
   const country =
     contractInfo?.deliveryMethod?.address?.countryCodeV2 ?? contractInfo?.customer?.defaultAddress?.countryCodeV2 ?? null;
 
-  // Same non-auto-discounted currentPrice issue as updatePortalFlavorMix --
-  // see getSellingPlanTerms's doc comment. Prefer the exact ratio Shopify
-  // already applied to the line being swapped (its own currentPrice against
-  // that same variant's raw contextualPricing) over the plan's percentage
-  // field, which can drift from Shopify's own rounding -- see
-  // getPortalManageOptions for the same reasoning.
-  let swapPriceRatio = 1;
-  if (currentLine?.sellingPlanId) {
-    const { discountPercent } = await getSellingPlanTerms(admin, currentLine.sellingPlanId);
-    swapPriceRatio = 1 - discountPercent / 100;
-  }
-  if (currentLine?.variantId) {
-    const currentVariantResponse = await admin.graphql(
-      `#graphql
-        query PortalCurrentVariantPrice($id: ID!, $country: CountryCode) {
-          productVariant(id: $id) {
-            contextualPricing(context: { country: $country }) {
-              price { amount }
-            }
-          }
-        }
-      `,
-      { variables: { id: currentLine.variantId, country } },
-    );
-    const currentVariantBody = (await currentVariantResponse.json()) as {
-      data?: { productVariant: { contextualPricing: { price: { amount: string } } } | null };
-    };
-    const rawPrice = Number(currentVariantBody.data?.productVariant?.contextualPricing.price.amount ?? 0);
-    if (rawPrice > 0) {
-      swapPriceRatio = Number(currentLine.currentPrice.amount) / rawPrice;
-    }
-  }
+  // The plan's own configured percentage is the source of truth here too --
+  // see getPortalManageOptions's doc comment for why a ratio derived from an
+  // existing line's price isn't used instead.
+  const { discountPercent: swapDiscountPercent } = currentLine?.sellingPlanId
+    ? await getSellingPlanTerms(admin, currentLine.sellingPlanId)
+    : { discountPercent: 0 };
+  const swapPriceRatio = 1 - swapDiscountPercent / 100;
 
   // ProductVariant.price is the shop's base currency, which is NOT what this
   // customer is billed if the contract is in a market's presentment currency
