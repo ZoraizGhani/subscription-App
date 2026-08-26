@@ -19,10 +19,16 @@
     const settings = JSON.parse(settingsJson.textContent);
 
     const optionEls = Array.from(root.querySelectorAll("[data-option-index]"));
-    const flavorSwatchGrid = root.querySelector('[data-option-index="0"]');
-    const selectedFlavorValueEl = root.querySelector("[data-selected-flavor-value]");
+    const flavorSwatches = Array.from(root.querySelectorAll("[data-flavor-swatch]"));
+    const flavorRemainingEl = root.querySelector("[data-flavor-remaining]");
     const submitBtn = root.querySelector("[data-add-to-cart]");
     const statusEl = root.querySelector("[data-status]");
+
+    // variantId (string) -> quantity. When a plan ships more than one unit,
+    // this is how that quantity gets split across flavors (e.g. 3 bottles =
+    // 2 Sour Green Apple + 1 Blood Orange) instead of always being one
+    // flavor times the quantity.
+    const flavorQuantities = {};
 
     const bundleCards = Array.from(root.querySelectorAll("[data-bundle-card]"));
     const bundleRadios = Array.from(root.querySelectorAll("[data-plan-radio]"));
@@ -66,6 +72,7 @@
     // cart buttons read these at click time rather than recomputing them,
     // since they need the exact same values render() already derived.
     let currentPlanQuantity = 1;
+    let lastFlavorPlanQuantity = null;
 
     function selectedOptionValues() {
       return optionEls.map((optionEl) => {
@@ -74,7 +81,30 @@
       });
     }
 
+    function flavorTotalSelected() {
+      return flavorSwatches.reduce((sum, el) => sum + (flavorQuantities[el.dataset.variantId] || 0), 0);
+    }
+
+    // Resets the mix whenever the selected plan's quantity changes -- all of
+    // it defaults onto the first (favourite) flavor, and the customer can
+    // then redistribute it across other flavors from there.
+    function resetFlavorQuantities(quantity) {
+      flavorSwatches.forEach((el, i) => {
+        flavorQuantities[el.dataset.variantId] = i === 0 ? quantity : 0;
+      });
+    }
+
     function currentVariant() {
+      // Flavor is priced off whichever swatch currently has quantity > 0 --
+      // any of them is fine for pricing since same-product flavors share a
+      // price; this takes priority over the generic option-matching below
+      // since flavor swatches no longer use the single-select is-selected
+      // pattern that drives it.
+      if (flavorSwatches.length) {
+        const active = flavorSwatches.find((el) => (flavorQuantities[el.dataset.variantId] || 0) > 0) || flavorSwatches[0];
+        const variant = product.variants.find((v) => String(v.id) === active.dataset.variantId);
+        if (variant) return variant;
+      }
       const values = selectedOptionValues();
       return (
         product.variants.find((variant) =>
@@ -148,6 +178,13 @@
       const days = selectedRadio ? Number(selectedRadio.dataset.days) || 0 : 0;
       const count = selectedRadio ? Number(selectedRadio.dataset.count) || days : days;
       currentPlanQuantity = selectedRadio ? Math.max(1, Number(selectedRadio.dataset.quantity) || 1) : 1;
+      // A plan-quantity change (including the very first render) resets the
+      // flavor mix -- all of it defaults back onto the first flavor, and the
+      // customer redistributes from there via the +/- steppers below.
+      if (flavorSwatches.length && currentPlanQuantity !== lastFlavorPlanQuantity) {
+        lastFlavorPlanQuantity = currentPlanQuantity;
+        resetFlavorQuantities(currentPlanQuantity);
+      }
       // selectedPrice/variant.price are both per single variant unit --
       // multiply by quantity (how many units this plan actually ships) to
       // get the real total, then divide by count (total servings) for the
@@ -252,6 +289,30 @@
       // per day, so this divides the single-unit price, not the quantity-
       // scaled total.
       if (summaryOnetimePerDayEl) summaryOnetimePerDayEl.textContent = formatMoney(variant.price / 30, moneyFormat);
+
+      updateFlavorUI();
+    }
+
+    // Reflects flavorQuantities in the DOM: each swatch's count, its +/-
+    // buttons' disabled state (can't go below 0 or push the total over the
+    // plan's allowed quantity), and the "N of M selected" progress line.
+    function updateFlavorUI() {
+      if (!flavorSwatches.length) return;
+      const sum = flavorTotalSelected();
+      flavorSwatches.forEach((el) => {
+        const qty = flavorQuantities[el.dataset.variantId] || 0;
+        const countEl = el.querySelector("[data-qty-count]");
+        if (countEl) countEl.textContent = String(qty);
+        el.classList.toggle("is-selected", qty > 0);
+        const minusBtn = el.querySelector("[data-qty-minus]");
+        const plusBtn = el.querySelector("[data-qty-plus]");
+        if (minusBtn) minusBtn.disabled = qty <= 0;
+        if (plusBtn) plusBtn.disabled = sum >= currentPlanQuantity;
+      });
+      if (flavorRemainingEl) {
+        flavorRemainingEl.textContent = `${sum} of ${currentPlanQuantity} selected`;
+        flavorRemainingEl.classList.toggle("is-incomplete", sum !== currentPlanQuantity);
+      }
     }
 
     optionEls.forEach((optionEl) => {
@@ -261,12 +322,33 @@
             .querySelectorAll("[data-option-value]")
             .forEach((sibling) => sibling.classList.remove("is-selected"));
           btn.classList.add("is-selected");
-          if (optionEl === flavorSwatchGrid && selectedFlavorValueEl) {
-            selectedFlavorValueEl.textContent = btn.dataset.swatchLabel || btn.dataset.optionValue;
-          }
           render();
         });
       });
+    });
+
+    // Each flavor's own +/- stepper -- clamped so the total across all
+    // flavors never exceeds the selected plan's quantity, and never drops a
+    // single flavor below 0.
+    flavorSwatches.forEach((el) => {
+      const variantId = el.dataset.variantId;
+      const minusBtn = el.querySelector("[data-qty-minus]");
+      const plusBtn = el.querySelector("[data-qty-plus]");
+      if (minusBtn) {
+        minusBtn.addEventListener("click", () => {
+          const current = flavorQuantities[variantId] || 0;
+          if (current <= 0) return;
+          flavorQuantities[variantId] = current - 1;
+          render();
+        });
+      }
+      if (plusBtn) {
+        plusBtn.addEventListener("click", () => {
+          if (flavorTotalSelected() >= currentPlanQuantity) return;
+          flavorQuantities[variantId] = (flavorQuantities[variantId] || 0) + 1;
+          render();
+        });
+      }
     });
 
     bundleRadios.forEach((input) => input.addEventListener("change", render));
@@ -281,18 +363,34 @@
     // the app's admin (Selling Plan Settings), which can differ per plan --
     // not always 1.
     async function addToCart({ oneTime } = {}) {
-      const variant = currentVariant();
-      const quantity = currentPlanQuantity;
+      const planId = oneTime ? undefined : selectedPlanId();
 
-      const payload = {
-        items: [
+      // Mixed flavors -> one cart line item per flavor with quantity > 0
+      // (each is a different variant, so they can't be combined into a
+      // single line the way one flavor at quantity N could be). Block the
+      // submit entirely if the mix doesn't add up to what the plan allows --
+      // the same total the "N of M selected" progress line already shows.
+      let items;
+      if (flavorSwatches.length) {
+        if (flavorTotalSelected() !== currentPlanQuantity) {
+          statusEl.textContent = `Select ${currentPlanQuantity} total across flavors before adding to cart.`;
+          return;
+        }
+        items = flavorSwatches
+          .map((el) => ({ id: Number(el.dataset.variantId), quantity: flavorQuantities[el.dataset.variantId] || 0 }))
+          .filter((item) => item.quantity > 0)
+          .map((item) => ({ ...item, ...(oneTime ? {} : { selling_plan: planId }) }));
+      } else {
+        items = [
           {
-            id: variant.id,
-            quantity,
-            ...(oneTime ? {} : { selling_plan: selectedPlanId() }),
+            id: currentVariant().id,
+            quantity: currentPlanQuantity,
+            ...(oneTime ? {} : { selling_plan: planId }),
           },
-        ],
-      };
+        ];
+      }
+
+      const payload = { items };
 
       submitBtn.disabled = true;
       if (summarySubmitBtn) summarySubmitBtn.disabled = true;

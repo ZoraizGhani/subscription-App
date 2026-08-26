@@ -108,98 +108,6 @@
       </button>
     </div>
 
-    {%- if product.has_only_default_variant == false -%}
-      {%- assign first_option = product.options_with_values.first -%}
-      {%- assign new_values_list = block.settings.new_values | split: "," -%}
-
-      {%- comment -%}
-        Merchants can name an exact flavor value in the block settings, but
-        most won't bother -- so with nothing configured, default to the same
-        pattern the design shows: the first flavor is "Most Favourite" and
-        every other flavor is "New", rather than showing no badges at all.
-      {%- endcomment -%}
-      {%- assign favourite_value = block.settings.favourite_value -%}
-      {%- if favourite_value == blank -%}
-        {%- assign favourite_value = first_option.values.first -%}
-      {%- endif -%}
-      {%- assign new_values_configured = false -%}
-      {%- if block.settings.new_values != blank -%}
-        {%- assign new_values_configured = true -%}
-      {%- endif -%}
-
-      <div class="subscription-widget__section">
-        <p class="subscription-widget__flavor-heading">
-          {{ block.settings.flavor_section_label }}
-          <span class="subscription-widget__flavor-heading-value" data-selected-flavor-value>{{ current_variant.options[0] }}</span>
-        </p>
-        <div class="subscription-widget__swatch-grid" data-option-index="0">
-          {%- for value in first_option.values -%}
-            {%- assign swatch_variant = nil -%}
-            {%- for v in product.variants -%}
-              {%- if swatch_variant == nil and v.options[0] == value -%}
-                {%- assign swatch_variant = v -%}
-              {%- endif -%}
-            {%- endfor -%}
-            {%- assign swatch_image = swatch_variant.featured_image | default: product.featured_image -%}
-
-            {%- assign is_favourite = false -%}
-            {%- if value == favourite_value -%}
-              {%- assign is_favourite = true -%}
-            {%- endif -%}
-            {%- assign is_new = false -%}
-            {%- if new_values_configured -%}
-              {%- for new_value in new_values_list -%}
-                {%- assign new_value_trimmed = new_value | strip -%}
-                {%- if new_value_trimmed == value -%}
-                  {%- assign is_new = true -%}
-                {%- endif -%}
-              {%- endfor -%}
-            {%- elsif is_favourite == false -%}
-              {%- assign is_new = true -%}
-            {%- endif -%}
-
-            <button
-              type="button"
-              class="subscription-widget__swatch{% if value == current_variant.options[0] %} is-selected{% endif %}"
-              data-option-value="{{ value | escape }}"
-              data-swatch-label="{{ value | escape }}"
-            >
-              {%- if is_favourite and block.settings.favourite_badge_text != blank -%}
-                <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--favourite">{{ block.settings.favourite_badge_text }}</span>
-              {%- elsif is_new and block.settings.new_badge_text != blank -%}
-                <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--new">{{ block.settings.new_badge_text }}</span>
-              {%- endif -%}
-              <span class="subscription-widget__swatch-image">
-                {%- if swatch_image -%}
-                  {{ swatch_image | image_url: width: 160 | image_tag: loading: "lazy", alt: value, widths: "80,160" }}
-                {%- endif -%}
-              </span>
-              <span class="subscription-widget__swatch-name">{{ value }}</span>
-            </button>
-          {%- endfor -%}
-        </div>
-      </div>
-
-      {%- for option in product.options_with_values -%}
-        {%- if forloop.index0 > 0 -%}
-          <div class="subscription-widget__section" data-option-index="{{ forloop.index0 }}">
-            <p class="subscription-widget__section-label">{{ option.name }}</p>
-            <div class="subscription-widget__option-values">
-              {%- for value in option.values -%}
-                <button
-                  type="button"
-                  class="subscription-widget__option-value{% if value == current_variant.options[forloop.parentloop.index0] %} is-selected{% endif %}"
-                  data-option-value="{{ value | escape }}"
-                >
-                  {{ value }}
-                </button>
-              {%- endfor -%}
-            </div>
-          </div>
-        {%- endif -%}
-      {%- endfor -%}
-    {%- endif -%}
-
     <div class="subscription-widget__section">
       <p class="subscription-widget__plan-heading">{{ block.settings.plan_section_label }}</p>
 
@@ -282,6 +190,112 @@
       </div>
 
     </div>
+
+    {%- if product.has_only_default_variant == false -%}
+      {%- assign first_option = product.options_with_values.first -%}
+      {%- assign new_values_list = block.settings.new_values | split: "," -%}
+
+      {%- comment -%}
+        Merchants can name an exact flavor value in the block settings, but
+        most won't bother -- so with nothing configured, default to the same
+        pattern the design shows: the first flavor is "Most Favourite" and
+        every other flavor is "New", rather than showing no badges at all.
+      {%- endcomment -%}
+      {%- assign favourite_value = block.settings.favourite_value -%}
+      {%- if favourite_value == blank -%}
+        {%- assign favourite_value = first_option.values.first -%}
+      {%- endif -%}
+      {%- assign new_values_configured = false -%}
+      {%- if block.settings.new_values != blank -%}
+        {%- assign new_values_configured = true -%}
+      {%- endif -%}
+
+      <div class="subscription-widget__section">
+        <p class="subscription-widget__flavor-heading">
+          {{ block.settings.flavor_section_label }}
+          <span class="subscription-widget__flavor-heading-value" data-flavor-remaining></span>
+        </p>
+        {%- comment -%}
+          Multi-flavor mix picker: a plan with quantity > 1 lets the customer
+          split that quantity across different flavors (e.g. 3 bottles = 2
+          Sour Green Apple + 1 Blood Orange) instead of one flavor times the
+          quantity. Each swatch carries its own variant id and a +/- stepper;
+          subscription-widget.js owns all the counting/redistribution logic
+          and the total is capped at whatever quantity the selected plan
+          allows -- these are just empty-count shells at render time.
+        {%- endcomment -%}
+        <div class="subscription-widget__swatch-grid">
+          {%- for value in first_option.values -%}
+            {%- assign swatch_variant = nil -%}
+            {%- for v in product.variants -%}
+              {%- if swatch_variant == nil and v.options[0] == value -%}
+                {%- assign swatch_variant = v -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- assign swatch_image = swatch_variant.featured_image | default: product.featured_image -%}
+
+            {%- assign is_favourite = false -%}
+            {%- if value == favourite_value -%}
+              {%- assign is_favourite = true -%}
+            {%- endif -%}
+            {%- assign is_new = false -%}
+            {%- if new_values_configured -%}
+              {%- for new_value in new_values_list -%}
+                {%- assign new_value_trimmed = new_value | strip -%}
+                {%- if new_value_trimmed == value -%}
+                  {%- assign is_new = true -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- elsif is_favourite == false -%}
+              {%- assign is_new = true -%}
+            {%- endif -%}
+
+            <div
+              class="subscription-widget__swatch"
+              data-flavor-swatch
+              data-variant-id="{{ swatch_variant.id }}"
+              data-swatch-label="{{ value | escape }}"
+            >
+              {%- if is_favourite and block.settings.favourite_badge_text != blank -%}
+                <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--favourite">{{ block.settings.favourite_badge_text }}</span>
+              {%- elsif is_new and block.settings.new_badge_text != blank -%}
+                <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--new">{{ block.settings.new_badge_text }}</span>
+              {%- endif -%}
+              <span class="subscription-widget__swatch-image">
+                {%- if swatch_image -%}
+                  {{ swatch_image | image_url: width: 160 | image_tag: loading: "lazy", alt: value, widths: "80,160" }}
+                {%- endif -%}
+              </span>
+              <span class="subscription-widget__swatch-name">{{ value }}</span>
+              <div class="subscription-widget__swatch-qty">
+                <button type="button" class="subscription-widget__swatch-qty-btn" data-qty-minus aria-label="Decrease {{ value | escape }} quantity">−</button>
+                <span class="subscription-widget__swatch-qty-count" data-qty-count>0</span>
+                <button type="button" class="subscription-widget__swatch-qty-btn" data-qty-plus aria-label="Increase {{ value | escape }} quantity">+</button>
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+      </div>
+
+      {%- for option in product.options_with_values -%}
+        {%- if forloop.index0 > 0 -%}
+          <div class="subscription-widget__section" data-option-index="{{ forloop.index0 }}">
+            <p class="subscription-widget__section-label">{{ option.name }}</p>
+            <div class="subscription-widget__option-values">
+              {%- for value in option.values -%}
+                <button
+                  type="button"
+                  class="subscription-widget__option-value{% if value == current_variant.options[forloop.parentloop.index0] %} is-selected{% endif %}"
+                  data-option-value="{{ value | escape }}"
+                >
+                  {{ value }}
+                </button>
+              {%- endfor -%}
+            </div>
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endif -%}
 
     {%- comment -%}
       Order summary card: mirrors whichever bundle card is currently

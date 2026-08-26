@@ -255,7 +255,6 @@
   border: 1px solid #1e1e1e;
   border-radius: 0.875rem;
   background: #fdfdfd;
-  cursor: pointer;
   font: inherit;
   color: inherit;
   overflow: hidden;
@@ -315,6 +314,47 @@
   letter-spacing: 0;
   text-align: center;
   color: #1e1e1e;
+}
+
+.subscription-widget__swatch-qty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+}
+
+.subscription-widget__swatch-qty-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #1e1e1e;
+  border-radius: 9999px;
+  background: #fff;
+  color: #1e1e1e;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.subscription-widget__swatch-qty-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.subscription-widget__swatch-qty-count {
+  min-width: 1em;
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e1e1e;
+  text-align: center;
+}
+
+.subscription-widget__flavor-heading-value.is-incomplete {
+  color: #5a0b0b;
 }
 
 /* --- Plain option buttons (fallback / secondary options) --- */
