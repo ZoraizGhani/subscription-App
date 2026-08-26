@@ -1287,9 +1287,15 @@ async function removePortalDraftLine(admin: PortalAdmin, draftId: string, lineId
   }
 }
 
-async function updatePortalDraftLineQty(admin: PortalAdmin, draftId: string, lineId: string, quantity: number) {
+async function updatePortalDraftLineQty(
+  admin: PortalAdmin,
+  draftId: string,
+  lineId: string,
+  quantity: number,
+  currentPrice?: string,
+) {
   const response = await admin.graphql(DRAFT_LINE_UPDATE_MUTATION, {
-    variables: { draftId, lineId, input: { quantity } },
+    variables: { draftId, lineId, input: currentPrice ? { quantity, currentPrice } : { quantity } },
   });
   const body = (await response.json()) as {
     data?: { subscriptionDraftLineUpdate: { userErrors: { field: string[]; message: string }[] } };
@@ -1601,18 +1607,21 @@ export async function updatePortalFlavorMix({
   const lineByVariantId = new Map(productLines.filter((l) => l.variantId).map((l) => [l.variantId as string, l]));
 
   // The plan's own configured percentage is the source of truth for pricing
-  // any newly-added flavor line -- not a ratio derived from whatever price
-  // already sits on an existing line, which could itself be wrong (see
+  // every requested line -- not a ratio derived from whatever price already
+  // sits on an existing line, which could itself be wrong (see
   // getPortalManageOptions's doc comment).
   const priceRatio = 1 - discountPercent / 100;
 
-  // Only prices for variants that need a brand-new line -- kept/removed
-  // lines don't need re-pricing.
-  const newVariantIds = requested.map(([variantId]) => variantId).filter((id) => !lineByVariantId.has(id));
+  // Priced for EVERY requested flavor, not just brand-new ones -- a kept
+  // line's price gets rewritten on every save too (see the "kept" loop
+  // below), so a line that had a wrong price baked in from an earlier bug
+  // self-heals the next time its quantity is touched here, instead of
+  // silently carrying that wrong price forward forever.
+  const requestedVariantIds = requested.map(([variantId]) => variantId);
   const priceByVariantId = new Map<string, string>();
-  if (newVariantIds.length) {
+  if (requestedVariantIds.length) {
     const priceResponse = await admin.graphql(FLAVOR_MIX_VARIANT_PRICES_QUERY, {
-      variables: { ids: newVariantIds, country },
+      variables: { ids: requestedVariantIds, country },
     });
     const priceBody = (await priceResponse.json()) as {
       data?: {
@@ -1645,11 +1654,16 @@ export async function updatePortalFlavorMix({
     }
   }
 
-  // Update quantity on flavors that are kept but changed.
+  // Every kept line gets both its quantity AND its price rewritten,
+  // unconditionally -- not only when the quantity happens to differ. That's
+  // what makes this self-healing: clicking Save with the mix unchanged
+  // still corrects a line whose price drifted wrong from an earlier bug,
+  // instead of leaving it untouched because "nothing changed."
   for (const [variantId, qty] of requested) {
     const existing = lineByVariantId.get(variantId);
-    if (existing && existing.quantity !== qty) {
-      await updatePortalDraftLineQty(admin, draftId, existing.id, qty);
+    const currentPrice = priceByVariantId.get(variantId);
+    if (existing && currentPrice) {
+      await updatePortalDraftLineQty(admin, draftId, existing.id, qty, currentPrice);
     }
   }
 
