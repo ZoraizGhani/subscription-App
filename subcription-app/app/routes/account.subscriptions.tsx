@@ -12,6 +12,7 @@ import {
   updatePortalDeliveryFrequency,
   updatePortalNextBillingDate,
   updatePortalLineQuantity,
+  updatePortalFlavorMix,
   swapPortalProductVariant,
   updatePortalPaymentMethod,
   updatePortalShippingAddress,
@@ -44,6 +45,12 @@ interface ManageOptions {
   productId: string | null;
   currentVariantId: string | null;
   quantity: number;
+  // Per-flavor breakdown behind `quantity` -- more than one entry means the
+  // subscription already has a saved flavor mix (multiple lines for the same
+  // product), not just one flavor at that quantity.
+  lines: { id: string; variantId: string | null; quantity: number }[];
+  sellingPlanId: string | null;
+  sellingPlanName: string | null;
   productTitle: string;
   variants: {
     id: string;
@@ -237,7 +244,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
       }
 
-      if (formData.has("quantity")) {
+      // A flavor mix replaces the single-line quantity update entirely --
+      // it's the general case (one flavor is just a mix with one entry), so
+      // when it's present, skip the old single-quantity path rather than
+      // doing both.
+      if (formData.has("flavorMix")) {
+        const quantities = JSON.parse(String(formData.get("flavorMix"))) as Record<string, number>;
+        await updatePortalFlavorMix({
+          shop: session.shop,
+          customerShopifyId: customer.customerShopifyId,
+          contractShopifyId,
+          quantities,
+        });
+      } else if (formData.has("quantity")) {
         await updatePortalLineQuantity({
           shop: session.shop,
           customerShopifyId: customer.customerShopifyId,
@@ -375,6 +394,9 @@ function ManageSubscriptionModal({
   const [intervalCount, setIntervalCount] = useState<number | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState<number | null>(null);
+  // variantId -> quantity, for the current (non-swap) product's flavor mix.
+  // null means "not yet touched" -- derived from options.lines instead.
+  const [flavorQuantities, setFlavorQuantities] = useState<Record<string, number> | null>(null);
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
   const [addressOpen, setAddressOpen] = useState(false);
   const [address, setAddress] = useState<ShippingAddress | null>(null);
@@ -400,7 +422,6 @@ function ManageSubscriptionModal({
   const activeInterval = interval ?? options?.billingInterval ?? "DAY";
   const activeIntervalCount = intervalCount ?? options?.billingIntervalCount ?? 1;
   const activeVariantId = selectedVariantId ?? options?.currentVariantId ?? null;
-  const activeQuantity = quantity ?? options?.quantity ?? 1;
   const activePaymentMethodId =
     selectedPaymentMethodId ?? options?.paymentMethods.find((p) => p.isCurrent)?.id ?? null;
   const currentAddress = address ?? options?.shippingAddress ?? null;
@@ -410,6 +431,61 @@ function ManageSubscriptionModal({
   const activeVariant = displayVariants.find((v) => v.id === activeVariantId) ?? null;
   const unitPrice = activeVariant ? Number(activeVariant.price) : 0;
   const currencyCode = activeVariant?.currencyCode ?? sub.currencyCode;
+
+  // The flavor mix for the CURRENT product only -- swapping to a different
+  // product still picks a single target variant (activeVariantId above), not
+  // a mix, since the target isn't even on the contract until the swap saves.
+  const initialFlavorQuantities = (): Record<string, number> => {
+    const map: Record<string, number> = {};
+    for (const line of options?.lines ?? []) {
+      if (line.variantId) map[line.variantId] = (map[line.variantId] ?? 0) + line.quantity;
+    }
+    return map;
+  };
+  const activeFlavorQuantities = flavorQuantities ?? initialFlavorQuantities();
+  const flavorTotal = Object.values(activeFlavorQuantities).reduce((sum, qty) => sum + qty, 0);
+  const mixTotalPrice = Object.entries(activeFlavorQuantities).reduce((sum, [variantId, qty]) => {
+    const variant = (options?.variants ?? []).find((v) => v.id === variantId);
+    return sum + (variant ? Number(variant.price) * qty : 0);
+  }, 0);
+  const activeQuantity = swapProduct ? (quantity ?? options?.quantity ?? 1) : flavorTotal;
+
+  const setFlavorQty = (variantId: string, qty: number) => {
+    const next = { ...activeFlavorQuantities };
+    if (qty <= 0) {
+      delete next[variantId];
+    } else {
+      next[variantId] = qty;
+    }
+    setFlavorQuantities(next);
+  };
+  const incrementFlavor = (variantId: string) => setFlavorQty(variantId, (activeFlavorQuantities[variantId] ?? 0) + 1);
+  const decrementFlavor = (variantId: string) =>
+    setFlavorQty(variantId, Math.max(0, (activeFlavorQuantities[variantId] ?? 0) - 1));
+  // Used by the shared "Quantity" +/- row when there's no active swap: grows
+  // the mix onto whichever flavor already has some (defaulting to the
+  // first), or shrinks it off the last flavor that still has any -- so a
+  // single-flavor subscription behaves exactly like a plain quantity
+  // stepper, and a mixed one adjusts without the customer having to pick
+  // which flavor absorbs the change.
+  const adjustFlavorTotal = (delta: number) => {
+    const next = { ...activeFlavorQuantities };
+    const ids = displayVariants.map((v) => v.id);
+    if (delta > 0) {
+      const target = ids.find((id) => (next[id] ?? 0) > 0) ?? ids[0];
+      if (target) next[target] = (next[target] ?? 0) + 1;
+    } else {
+      for (let i = ids.length - 1; i >= 0; i -= 1) {
+        const id = ids[i];
+        if ((next[id] ?? 0) > 0) {
+          next[id] -= 1;
+          if (next[id] <= 0) delete next[id];
+          break;
+        }
+      }
+    }
+    setFlavorQuantities(next);
+  };
 
   const selectSwapProduct = (product: SwappableProduct) => {
     setSwapProduct(product);
@@ -456,11 +532,22 @@ function ManageSubscriptionModal({
       payload.interval = activeInterval;
       payload.intervalCount = String(activeIntervalCount);
     }
-    if (selectedVariantId && selectedVariantId !== options.currentVariantId) {
-      payload.productVariantId = selectedVariantId;
-    }
-    if (quantity !== null && quantity !== options.quantity) {
-      payload.quantity = String(quantity);
+    if (swapProduct) {
+      if (selectedVariantId && selectedVariantId !== options.currentVariantId) {
+        payload.productVariantId = selectedVariantId;
+      }
+      if (quantity !== null && quantity !== options.quantity) {
+        payload.quantity = String(quantity);
+      }
+    } else if (flavorQuantities) {
+      const original = initialFlavorQuantities();
+      const originalKeys = Object.keys(original);
+      const nextKeys = Object.keys(flavorQuantities);
+      const changed =
+        originalKeys.length !== nextKeys.length || nextKeys.some((id) => original[id] !== flavorQuantities[id]);
+      if (changed) {
+        payload.flavorMix = JSON.stringify(flavorQuantities);
+      }
     }
     const currentPaymentId = options.paymentMethods.find((p) => p.isCurrent)?.id ?? null;
     if (selectedPaymentMethodId && selectedPaymentMethodId !== currentPaymentId) {
@@ -663,9 +750,12 @@ function ManageSubscriptionModal({
               </div>
             )}
 
-            {displayVariants.length > 1 && (
+            {/* Swapping to a different product still picks a single target
+                variant -- it isn't on the contract yet, so there's no
+                existing mix to split across. */}
+            {swapProduct && displayVariants.length > 1 && (
               <div className={styles.manageField}>
-                <span className={styles.manageFieldLabel}>1. Select flavor(s)</span>
+                <span className={styles.manageFieldLabel}>Select flavor</span>
                 <div className={styles.manageSwatchGrid}>
                   {displayVariants.map((variant) => (
                     <button
@@ -689,9 +779,58 @@ function ManageSubscriptionModal({
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* The current product's flavor mix -- each flavor gets its own
+                +/- stepper, and the total below is however many pouches
+                across all of them add up to, not a separately-editable
+                number. */}
+            {!swapProduct && displayVariants.length > 1 && (
+              <div className={styles.manageField}>
+                <span className={styles.manageFieldLabel}>1. Select flavor(s)</span>
+                <div className={styles.manageSwatchGrid}>
+                  {displayVariants.map((variant) => {
+                    const flavorQty = activeFlavorQuantities[variant.id] ?? 0;
+                    return (
+                      <div
+                        key={variant.id}
+                        className={`${styles.manageSwatch} ${flavorQty > 0 ? styles["is-selected"] : ""}`}
+                        style={{ opacity: variant.availableForSale ? 1 : 0.5 }}
+                      >
+                        <span className={styles.manageSwatchImage}>
+                          {variant.imageUrl && <img src={variant.imageUrl} alt={variant.title} />}
+                        </span>
+                        <span className={styles.manageSwatchName}>
+                          {variant.title}
+                          {!variant.availableForSale && " (out of stock)"}
+                        </span>
+                        <div className={styles.manageQuantity}>
+                          <button
+                            type="button"
+                            onClick={() => decrementFlavor(variant.id)}
+                            disabled={flavorQty <= 0}
+                            aria-label={`Decrease ${variant.title} quantity`}
+                          >
+                            &minus;
+                          </button>
+                          <span>{flavorQty}</span>
+                          <button
+                            type="button"
+                            onClick={() => incrementFlavor(variant.id)}
+                            disabled={!variant.availableForSale}
+                            aria-label={`Increase ${variant.title} quantity`}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
                 <p className={styles.manageMixNote}>
-                  Mix flavors freely &mdash; {activeQuantity} pouch{activeQuantity === 1 ? "" : "es"} selected, same
-                  price per pouch either way.
+                  Mix flavors freely &mdash; {flavorTotal} pouch{flavorTotal === 1 ? "" : "es"} selected, same price
+                  per pouch either way.
                 </p>
               </div>
             )}
@@ -699,19 +838,27 @@ function ManageSubscriptionModal({
             <div className={styles.manageQuantityRow}>
               <span className={styles.manageFieldLabel}>Quantity</span>
               <div className={styles.manageQuantity}>
-                <button type="button" onClick={() => setQuantity(Math.max(1, activeQuantity - 1))} aria-label="Decrease quantity">
+                <button
+                  type="button"
+                  onClick={() => (swapProduct ? setQuantity(Math.max(1, activeQuantity - 1)) : adjustFlavorTotal(-1))}
+                  aria-label="Decrease quantity"
+                >
                   &minus;
                 </button>
                 <span>{activeQuantity}</span>
-                <button type="button" onClick={() => setQuantity(activeQuantity + 1)} aria-label="Increase quantity">
+                <button
+                  type="button"
+                  onClick={() => (swapProduct ? setQuantity(activeQuantity + 1) : adjustFlavorTotal(1))}
+                  aria-label="Increase quantity"
+                >
                   +
                 </button>
               </div>
             </div>
 
             <div className={styles.manageTotal}>
-              Total: {formatMoney(unitPrice * activeQuantity, currencyCode)} &bull; {activeQuantity} pouch
-              {activeQuantity === 1 ? "" : "es"} per delivery
+              Total: {formatMoney(swapProduct ? unitPrice * activeQuantity : mixTotalPrice, currencyCode)} &bull;{" "}
+              {activeQuantity} pouch{activeQuantity === 1 ? "" : "es"} per delivery
             </div>
 
             {saveFetcher.data?.intent === "saveChanges" && "success" in saveFetcher.data && (

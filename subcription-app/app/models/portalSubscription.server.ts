@@ -807,8 +807,8 @@ const MANAGE_OPTIONS_QUERY = `#graphql
           }
         }
       }
-      lines(first: 1) {
-        nodes { id productId variantId variantTitle quantity }
+      lines(first: 20) {
+        nodes { id productId variantId variantTitle quantity sellingPlanId sellingPlanName }
       }
     }
   }
@@ -884,7 +884,16 @@ export async function getPortalManageOptions({
         } | null;
         customerPaymentMethod: { id: string; instrument: RawPaymentMethod["instrument"] } | null;
         deliveryMethod: { address?: RawAddress } | null;
-        lines: { nodes: { id: string; productId: string | null; variantId: string | null; quantity: number }[] };
+        lines: {
+          nodes: {
+            id: string;
+            productId: string | null;
+            variantId: string | null;
+            quantity: number;
+            sellingPlanId: string | null;
+            sellingPlanName: string | null;
+          }[];
+        };
       } | null;
     };
   };
@@ -893,6 +902,10 @@ export async function getPortalManageOptions({
   if (!line || !line.productId) {
     throw new Error("This subscription has no product line to manage.");
   }
+  // A subscription can already have more than one line for the same product
+  // (a previously-saved flavor mix) -- every line sharing that product id is
+  // part of "this subscription" for editing purposes, not just the first one.
+  const productLines = contract!.lines.nodes.filter((l) => l.productId === line.productId);
   // The contract's own delivery address is what actually pins its billing
   // market/currency -- the customer's account-level default address can
   // differ (they may have other subscriptions, or changed it since), and
@@ -952,7 +965,14 @@ export async function getPortalManageOptions({
     lineId: line.id,
     productId: line.productId,
     currentVariantId: line.variantId,
-    quantity: line.quantity,
+    // Total across every line for this product -- with a flavor mix, that's
+    // more than one line, so the old "first line's quantity" undercounted.
+    quantity: productLines.reduce((sum, l) => sum + l.quantity, 0),
+    // Per-flavor breakdown the mix picker needs to know what's already
+    // selected and how much of it.
+    lines: productLines.map((l) => ({ id: l.id, variantId: l.variantId, quantity: l.quantity })),
+    sellingPlanId: line.sellingPlanId,
+    sellingPlanName: line.sellingPlanName,
     productTitle: product?.title ?? "",
     variants: (product?.variants.edges ?? []).map((e) => ({
       id: e.node.id,
@@ -1180,6 +1200,74 @@ async function commitPortalDraft(admin: PortalAdmin, draftId: string) {
   }
 }
 
+const DRAFT_LINE_ADD_MUTATION = `#graphql
+  mutation PortalDraftLineAdd($draftId: ID!, $input: SubscriptionLineInput!) {
+    subscriptionDraftLineAdd(draftId: $draftId, input: $input) {
+      draft { id }
+      userErrors { field message }
+    }
+  }
+`;
+
+const DRAFT_LINE_REMOVE_MUTATION = `#graphql
+  mutation PortalDraftLineRemove($draftId: ID!, $lineId: ID!) {
+    subscriptionDraftLineRemove(draftId: $draftId, lineId: $lineId) {
+      draft { id }
+      userErrors { field message }
+    }
+  }
+`;
+
+async function addPortalDraftLine(
+  admin: PortalAdmin,
+  draftId: string,
+  input: { productVariantId: string; quantity: number; currentPrice: string; sellingPlanId?: string | null; sellingPlanName?: string | null },
+) {
+  const response = await admin.graphql(DRAFT_LINE_ADD_MUTATION, {
+    variables: {
+      draftId,
+      input: {
+        productVariantId: input.productVariantId,
+        quantity: input.quantity,
+        currentPrice: input.currentPrice,
+        ...(input.sellingPlanId ? { sellingPlanId: input.sellingPlanId } : {}),
+        ...(input.sellingPlanName ? { sellingPlanName: input.sellingPlanName } : {}),
+      },
+    },
+  });
+  const body = (await response.json()) as {
+    data?: { subscriptionDraftLineAdd: { userErrors: { field: string[]; message: string }[] } };
+  };
+  const userErrors = body.data?.subscriptionDraftLineAdd?.userErrors ?? [];
+  if (userErrors.length) {
+    throw new Error(`subscriptionDraftLineAdd failed: ${JSON.stringify(userErrors)}`);
+  }
+}
+
+async function removePortalDraftLine(admin: PortalAdmin, draftId: string, lineId: string) {
+  const response = await admin.graphql(DRAFT_LINE_REMOVE_MUTATION, { variables: { draftId, lineId } });
+  const body = (await response.json()) as {
+    data?: { subscriptionDraftLineRemove: { userErrors: { field: string[]; message: string }[] } };
+  };
+  const userErrors = body.data?.subscriptionDraftLineRemove?.userErrors ?? [];
+  if (userErrors.length) {
+    throw new Error(`subscriptionDraftLineRemove failed: ${JSON.stringify(userErrors)}`);
+  }
+}
+
+async function updatePortalDraftLineQty(admin: PortalAdmin, draftId: string, lineId: string, quantity: number) {
+  const response = await admin.graphql(DRAFT_LINE_UPDATE_MUTATION, {
+    variables: { draftId, lineId, input: { quantity } },
+  });
+  const body = (await response.json()) as {
+    data?: { subscriptionDraftLineUpdate: { userErrors: { field: string[]; message: string }[] } };
+  };
+  const userErrors = body.data?.subscriptionDraftLineUpdate?.userErrors ?? [];
+  if (userErrors.length) {
+    throw new Error(`subscriptionDraftLineUpdate failed: ${JSON.stringify(userErrors)}`);
+  }
+}
+
 const VALID_INTERVALS = new Set(["DAY", "WEEK", "MONTH", "YEAR"]);
 
 export async function updatePortalDeliveryFrequency({
@@ -1306,6 +1394,166 @@ export async function updatePortalLineQuantity({
   const updateErrors = updateBody.data?.subscriptionDraftLineUpdate?.userErrors ?? [];
   if (updateErrors.length) {
     throw new Error(`subscriptionDraftLineUpdate failed: ${JSON.stringify(updateErrors)}`);
+  }
+
+  await commitPortalDraft(admin, draftId);
+  await syncSubscriptionContract({ graphql: admin.graphql, shop, contractId: contractShopifyId });
+}
+
+const FLAVOR_MIX_CONTEXT_QUERY = `#graphql
+  query PortalFlavorMixContext($id: ID!) {
+    subscriptionContract(id: $id) {
+      currencyCode
+      customer { defaultAddress { countryCodeV2 } }
+      deliveryMethod {
+        ... on SubscriptionDeliveryMethodShipping {
+          address { countryCodeV2 }
+        }
+      }
+      lines(first: 20) {
+        nodes { id productId variantId quantity sellingPlanId sellingPlanName }
+      }
+    }
+  }
+`;
+
+const FLAVOR_MIX_VARIANT_PRICES_QUERY = `#graphql
+  query PortalFlavorMixVariantPrices($ids: [ID!]!, $country: CountryCode) {
+    nodes(ids: $ids) {
+      ... on ProductVariant {
+        id
+        availableForSale
+        contextualPricing(context: { country: $country }) {
+          price { amount currencyCode }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Splits a subscription's quantity across multiple flavors of the same
+ * product -- e.g. 2 Sour Green Apple + 1 Blood Orange instead of 3 of one
+ * flavor. Since each flavor is a different variant, this can't be a single
+ * quantity update: it reconciles the requested `quantities` map against
+ * whatever lines already exist for this product by removing lines dropped to
+ * 0, updating lines whose quantity changed, and adding lines for newly-picked
+ * flavors -- all inside one draft so a save that touches several flavors at
+ * once can't commit half-applied. Every new/kept line carries the SAME
+ * selling plan the subscription already had, so the mix keeps billing on the
+ * same schedule as before -- only the customer's own currently-subscribed
+ * product's flavors are ever eligible (mirrors swapPortalProductVariant's
+ * currency-safety check).
+ */
+export async function updatePortalFlavorMix({
+  shop,
+  customerShopifyId,
+  contractShopifyId,
+  quantities,
+}: {
+  shop: string;
+  customerShopifyId: string;
+  contractShopifyId: string;
+  quantities: Record<string, number>;
+}) {
+  await assertOwnedActiveContract({ shop, customerShopifyId, contractShopifyId });
+
+  const requested = Object.entries(quantities).filter(([, qty]) => Number.isInteger(qty) && qty > 0);
+  if (requested.length === 0) {
+    throw new Error("Select at least one flavor.");
+  }
+
+  const { admin } = await unauthenticated.admin(shop);
+
+  const contextResponse = await admin.graphql(FLAVOR_MIX_CONTEXT_QUERY, { variables: { id: contractShopifyId } });
+  const contextBody = (await contextResponse.json()) as {
+    data?: {
+      subscriptionContract: {
+        currencyCode: string;
+        customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
+        deliveryMethod: { address?: { countryCodeV2: string } } | null;
+        lines: {
+          nodes: {
+            id: string;
+            productId: string | null;
+            variantId: string | null;
+            quantity: number;
+            sellingPlanId: string | null;
+            sellingPlanName: string | null;
+          }[];
+        };
+      } | null;
+    };
+  };
+  const contract = contextBody.data?.subscriptionContract;
+  const allLines = contract?.lines.nodes ?? [];
+  const primaryLine = allLines[0];
+  if (!primaryLine || !primaryLine.productId) {
+    throw new Error("This subscription has no product line to manage.");
+  }
+  const productLines = allLines.filter((l) => l.productId === primaryLine.productId);
+  const sellingPlanId = primaryLine.sellingPlanId;
+  const sellingPlanName = primaryLine.sellingPlanName;
+  const currencyCode = contract?.currencyCode ?? null;
+  const country =
+    contract?.deliveryMethod?.address?.countryCodeV2 ?? contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
+
+  const lineByVariantId = new Map(productLines.filter((l) => l.variantId).map((l) => [l.variantId as string, l]));
+
+  // Only prices for variants that need a brand-new line -- kept/removed
+  // lines don't need re-pricing.
+  const newVariantIds = requested.map(([variantId]) => variantId).filter((id) => !lineByVariantId.has(id));
+  const priceByVariantId = new Map<string, string>();
+  if (newVariantIds.length) {
+    const priceResponse = await admin.graphql(FLAVOR_MIX_VARIANT_PRICES_QUERY, {
+      variables: { ids: newVariantIds, country },
+    });
+    const priceBody = (await priceResponse.json()) as {
+      data?: {
+        nodes: (
+          | { id: string; availableForSale: boolean; contextualPricing: { price: { amount: string; currencyCode: string } } }
+          | null
+        )[];
+      };
+    };
+    for (const node of priceBody.data?.nodes ?? []) {
+      if (!node) continue;
+      if (!node.availableForSale) {
+        throw new Error("One of the selected flavors is currently out of stock.");
+      }
+      if (currencyCode && node.contextualPricing.price.currencyCode !== currencyCode) {
+        throw new Error("Could not confirm pricing for a selected flavor in your currency. Please try again.");
+      }
+      priceByVariantId.set(node.id, node.contextualPricing.price.amount);
+    }
+  }
+
+  const draftId = await openPortalDraft(admin, contractShopifyId);
+  const requestedByVariantId = new Map(requested);
+
+  // Remove first -- lines for flavors no longer in the mix at all.
+  for (const line of productLines) {
+    if (!line.variantId || !requestedByVariantId.has(line.variantId)) {
+      await removePortalDraftLine(admin, draftId, line.id);
+    }
+  }
+
+  // Update quantity on flavors that are kept but changed.
+  for (const [variantId, qty] of requested) {
+    const existing = lineByVariantId.get(variantId);
+    if (existing && existing.quantity !== qty) {
+      await updatePortalDraftLineQty(admin, draftId, existing.id, qty);
+    }
+  }
+
+  // Add lines for newly-picked flavors.
+  for (const [variantId, qty] of requested) {
+    if (lineByVariantId.has(variantId)) continue;
+    const currentPrice = priceByVariantId.get(variantId);
+    if (!currentPrice) {
+      throw new Error("Could not confirm pricing for a selected flavor. Please try again.");
+    }
+    await addPortalDraftLine(admin, draftId, { productVariantId: variantId, quantity: qty, currentPrice, sellingPlanId, sellingPlanName });
   }
 
   await commitPortalDraft(admin, draftId);

@@ -190,7 +190,6 @@
       // get the real total, then divide by count (total servings) for the
       // per-serving figure. A 3-quantity plan bills 3x the per-unit price.
       const totalPrice = selectedPrice * currentPlanQuantity;
-      const totalCompare = variant.price * currentPlanQuantity;
       const perServing = count ? totalPrice / count : totalPrice;
 
       // Sticky bar mirrors whichever plan/variant is selected above -- image,
