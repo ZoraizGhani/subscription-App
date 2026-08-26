@@ -1012,6 +1012,16 @@
   margin-top: 0.25rem;
 }
 
+.subUnitPrice {
+  display: block;
+  text-align: right;
+  font-family: "Geist", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #757575;
+}
+
 .subDivider {
   border: none;
   border-top: 1px solid #e8e4dd;
@@ -1959,7 +1969,8 @@
   }
 
   .subPriceLabel,
-  .subPrice {
+  .subPrice,
+  .subUnitPrice {
     text-align: left;
   }
 

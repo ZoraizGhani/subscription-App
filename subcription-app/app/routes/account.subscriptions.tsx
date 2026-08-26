@@ -1124,8 +1124,13 @@ function SubscriptionCard({
           </div>
         </div>
         <div>
-          <span className={styles.subPriceLabel}>Unit price</span>
+          <span className={styles.subPriceLabel}>Total price</span>
           <div className={styles.subPrice}>{formatMoney(sub.totalAmount, sub.currencyCode)}</div>
+          {sub.quantity && sub.totalAmount != null ? (
+            <span className={styles.subUnitPrice}>
+              {formatMoney(sub.totalAmount / sub.quantity, sub.currencyCode)} / unit
+            </span>
+          ) : null}
         </div>
       </div>
 
