@@ -1312,6 +1312,12 @@ const SELLING_PLAN_TERMS_QUERY = `#graphql
               ... on SellingPlanPricingPolicyPercentageValue { percentage }
             }
           }
+          ... on SellingPlanRecurringPricingPolicy {
+            adjustmentType
+            adjustmentValue {
+              ... on SellingPlanPricingPolicyPercentageValue { percentage }
+            }
+          }
         }
       }
     }
