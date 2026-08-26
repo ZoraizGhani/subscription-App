@@ -324,6 +324,18 @@
       submitBtn.disabled = !mixValid;
       if (summarySubmitBtn) summarySubmitBtn.disabled = !mixValid;
       if (stickySubmitBtn) stickySubmitBtn.disabled = !mixValid;
+
+      // A disabled button never fires a click, so addToCart()'s own guard
+      // message would never actually show -- this is the message's real
+      // home, shown proactively instead of only after a (now-impossible)
+      // click attempt.
+      if (!mixValid) {
+        statusEl.textContent = `Select ${currentPlanQuantity} total across flavors before adding to cart.`;
+        statusEl.classList.add("is-error");
+      } else if (statusEl.classList.contains("is-error")) {
+        statusEl.textContent = "";
+        statusEl.classList.remove("is-error");
+      }
     }
 
     optionEls.forEach((optionEl) => {
