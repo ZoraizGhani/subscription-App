@@ -29,6 +29,19 @@ function firstLineProductId(linesJson: string | null): string | null {
   return firstLine(linesJson)?.productId ?? null;
 }
 
+/** Every line sharing the first line's product id -- the full flavor mix for
+ * "the" subscribed product, not just whichever line happens to be first. */
+function productLines(linesJson: string | null): ContractLine[] {
+  if (!linesJson) return [];
+  try {
+    const lines = JSON.parse(linesJson) as ContractLine[];
+    const productId = lines[0]?.productId ?? null;
+    return lines.filter((l) => l.productId === productId);
+  } catch {
+    return [];
+  }
+}
+
 const ORDER_FULFILLMENT_STATUS_QUERY = `#graphql
   query PortalOrderFulfillmentStatus($ids: [ID!]!) {
     nodes(ids: $ids) {
@@ -318,15 +331,18 @@ export async function listPortalSubscriptions({
   }
 
   return contracts.map((c) => {
-    const line = firstLine(c.linesJson);
+    const lines = productLines(c.linesJson);
+    const line = lines[0] ?? null;
     const summary = summaryByContractId.get(c.shopifyId);
     return {
       contractShopifyId: c.shopifyId,
       productTitle: line?.title ?? "Subscription",
       productHandle: line?.productId ? (handleByProductId.get(line.productId) ?? null) : null,
       productImageUrl: line?.productId ? (imageByProductId.get(line.productId) ?? null) : null,
-      quantity: line?.quantity ?? null,
-      variantTitle: line?.variantTitle ?? null,
+      // Total across every flavor line for this product, not just the first.
+      quantity: lines.length ? lines.reduce((sum, l) => sum + l.quantity, 0) : null,
+      // The per-flavor breakdown -- more than one entry means a saved mix.
+      flavorLines: lines.map((l) => ({ variantTitle: l.variantTitle ?? null, quantity: l.quantity })),
       status: c.status,
       totalAmount: c.totalAmount,
       currencyCode: c.currencyCode,

@@ -462,30 +462,6 @@ function ManageSubscriptionModal({
   const incrementFlavor = (variantId: string) => setFlavorQty(variantId, (activeFlavorQuantities[variantId] ?? 0) + 1);
   const decrementFlavor = (variantId: string) =>
     setFlavorQty(variantId, Math.max(0, (activeFlavorQuantities[variantId] ?? 0) - 1));
-  // Used by the shared "Quantity" +/- row when there's no active swap: grows
-  // the mix onto whichever flavor already has some (defaulting to the
-  // first), or shrinks it off the last flavor that still has any -- so a
-  // single-flavor subscription behaves exactly like a plain quantity
-  // stepper, and a mixed one adjusts without the customer having to pick
-  // which flavor absorbs the change.
-  const adjustFlavorTotal = (delta: number) => {
-    const next = { ...activeFlavorQuantities };
-    const ids = displayVariants.map((v) => v.id);
-    if (delta > 0) {
-      const target = ids.find((id) => (next[id] ?? 0) > 0) ?? ids[0];
-      if (target) next[target] = (next[target] ?? 0) + 1;
-    } else {
-      for (let i = ids.length - 1; i >= 0; i -= 1) {
-        const id = ids[i];
-        if ((next[id] ?? 0) > 0) {
-          next[id] -= 1;
-          if (next[id] <= 0) delete next[id];
-          break;
-        }
-      }
-    }
-    setFlavorQuantities(next);
-  };
 
   const selectSwapProduct = (product: SwappableProduct) => {
     setSwapProduct(product);
@@ -835,26 +811,54 @@ function ManageSubscriptionModal({
               </div>
             )}
 
-            <div className={styles.manageQuantityRow}>
-              <span className={styles.manageFieldLabel}>Quantity</span>
-              <div className={styles.manageQuantity}>
-                <button
-                  type="button"
-                  onClick={() => (swapProduct ? setQuantity(Math.max(1, activeQuantity - 1)) : adjustFlavorTotal(-1))}
-                  aria-label="Decrease quantity"
-                >
-                  &minus;
-                </button>
-                <span>{activeQuantity}</span>
-                <button
-                  type="button"
-                  onClick={() => (swapProduct ? setQuantity(activeQuantity + 1) : adjustFlavorTotal(1))}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </button>
+            {/* No standalone quantity control when there's a flavor mix to
+                adjust instead -- the steppers above already change quantity,
+                so a second, separate control here would just be a
+                redundant, confusing way to do the same thing. Still shown
+                for a swap (no mix to adjust yet) and for a single-variant
+                product (no flavor picker at all, so nothing else changes
+                quantity). */}
+            {swapProduct && (
+              <div className={styles.manageQuantityRow}>
+                <span className={styles.manageFieldLabel}>Quantity</span>
+                <div className={styles.manageQuantity}>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(Math.max(1, activeQuantity - 1))}
+                    aria-label="Decrease quantity"
+                  >
+                    &minus;
+                  </button>
+                  <span>{activeQuantity}</span>
+                  <button type="button" onClick={() => setQuantity(activeQuantity + 1)} aria-label="Increase quantity">
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {!swapProduct && displayVariants.length <= 1 && displayVariants[0] && (
+              <div className={styles.manageQuantityRow}>
+                <span className={styles.manageFieldLabel}>Quantity</span>
+                <div className={styles.manageQuantity}>
+                  <button
+                    type="button"
+                    onClick={() => decrementFlavor(displayVariants[0].id)}
+                    aria-label="Decrease quantity"
+                  >
+                    &minus;
+                  </button>
+                  <span>{activeQuantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => incrementFlavor(displayVariants[0].id)}
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className={styles.manageTotal}>
               Total: {formatMoney(swapProduct ? unitPrice * activeQuantity : mixTotalPrice, currencyCode)} &bull;{" "}
@@ -1131,7 +1135,12 @@ function SubscriptionCard({
             <div>
               <span className={styles.metaLabel}>Quantity</span>
               <div className={styles.metaValue}>{sub.quantity ?? "—"}</div>
-              {sub.variantTitle && <span className={styles.metaSubtext}>{sub.variantTitle}</span>}
+              {sub.flavorLines.map((line, index) => (
+                <span key={index} className={styles.metaSubtext}>
+                  {line.variantTitle ?? "—"}
+                  {line.quantity > 1 ? ` ×${line.quantity}` : ""}
+                </span>
+              ))}
             </div>
             <div>
               <span className={styles.metaLabel}>Billing status</span>
