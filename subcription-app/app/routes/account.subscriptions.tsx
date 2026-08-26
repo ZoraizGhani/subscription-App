@@ -1138,7 +1138,7 @@ function SubscriptionCard({
               {sub.flavorLines.map((line, index) => (
                 <span key={index} className={styles.metaSubtext}>
                   {line.variantTitle ?? "—"}
-                  {line.quantity > 1 ? ` ×${line.quantity}` : ""}
+                  {sub.flavorLines.length > 1 ? ` ×${line.quantity}` : ""}
                 </span>
               ))}
             </div>
