@@ -972,31 +972,9 @@ export async function getPortalManageOptions({
   };
   const product = productBody.data?.product;
 
-  // The selling plan's own "Quantity" option (options[2] -- see
-  // sellingPlanInput in sellingPlan.server.ts, same three-dimension
-  // "Delivery every"/"Count"/"Quantity" scheme the storefront widget reads)
-  // caps how many total pouches this specific plan allows -- the flavor mix
-  // can redistribute that quantity across flavors, but never exceed it.
-  // Legacy plans saved before "Quantity" existed have fewer than 3 options,
-  // in which case there's no cap (defaults to 1, same as the widget's own
-  // `default: 1` fallback).
-  let maxQuantity: number | null = null;
-  if (line.sellingPlanId) {
-    const planResponse = await admin.graphql(
-      `#graphql
-        query PortalSellingPlanOptions($id: ID!) {
-          node(id: $id) {
-            ... on SellingPlan { options }
-          }
-        }
-      `,
-      { variables: { id: line.sellingPlanId } },
-    );
-    const planBody = (await planResponse.json()) as { data?: { node: { options: string[] } | null } };
-    const planOptions = planBody.data?.node?.options ?? [];
-    const parsed = Number(planOptions[2]);
-    maxQuantity = Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-  }
+  const { maxQuantity, discountPercent } = line.sellingPlanId
+    ? await getSellingPlanTerms(admin, line.sellingPlanId)
+    : { maxQuantity: null, discountPercent: 0 };
 
   // Same correction as the subscriptions list -- contract.nextBillingDate
   // from the GraphQL response above can't be trusted once a cycle's been
@@ -1017,10 +995,14 @@ export async function getPortalManageOptions({
     sellingPlanName: line.sellingPlanName,
     maxQuantity,
     productTitle: product?.title ?? "",
+    // Discounted, not the variant's plain contextualPricing -- Shopify does
+    // NOT auto-apply a selling plan's percentage discount to that field, so
+    // showing it as-is would preview full price on a subscription that's
+    // actually billed at a discount (see getSellingPlanTerms's doc comment).
     variants: (product?.variants.edges ?? []).map((e) => ({
       id: e.node.id,
       title: e.node.title,
-      price: e.node.contextualPricing.price.amount,
+      price: (Number(e.node.contextualPricing.price.amount) * (1 - discountPercent / 100)).toFixed(2),
       currencyCode: e.node.contextualPricing.price.currencyCode,
       availableForSale: e.node.availableForSale,
       imageUrl: e.node.image?.url ?? null,
@@ -1311,6 +1293,57 @@ async function updatePortalDraftLineQty(admin: PortalAdmin, draftId: string, lin
   }
 }
 
+const SELLING_PLAN_TERMS_QUERY = `#graphql
+  query PortalSellingPlanTerms($id: ID!) {
+    node(id: $id) {
+      ... on SellingPlan {
+        options
+        pricingPolicies {
+          ... on SellingPlanFixedPricingPolicy {
+            adjustmentType
+            adjustmentValue {
+              ... on SellingPlanPricingPolicyPercentageValue { percentage }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * The two things every price/quantity computation for a plan's flavor mix
+ * needs: its "Quantity" option (options[2] -- see sellingPlanInput in
+ * sellingPlan.server.ts, same three-dimension "Delivery every"/"Count"/
+ * "Quantity" scheme the storefront widget reads) as the cap on the mix's
+ * total, and its percentage discount. Both matter because `currentPrice` on
+ * subscriptionDraftLineAdd/subscriptionContractProductChange is NOT
+ * auto-discounted by Shopify from the attached selling plan -- it's taken
+ * literally as "the price of the product" (per the schema's own field
+ * description), so a newly-added line billed off a variant's plain
+ * contextualPricing would charge the customer full price instead of their
+ * plan's discounted rate. Legacy plans saved with fewer than 3 options (no
+ * "Quantity" dimension yet) get maxQuantity: null (no cap), matching the
+ * widget's own `default: 1` fallback for that case.
+ */
+async function getSellingPlanTerms(admin: PortalAdmin, sellingPlanId: string) {
+  const response = await admin.graphql(SELLING_PLAN_TERMS_QUERY, { variables: { id: sellingPlanId } });
+  const body = (await response.json()) as {
+    data?: {
+      node: {
+        options: string[];
+        pricingPolicies: { adjustmentType?: string; adjustmentValue?: { percentage?: number } }[];
+      } | null;
+    };
+  };
+  const node = body.data?.node;
+  const parsedQuantity = Number(node?.options?.[2]);
+  const maxQuantity = Number.isInteger(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : null;
+  const percentage = node?.pricingPolicies?.[0]?.adjustmentValue?.percentage;
+  const discountPercent = typeof percentage === "number" ? percentage : 0;
+  return { maxQuantity, discountPercent };
+}
+
 const VALID_INTERVALS = new Set(["DAY", "WEEK", "MONTH", "YEAR"]);
 
 export async function updatePortalDeliveryFrequency({
@@ -1542,26 +1575,14 @@ export async function updatePortalFlavorMix({
     contract?.deliveryMethod?.address?.countryCodeV2 ?? contract?.customer?.defaultAddress?.countryCodeV2 ?? null;
 
   // Never trust the client's own total -- re-derive the plan's cap here too
-  // (same options[2] "Quantity" scheme as getPortalManageOptions) and reject
-  // outright if the requested mix exceeds what this plan actually allows.
-  if (sellingPlanId) {
-    const planResponse = await admin.graphql(
-      `#graphql
-        query PortalFlavorMixPlanOptions($id: ID!) {
-          node(id: $id) {
-            ... on SellingPlan { options }
-          }
-        }
-      `,
-      { variables: { id: sellingPlanId } },
-    );
-    const planBody = (await planResponse.json()) as { data?: { node: { options: string[] } | null } };
-    const parsed = Number(planBody.data?.node?.options?.[2]);
-    const maxQuantity = Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-    const requestedTotal = requested.reduce((sum, [, qty]) => sum + qty, 0);
-    if (maxQuantity != null && requestedTotal > maxQuantity) {
-      throw new Error(`This plan allows ${maxQuantity} total across flavors.`);
-    }
+  // and reject outright if the requested mix exceeds what this plan
+  // actually allows.
+  const { maxQuantity, discountPercent } = sellingPlanId
+    ? await getSellingPlanTerms(admin, sellingPlanId)
+    : { maxQuantity: null, discountPercent: 0 };
+  const requestedTotal = requested.reduce((sum, [, qty]) => sum + qty, 0);
+  if (maxQuantity != null && requestedTotal > maxQuantity) {
+    throw new Error(`This plan allows ${maxQuantity} total across flavors.`);
   }
 
   const lineByVariantId = new Map(productLines.filter((l) => l.variantId).map((l) => [l.variantId as string, l]));
@@ -1590,7 +1611,10 @@ export async function updatePortalFlavorMix({
       if (currencyCode && node.contextualPricing.price.currencyCode !== currencyCode) {
         throw new Error("Could not confirm pricing for a selected flavor in your currency. Please try again.");
       }
-      priceByVariantId.set(node.id, node.contextualPricing.price.amount);
+      // Discounted by the plan's own percentage -- see getSellingPlanTerms's
+      // doc comment for why this can't just be the raw contextualPricing.
+      const discounted = (Number(node.contextualPricing.price.amount) * (1 - discountPercent / 100)).toFixed(2);
+      priceByVariantId.set(node.id, discounted);
     }
   }
 
@@ -1772,6 +1796,7 @@ export async function swapPortalProductVariant({
               address { countryCodeV2 }
             }
           }
+          lines(first: 20) { nodes { id sellingPlanId } }
         }
       }
     `,
@@ -1783,10 +1808,17 @@ export async function swapPortalProductVariant({
         currencyCode: string;
         customer: { defaultAddress: { countryCodeV2: string | null } | null } | null;
         deliveryMethod: { address?: { countryCodeV2: string } } | null;
+        lines: { nodes: { id: string; sellingPlanId: string | null } [] };
       } | null;
     };
   };
   const contractInfo = contractCurrencyBody.data?.subscriptionContract;
+  const swapSellingPlanId = contractInfo?.lines.nodes.find((l) => l.id === lineId)?.sellingPlanId ?? null;
+  // Same non-auto-discounted currentPrice issue as updatePortalFlavorMix --
+  // see getSellingPlanTerms's doc comment.
+  const { discountPercent: swapDiscountPercent } = swapSellingPlanId
+    ? await getSellingPlanTerms(admin, swapSellingPlanId)
+    : { discountPercent: 0 };
   // Prefer the contract's own delivery address over the customer's
   // account-level default address -- see getPortalManageOptions for why.
   const country =
@@ -1828,11 +1860,12 @@ export async function swapPortalProductVariant({
     throw new Error("Could not confirm pricing for that option in your currency. Please try again.");
   }
 
+  const discountedPrice = (Number(variant.contextualPricing.price.amount) * (1 - swapDiscountPercent / 100)).toFixed(2);
   const response = await admin.graphql(PRODUCT_CHANGE_MUTATION, {
     variables: {
       id: contractShopifyId,
       lineId,
-      input: { productVariantId, currentPrice: variant.contextualPricing.price.amount },
+      input: { productVariantId, currentPrice: discountedPrice },
     },
   });
   const body = (await response.json()) as {
