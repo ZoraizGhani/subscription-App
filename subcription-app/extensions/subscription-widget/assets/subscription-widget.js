@@ -272,12 +272,12 @@
       // A one-time purchase skips the selling plan entirely, so it's priced
       // off the variant's own price/compare-at price -- not the subscription
       // discount (`selectedPrice`), which only applies when actually
-      // subscribing. Multiplied by the same quantity the subscription would
-      // ship, since it's buying the same number of units. Show the
-      // strikethrough only when the variant genuinely has a compare-at price
-      // higher than its price; otherwise just the plain price.
-      const oneTimePrice = variant.price * currentPlanQuantity;
-      const oneTimeCompare = variant.compare_at_price ? variant.compare_at_price * currentPlanQuantity : null;
+      // subscribing. Always a single unit regardless of the selected plan's
+      // quantity (see addToCart) -- a try-it-once option, not a scaled-down
+      // bundle. Show the strikethrough only when the variant genuinely has a
+      // compare-at price higher than its price; otherwise just the price.
+      const oneTimePrice = variant.price;
+      const oneTimeCompare = variant.compare_at_price;
       const oneTimeHasCompare = Boolean(oneTimeCompare) && oneTimeCompare > oneTimePrice;
       if (summaryOnetimeCompareEl) {
         summaryOnetimeCompareEl.hidden = !oneTimeHasCompare;
@@ -313,6 +313,17 @@
         flavorRemainingEl.textContent = `${sum} of ${currentPlanQuantity} selected`;
         flavorRemainingEl.classList.toggle("is-incomplete", sum !== currentPlanQuantity);
       }
+
+      // Subscription add-to-cart entry points stay disabled until the flavor
+      // mix adds up to exactly what the selected bundle's quantity calls for
+      // -- addToCart() itself still guards this too, but disabling the
+      // buttons makes the requirement visible before the customer even
+      // tries. The one-time-purchase button is exempt: it always buys a
+      // single unit regardless of the mix, so it's never gated by it.
+      const mixValid = sum === currentPlanQuantity;
+      submitBtn.disabled = !mixValid;
+      if (summarySubmitBtn) summarySubmitBtn.disabled = !mixValid;
+      if (stickySubmitBtn) stickySubmitBtn.disabled = !mixValid;
     }
 
     optionEls.forEach((optionEl) => {
@@ -355,39 +366,35 @@
 
     // Shared by the main submit button, the order summary card's own "Add
     // to cart" button, and its "One-time purchase" button -- all three are
-    // entry points to the same cart, not independent flows. oneTime skips
-    // selling_plan entirely (a real one-time purchase, not a subscription)
-    // but adds the same number of units the subscription would've shipped,
-    // matching the total price shown next to it. A subscription uses
-    // whatever quantity the merchant configured for that specific plan in
-    // the app's admin (Selling Plan Settings), which can differ per plan --
-    // not always 1.
+    // entry points to the same cart, not independent flows. A subscription
+    // uses whatever quantity the merchant configured for that specific plan
+    // in the app's admin (Selling Plan Settings), split across the chosen
+    // flavor mix. A one-time purchase always adds a single unit of whichever
+    // flavor/variant is currently active, regardless of which plan (and its
+    // quantity) happens to be selected -- it's a try-it-once option, not a
+    // scaled-down bundle, so the plan's quantity and flavor mix don't apply.
     async function addToCart({ oneTime } = {}) {
-      const planId = oneTime ? undefined : selectedPlanId();
-
-      // Mixed flavors -> one cart line item per flavor with quantity > 0
-      // (each is a different variant, so they can't be combined into a
-      // single line the way one flavor at quantity N could be). Block the
-      // submit entirely if the mix doesn't add up to what the plan allows --
-      // the same total the "N of M selected" progress line already shows.
       let items;
-      if (flavorSwatches.length) {
+      if (oneTime) {
+        items = [{ id: currentVariant().id, quantity: 1 }];
+      } else if (flavorSwatches.length) {
+        // Mixed flavors -> one cart line item per flavor with quantity > 0
+        // (each is a different variant, so they can't be combined into a
+        // single line the way one flavor at quantity N could be). Block the
+        // submit entirely if the mix doesn't add up to what the plan allows
+        // -- the same total the "N of M selected" progress line shows.
         if (flavorTotalSelected() !== currentPlanQuantity) {
           statusEl.textContent = `Select ${currentPlanQuantity} total across flavors before adding to cart.`;
+          statusEl.classList.add("is-error");
           return;
         }
+        const planId = selectedPlanId();
         items = flavorSwatches
           .map((el) => ({ id: Number(el.dataset.variantId), quantity: flavorQuantities[el.dataset.variantId] || 0 }))
           .filter((item) => item.quantity > 0)
-          .map((item) => ({ ...item, ...(oneTime ? {} : { selling_plan: planId }) }));
+          .map((item) => ({ ...item, selling_plan: planId }));
       } else {
-        items = [
-          {
-            id: currentVariant().id,
-            quantity: currentPlanQuantity,
-            ...(oneTime ? {} : { selling_plan: planId }),
-          },
-        ];
+        items = [{ id: currentVariant().id, quantity: currentPlanQuantity, selling_plan: selectedPlanId() }];
       }
 
       const payload = { items };
