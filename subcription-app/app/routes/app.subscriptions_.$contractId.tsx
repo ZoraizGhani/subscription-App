@@ -77,7 +77,11 @@ export default function SubscriptionDetail() {
           </s-paragraph>
           <s-paragraph>
             <s-text>Status: </s-text>
-            <s-badge tone={STATUS_TONE[detail.status] ?? "neutral"}>{detail.status}</s-badge>
+            {detail.status === "ACTIVE" && detail.lastPaymentStatus === "FAILED" ? (
+              <s-badge tone="critical">PAYMENT FAILED</s-badge>
+            ) : (
+              <s-badge tone={STATUS_TONE[detail.status] ?? "neutral"}>{detail.status}</s-badge>
+            )}
           </s-paragraph>
           <s-paragraph>
             <s-text>Frequency: </s-text>

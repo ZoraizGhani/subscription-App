@@ -9,6 +9,10 @@ export interface SubscriptionListRow {
   nextBillingDate: Date | null;
   mrr: number;
   status: string;
+  // Shopify keeps `status` ACTIVE while retrying a failed charge -- see
+  // isPaymentFailed below. True means the most recent billing attempt for
+  // this still-active contract failed.
+  paymentFailed: boolean;
 }
 
 export interface SubscriptionListResult {
@@ -138,6 +142,7 @@ export async function listSubscriptionContracts({
       nextBillingDate: contract.nextBillingDate,
       mrr,
       status: contract.status,
+      paymentFailed: isPaymentFailed(contract),
     };
   });
 

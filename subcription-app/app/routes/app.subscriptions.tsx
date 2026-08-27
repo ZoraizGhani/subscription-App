@@ -159,7 +159,11 @@ export default function Subscriptions() {
                       <s-table-cell>{formatDate(row.nextBillingDate)}</s-table-cell>
                       <s-table-cell>{formatMoney(row.mrr, currencyCode)}</s-table-cell>
                       <s-table-cell>
-                        <s-badge tone={STATUS_TONE[row.status] ?? "neutral"}>{row.status}</s-badge>
+                        {row.paymentFailed ? (
+                          <s-badge tone="critical">PAYMENT FAILED</s-badge>
+                        ) : (
+                          <s-badge tone={STATUS_TONE[row.status] ?? "neutral"}>{row.status}</s-badge>
+                        )}
                       </s-table-cell>
                     </s-table-row>
                   );
