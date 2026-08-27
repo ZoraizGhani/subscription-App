@@ -1120,7 +1120,9 @@ function SubscriptionCard({
                 sub.productTitle
               )}
             </div>
-            <span className={STATUS_PILL[sub.status] ?? styles.statusCancelled}>{sub.status}</span>
+            <span className={sub.paymentFailed ? styles.statusFailed : (STATUS_PILL[sub.status] ?? styles.statusCancelled)}>
+              {sub.paymentFailed ? "PAYMENT FAILED" : sub.status}
+            </span>
           </div>
         </div>
         <div>
