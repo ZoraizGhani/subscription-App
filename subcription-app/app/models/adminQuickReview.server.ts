@@ -318,6 +318,49 @@ export async function pauseContractAdmin({
   });
 }
 
+const ACTIVATE_MUTATION = `#graphql
+  mutation AdminActivateContract($id: ID!) {
+    subscriptionContractActivate(subscriptionContractId: $id) {
+      contract { id status }
+      userErrors { field message }
+    }
+  }
+`;
+
+/** The counterpart to pauseContractAdmin -- brings a PAUSED contract back to
+ * ACTIVE, resuming its normal billing schedule. */
+export async function resumeContractAdmin({
+  graphql,
+  shop,
+  contractShopifyId,
+}: {
+  graphql: AdminGraphqlClient;
+  shop: string;
+  contractShopifyId: string;
+}) {
+  await assertShopOwnsContract(shop, contractShopifyId);
+
+  const response = await graphql(ACTIVATE_MUTATION, { variables: { id: contractShopifyId } });
+  const body = (await response.json()) as {
+    data?: {
+      subscriptionContractActivate: {
+        contract: { id: string; status: string } | null;
+        userErrors: { field: string[]; message: string }[];
+      };
+    };
+  };
+  const result = body.data?.subscriptionContractActivate;
+  const userErrors = result?.userErrors ?? [];
+  if (userErrors.length || !result?.contract) {
+    throw new Error(`subscriptionContractActivate failed: ${JSON.stringify(userErrors)}`);
+  }
+
+  await db.subscriptionContract.update({
+    where: { shopifyId: contractShopifyId },
+    data: { status: result.contract.status, pausedAt: null },
+  });
+}
+
 const PAYMENT_METHOD_QUERY = `#graphql
   query AdminContractPaymentMethod($id: ID!) {
     subscriptionContract(id: $id) {

@@ -1,9 +1,10 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { authenticate } from "../shopify.server";
 import { getSubscriptionContractDetail } from "../models/subscriptionList.server";
+import { resumeContractAdmin } from "../models/adminQuickReview.server";
 
 const STATUS_TONE: Record<string, "success" | "warning" | "critical" | "neutral"> = {
   ACTIVE: "success",
@@ -36,6 +37,23 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   return { detail, currencyCode };
 };
 
+export const action = async ({ request, params }: ActionFunctionArgs) => {
+  const { admin, session } = await authenticate.admin(request);
+  const contractShopifyId = `gid://shopify/SubscriptionContract/${params.contractId}`;
+  const formData = await request.formData();
+  const intent = String(formData.get("intent") ?? "");
+
+  try {
+    if (intent === "resume") {
+      await resumeContractAdmin({ graphql: admin.graphql, shop: session.shop, contractShopifyId });
+      return { intent, success: true };
+    }
+    return { intent, error: "Unknown action." };
+  } catch (error) {
+    return { intent, error: error instanceof Error ? error.message : "Something went wrong." };
+  }
+};
+
 function formatMoney(amount: number | null, currencyCode: string) {
   if (amount == null) return "--";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currencyCode }).format(amount);
@@ -49,6 +67,9 @@ function formatDate(value: Date | string | null) {
 export default function SubscriptionDetail() {
   const { detail, currencyCode } = useLoaderData<typeof loader>();
   const customerNumericId = detail.customerShopifyId?.split("/").pop();
+  const resumeFetcher = useFetcher<typeof action>();
+  const resuming = resumeFetcher.state !== "idle";
+  const resumed = resumeFetcher.state === "idle" && resumeFetcher.data?.intent === "resume" && resumeFetcher.data.success;
 
   return (
     <s-page heading={detail.contractNumber}>
@@ -58,9 +79,21 @@ export default function SubscriptionDetail() {
       <s-button slot="secondary-actions" href="/app/subscriptions" icon="arrow-left">
         Back to subscriptions
       </s-button>
+      {detail.status === "PAUSED" && !resumed && (
+        <s-button
+          slot="primary-action"
+          disabled={resuming}
+          onClick={() => resumeFetcher.submit({ intent: "resume" }, { method: "post" })}
+        >
+          {resuming ? "Resuming..." : "Resume subscription"}
+        </s-button>
+      )}
 
       <s-section heading="Overview">
         <s-stack direction="block" gap="base">
+          {resumeFetcher.data?.intent === "resume" && resumeFetcher.data.error && (
+            <s-paragraph tone="critical">{resumeFetcher.data.error}</s-paragraph>
+          )}
           <s-paragraph>
             <s-text>Customer: </s-text>
             {customerNumericId ? (
