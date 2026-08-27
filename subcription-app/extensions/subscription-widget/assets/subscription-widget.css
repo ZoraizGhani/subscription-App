@@ -238,6 +238,7 @@
 .subscription-widget__swatch-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
   gap: 0.75rem;
 }
 
@@ -246,7 +247,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* stretch (from the grid's align-items above) equalizes every swatch's
+     outer height; space-between then always pins the quantity stepper to
+     the bottom of that equal height, regardless of whether this swatch's
+     own name wraps to one line or two -- see swatch-name's reserved
+     min-height below for the other half of this. */
+  height: 100%;
+  justify-content: space-between;
   gap: 0.625rem;
+  box-sizing: border-box;
   /* Top padding is taller than the others so the badge (absolutely
      positioned, sitting flush in the corner) always has clearance above
      the image, whether or not this particular swatch has one -- keeps
@@ -305,6 +314,15 @@
 }
 
 .subscription-widget__swatch-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Reserves 2 lines of height (line-height * 2) regardless of whether this
+     particular flavor's name actually wraps that far -- a one-line name
+     like "Mixed Berry" still centers in the same block height as a
+     two-line one like "Sour Green Apple", so the quantity stepper below
+     lands at the same position across every swatch. */
+  min-height: calc(18px * 2);
   font-family: "Geist", sans-serif;
   font-size: 12px;
   font-weight: 600;
