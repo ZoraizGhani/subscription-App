@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { useFetcher, useLoaderData, useSearchParams } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 
 import { requirePortalSession } from "../portal-auth.server";
 import { getPortalCustomerById } from "../models/portalCustomer.server";
@@ -1139,10 +1139,7 @@ function SubscriptionCard({
       {sub.paymentFailed && (
         <div className={styles.error} style={{ marginTop: "0.75rem" }}>
           Your last payment failed. Please{" "}
-          <a
-            href={`/account/subscriptions/update-payment?contractId=${encodeURIComponent(sub.contractShopifyId)}`}
-            style={{ color: "inherit", fontWeight: 700 }}
-          >
+          <a href="/account/settings#payment-method" style={{ color: "inherit", fontWeight: 700 }}>
             update your payment method
           </a>{" "}
           to keep this subscription active.
@@ -1288,8 +1285,6 @@ export default function AccountSubscriptions() {
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   const [reason, setReason] = useState<string | null>(null);
   const cancelFetcher = useFetcher<typeof action>();
-  const [searchParams] = useSearchParams();
-  const paymentUpdateError = searchParams.get("paymentUpdateError");
 
   const closeModal = () => {
     setCancelTarget(null);
@@ -1314,12 +1309,6 @@ export default function AccountSubscriptions() {
       <h1 className={styles.heading} style={{ fontSize: "2rem", margin: "0.25rem 0 1.5rem" }}>
         Subscriptions
       </h1>
-
-      {paymentUpdateError && (
-        <div className={styles.error} style={{ marginBottom: "1rem" }}>
-          {paymentUpdateError}
-        </div>
-      )}
 
       {subscriptions.length === 0 ? (
         <div className={styles.emptyStateCentered}>

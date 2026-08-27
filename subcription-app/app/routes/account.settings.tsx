@@ -184,7 +184,7 @@ export default function AccountSettings() {
             <>
               <hr className={styles.divider} />
 
-              <h2 className={styles.sectionHeading}>Payment method</h2>
+              <h2 id="payment-method" className={styles.sectionHeading}>Payment method</h2>
               {paymentFetcher.data?.intent === "sendPaymentUpdateEmail" && "success" in paymentFetcher.data && (
                 <div className={styles.success}>
                   Check your email for a secure link to update your card.
