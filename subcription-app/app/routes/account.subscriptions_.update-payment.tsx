@@ -30,7 +30,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
     return redirect(updateUrl);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not open the payment update page.";
+    // The real error (e.g. Shopify's own userErrors JSON) can contain
+    // internal field names -- never shown to the customer directly. Logged
+    // here so it's still visible in server logs for diagnosing, while the
+    // customer sees one plain, actionable message regardless of cause.
+    console.error("getPortalPaymentMethodUpdateUrl failed:", error);
+    const message = "We couldn't open the payment update page right now. Please try again shortly.";
     return redirect(`/account/subscriptions?paymentUpdateError=${encodeURIComponent(message)}`);
   }
 };
