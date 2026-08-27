@@ -1138,7 +1138,24 @@ function SubscriptionCard({
 
       {sub.paymentFailed && (
         <div className={styles.error} style={{ marginTop: "0.75rem" }}>
-          Your last payment failed. Please update your payment method to keep this subscription active.
+          Your last payment failed. Please{" "}
+          <button
+            type="button"
+            onClick={() => setManageOpen(true)}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              font: "inherit",
+              color: "inherit",
+              fontWeight: 700,
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+          >
+            update your payment method
+          </button>{" "}
+          to keep this subscription active.
         </div>
       )}
 
