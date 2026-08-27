@@ -234,8 +234,15 @@ export interface NeedsAttentionRow {
 }
 
 export async function getNeedsAttention({ shop }: { shop: string }): Promise<NeedsAttentionRow[]> {
+  // Shopify keeps a contract's own `status` as ACTIVE while it retries a
+  // failed charge -- it essentially never actually transitions to FAILED,
+  // so that field can't be used to detect payment trouble. `lastPaymentStatus`
+  // is the one that actually reflects the most recent billing attempt's
+  // outcome (see the subscription_billing_attempts/failure webhook handler),
+  // scoped to still-ACTIVE contracts since a cancelled one's stale failure
+  // doesn't need review.
   const contracts = await db.subscriptionContract.findMany({
-    where: { shop, status: "FAILED" },
+    where: { shop, status: "ACTIVE", lastPaymentStatus: "FAILED" },
     orderBy: { updatedAt: "desc" },
     take: 5,
     select: { shopifyId: true, customerName: true },

@@ -344,6 +344,11 @@ export async function listPortalSubscriptions({
       // The per-flavor breakdown -- more than one entry means a saved mix.
       flavorLines: lines.map((l) => ({ variantTitle: l.variantTitle ?? null, quantity: l.quantity })),
       status: c.status,
+      // Shopify keeps the contract's own status ACTIVE while it retries a
+      // failed charge -- lastPaymentStatus is what actually reflects the
+      // most recent billing attempt's outcome (see the
+      // subscription_billing_attempts/failure webhook handler).
+      paymentFailed: c.status === "ACTIVE" && c.lastPaymentStatus === "FAILED",
       totalAmount: c.totalAmount,
       currencyCode: c.currencyCode,
       nextBillingDate: correctedDates.get(c.shopifyId) ?? c.nextBillingDate,

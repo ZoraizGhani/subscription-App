@@ -1099,6 +1099,14 @@
   color: #000;
 }
 
+.metaValueError {
+  font-family: "Geist", sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #b3261e;
+}
+
 .metaSubtext {
   display: block;
   margin-top: 0.125rem;

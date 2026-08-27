@@ -1134,6 +1134,12 @@ function SubscriptionCard({
         </div>
       </div>
 
+      {sub.paymentFailed && (
+        <div className={styles.error} style={{ marginTop: "0.75rem" }}>
+          Your last payment failed. Please update your payment method to keep this subscription active.
+        </div>
+      )}
+
       {sub.status === "ACTIVE" && (
         <>
           <hr className={styles.subDivider} />
@@ -1161,7 +1167,9 @@ function SubscriptionCard({
             </div>
             <div>
               <span className={styles.metaLabel}>Billing status</span>
-              <div className={styles.metaValue}>Active</div>
+              <div className={sub.paymentFailed ? styles.metaValueError : styles.metaValue}>
+                {sub.paymentFailed ? "Payment failed" : "Active"}
+              </div>
             </div>
           </div>
 

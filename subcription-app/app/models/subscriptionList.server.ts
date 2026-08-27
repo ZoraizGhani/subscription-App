@@ -64,15 +64,22 @@ export async function listSubscriptionContracts({
     orderBy: { createdAt: "desc" },
   });
 
+  // Shopify keeps a contract's own `status` as ACTIVE while it retries a
+  // failed charge -- it essentially never actually transitions to FAILED --
+  // so "payment failed" has to be read off `lastPaymentStatus` (the most
+  // recent billing attempt's real outcome) instead, scoped to still-ACTIVE
+  // contracts since a cancelled one's stale failure doesn't need surfacing.
+  const isPaymentFailed = (c: (typeof all)[number]) => c.status === "ACTIVE" && c.lastPaymentStatus === "FAILED";
+
   const counts = {
     all: all.length,
     active: all.filter((c) => c.status === "ACTIVE").length,
     paused: all.filter((c) => c.status === "PAUSED").length,
     cancelled: all.filter((c) => c.status === "CANCELLED").length,
-    failed: all.filter((c) => c.status === "FAILED").length,
+    failed: all.filter(isPaymentFailed).length,
   };
 
-  let filtered = status ? all.filter((c) => c.status === status) : all;
+  let filtered = status ? (status === "FAILED" ? all.filter(isPaymentFailed) : all.filter((c) => c.status === status)) : all;
 
   if (search) {
     const term = search.toLowerCase();
