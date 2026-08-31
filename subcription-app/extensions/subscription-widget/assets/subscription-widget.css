@@ -245,9 +245,8 @@
    falls back to the merchant's configured selected-color for badges/etc.
    that don't opt into the per-flavor cycle. */
 .subscription-widget__swatch-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.625rem;
 }
 
@@ -272,7 +271,7 @@
 
 .subscription-widget__swatch {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   box-sizing: border-box;
@@ -333,10 +332,6 @@
 }
 
 .subscription-widget__swatch-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   font-family: "Geist", sans-serif;
   font-size: 13px;
@@ -346,17 +341,7 @@
   color: #1e1e1e;
 }
 
-.subscription-widget__swatch-qty {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex-shrink: 0;
-  border: none;
-  border-radius: 0;
-  overflow: visible;
-}
-
-.subscription-widget__swatch-qty-btn {
+.subscription-widget__swatch-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -373,29 +358,14 @@
   cursor: pointer;
 }
 
-.subscription-widget__swatch-qty-btn:disabled {
+.subscription-widget__swatch-toggle:disabled {
   opacity: 0.35;
   cursor: default;
 }
 
-.subscription-widget__swatch.is-selected .subscription-widget__swatch-qty-btn[data-qty-plus] {
+.subscription-widget__swatch-toggle.is-filled {
   background: var(--swatch-accent, var(--subscription-widget-swatch-selected, #8c9e56));
   color: #fff;
-}
-
-.subscription-widget__swatch-qty-count {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 14px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  font-family: "Geist", sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  color: #1e1e1e;
-  text-align: center;
 }
 
 .subscription-widget__flavor-heading-value.is-incomplete {
@@ -436,23 +406,6 @@
   height: 100%;
   object-fit: cover;
   display: block;
-}
-
-.subscription-widget__flavor-chip-qty {
-  position: absolute;
-  bottom: -2px;
-  left: -2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 3px;
-  border-radius: 9999px;
-  background: var(--swatch-accent, #1e1e1e);
-  color: #fff;
-  font-family: "Geist", sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 16px;
-  text-align: center;
 }
 
 .subscription-widget__flavor-chip-remove {

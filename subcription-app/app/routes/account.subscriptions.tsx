@@ -813,28 +813,16 @@ function ManageSubscriptionModal({
                           {variant.title}
                           {!variant.availableForSale && " (out of stock)"}
                         </span>
-                        <div className={styles.flavorPillStepper}>
-                          {selected && (
-                            <button
-                              type="button"
-                              className={styles.flavorPillBtn}
-                              onClick={() => decrementFlavor(variant.id)}
-                              aria-label={`Decrease ${variant.title} quantity`}
-                            >
-                              &minus;
-                            </button>
-                          )}
-                          {selected && <span className={styles.flavorPillCount}>{flavorQty}</span>}
-                          <button
-                            type="button"
-                            className={`${styles.flavorPillBtn} ${selected ? styles["is-filled"] : ""}`}
-                            onClick={() => incrementFlavor(variant.id)}
-                            disabled={!variant.availableForSale || atMaxQuantity}
-                            aria-label={`Increase ${variant.title} quantity`}
-                          >
-                            +
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          className={`${styles.flavorPillToggle} ${selected ? styles["is-filled"] : ""}`}
+                          onClick={() => setFlavorQty(variant.id, selected ? 0 : 1)}
+                          disabled={!variant.availableForSale || (!selected && atMaxQuantity)}
+                          aria-label={`${selected ? "Remove" : "Add"} ${variant.title}`}
+                          aria-pressed={selected}
+                        >
+                          {selected ? <>&minus;</> : "+"}
+                        </button>
                       </div>
                     );
                   })}
@@ -854,7 +842,6 @@ function ManageSubscriptionModal({
                           <span className={styles.flavorChipImage}>
                             {variant.imageUrl && <img src={variant.imageUrl} alt={variant.title} />}
                           </span>
-                          {qty > 1 && <span className={styles.flavorChipQty}>{qty}</span>}
                           <button
                             type="button"
                             className={styles.flavorChipRemove}
@@ -868,7 +855,6 @@ function ManageSubscriptionModal({
                     })}
                   </div>
                 )}
-                <p className={styles.manageMixNote}>Mix flavors freely &mdash; same price per pouch either way.</p>
               </div>
             )}
 

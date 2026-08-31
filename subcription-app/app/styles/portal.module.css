@@ -1466,17 +1466,17 @@
 }
 
 .flavorPillGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.625rem;
 }
 
 .flavorPill {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4375rem 0.5rem 0.4375rem 0.4375rem;
+  padding: 0.375rem 0.375rem 0.375rem 0.5rem;
   border: 1.5px solid var(--flavor-accent, #c7c7c2);
   border-radius: 9999px;
   background: #fff;
@@ -1507,10 +1507,6 @@
 }
 
 .flavorPillName {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   font-family: "Geist", sans-serif;
   font-size: 0.75rem;
@@ -1518,14 +1514,7 @@
   color: #1a1a1a;
 }
 
-.flavorPillStepper {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex-shrink: 0;
-}
-
-.flavorPillBtn {
+.flavorPillToggle {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1542,24 +1531,15 @@
   cursor: pointer;
 }
 
-.flavorPillBtn:disabled {
+.flavorPillToggle:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
-.flavorPillBtn.is-filled {
+.flavorPillToggle.is-filled {
   background: var(--flavor-accent, #1a1a1a);
   border-color: var(--flavor-accent, #1a1a1a);
   color: #fff;
-}
-
-.flavorPillCount {
-  min-width: 0.875rem;
-  text-align: center;
-  font-family: "Geist", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #1a1a1a;
 }
 
 .flavorSelectedRow {
@@ -1592,23 +1572,6 @@
   height: 100%;
   object-fit: cover;
   display: block;
-}
-
-.flavorChipQty {
-  position: absolute;
-  bottom: -0.125rem;
-  left: -0.125rem;
-  min-width: 1rem;
-  height: 1rem;
-  padding: 0 0.1875rem;
-  border-radius: 9999px;
-  background: var(--flavor-accent, #1a1a1a);
-  color: #fff;
-  font-family: "Geist", sans-serif;
-  font-size: 0.625rem;
-  font-weight: 700;
-  line-height: 1rem;
-  text-align: center;
 }
 
 .flavorChipRemove {
@@ -2227,7 +2190,7 @@
   }
 
   .flavorPillGrid {
-    grid-template-columns: 1fr;
+    gap: 0.5rem;
   }
 
   .addonThumb {
