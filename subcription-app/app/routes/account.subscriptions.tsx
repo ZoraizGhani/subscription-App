@@ -798,6 +798,10 @@ function ManageSubscriptionModal({
                     return (
                       <div
                         key={variant.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-disabled={selected || atMaxQuantity}
+                        aria-label={selected ? `${variant.title} selected` : `Add ${variant.title}`}
                         className={`${styles.flavorPill} ${selected ? styles["is-selected"] : ""}`}
                         style={
                           {
@@ -805,6 +809,16 @@ function ManageSubscriptionModal({
                             opacity: variant.availableForSale ? 1 : 0.5,
                           } as CSSProperties
                         }
+                        onClick={() => {
+                          if (!variant.availableForSale || selected || atMaxQuantity) return;
+                          setFlavorQty(variant.id, 1);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key !== "Enter" && e.key !== " ") return;
+                          e.preventDefault();
+                          if (!variant.availableForSale || selected || atMaxQuantity) return;
+                          setFlavorQty(variant.id, 1);
+                        }}
                       >
                         <span className={styles.flavorPillImage}>
                           {variant.imageUrl && <img src={variant.imageUrl} alt={variant.title} />}
@@ -813,61 +827,43 @@ function ManageSubscriptionModal({
                           {variant.title}
                           {!variant.availableForSale && " (out of stock)"}
                         </span>
-                        <div className={styles.flavorPillStepper}>
-                          {selected && (
-                            <button
-                              type="button"
-                              className={styles.flavorPillToggle}
-                              onClick={() => decrementFlavor(variant.id)}
-                              aria-label={`Decrease ${variant.title} quantity`}
-                            >
-                              &minus;
-                            </button>
-                          )}
-                          {flavorQty > 1 && <span className={styles.flavorPillCount}>{flavorQty}</span>}
-                          <button
-                            type="button"
-                            className={`${styles.flavorPillToggle} ${selected ? styles["is-filled"] : ""}`}
-                            onClick={() => incrementFlavor(variant.id)}
-                            disabled={!variant.availableForSale || atMaxQuantity}
-                            aria-label={`Add ${variant.title}`}
-                          >
-                            +
-                          </button>
-                        </div>
+                        <span className={styles.flavorPillToggle} aria-hidden="true">
+                          +
+                        </span>
                       </div>
                     );
                   })}
                 </div>
-                {flavorTotal > 0 && (
-                  <div className={styles.flavorSelectedRow}>
-                    {displayVariants.map((variant, index) => {
-                      const qty = activeFlavorQuantities[variant.id] ?? 0;
-                      if (qty <= 0) return null;
-                      const accent = FLAVOR_PALETTE[index % FLAVOR_PALETTE.length];
-                      return (
-                        <div
-                          key={variant.id}
-                          className={styles.flavorChip}
-                          style={{ "--flavor-accent": accent } as CSSProperties}
+                <div className={styles.flavorSlots}>
+                  {Array.from({ length: Math.max(options?.maxQuantity ?? flavorTotal, flavorTotal) }).map((_, i) => {
+                    const selectedVariants = displayVariants.filter((v) => (activeFlavorQuantities[v.id] ?? 0) > 0);
+                    const variant = selectedVariants[i];
+                    if (!variant) {
+                      return <div key={`empty-${i}`} className={styles.flavorSlot} />;
+                    }
+                    const index = displayVariants.indexOf(variant);
+                    const accent = FLAVOR_PALETTE[index % FLAVOR_PALETTE.length];
+                    return (
+                      <div
+                        key={variant.id}
+                        className={`${styles.flavorSlot} ${styles["is-filled"]}`}
+                        style={{ "--flavor-accent": accent } as CSSProperties}
+                      >
+                        <span className={styles.flavorSlotImage}>
+                          {variant.imageUrl && <img src={variant.imageUrl} alt={variant.title} />}
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.flavorSlotRemove}
+                          onClick={() => setFlavorQty(variant.id, 0)}
+                          aria-label={`Remove ${variant.title}`}
                         >
-                          <span className={styles.flavorChipImage}>
-                            {variant.imageUrl && <img src={variant.imageUrl} alt={variant.title} />}
-                          </span>
-                          {qty > 1 && <span className={styles.flavorChipQty}>{qty}</span>}
-                          <button
-                            type="button"
-                            className={styles.flavorChipRemove}
-                            onClick={() => setFlavorQty(variant.id, 0)}
-                            aria-label={`Remove ${variant.title}`}
-                          >
-                            &times;
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                          &times;
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

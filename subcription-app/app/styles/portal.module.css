@@ -1440,7 +1440,10 @@
   color: #6b7280;
 }
 
-/* --- Flavor pills: colored-outline chip picker + selected-chips row --- */
+/* --- Flavor pills + slots, matching the reference "N slots, one flavor
+   each" picker: a pill per flavor with a static "add" badge on its corner,
+   and a row of N always-visible slots below (dashed until filled) showing
+   what's been picked. --- */
 
 .flavorHeaderRow {
   display: flex;
@@ -1450,25 +1453,22 @@
 }
 
 .flavorCounterBadge {
-  padding: 0.1875rem 0.625rem;
-  border-radius: 9999px;
-  background: #f2f2ef;
   font-family: "Geist", sans-serif;
-  font-size: 0.6875rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  color: #6b6b6b;
+  color: #1a1a1a;
   white-space: nowrap;
+  transition: color 0.2s ease;
 }
 
 .flavorCounterBadge.is-complete {
-  background: #1a1a1a;
-  color: #fff;
+  color: #0c9c4d;
 }
 
 .flavorPillGrid {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.625rem;
+  gap: 0.75rem;
 }
 
 .flavorPill {
@@ -1476,21 +1476,26 @@
   display: inline-flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.375rem 0.5rem 0.375rem 0.625rem;
-  border: 1.5px solid var(--flavor-accent, #c7c7c2);
+  gap: 0.4375rem;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--flavor-accent, #c7c7c2);
   border-radius: 9999px;
-  background: #fff;
+  background: #fdfdfd;
   box-sizing: border-box;
+  cursor: pointer;
+}
+
+.flavorPill:hover {
+  background: #f4f4f4;
 }
 
 .flavorPill.is-selected {
-  background: color-mix(in srgb, var(--flavor-accent, #c7c7c2) 10%, #fff);
+  background: color-mix(in srgb, var(--flavor-accent, #c7c7c2) 10%, #fdfdfd);
 }
 
 .flavorPillImage {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.25rem;
+  height: 1.25rem;
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
@@ -1510,117 +1515,83 @@
 .flavorPillName {
   white-space: nowrap;
   font-family: "Geist", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.875rem;
+  font-weight: 400;
   color: #1a1a1a;
 }
 
-.flavorPillStepper {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3125rem;
-  flex: 0 0 auto;
-}
-
+/* Decorative -- the pill itself is the click target, this badge is just the
+   visual "add" affordance sitting on its corner. */
 .flavorPillToggle {
+  position: absolute;
+  top: -0.625rem;
+  right: 0.6875rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  flex: 0 0 auto;
-  padding: 0;
-  border: 1.5px solid var(--flavor-accent, #c7c7c2);
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: #fff;
-  color: var(--flavor-accent, #6b6b6b);
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.flavorPillToggle:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.flavorPillToggle.is-filled {
   background: var(--flavor-accent, #1a1a1a);
-  border-color: var(--flavor-accent, #1a1a1a);
   color: #fff;
-}
-
-.flavorPillCount {
-  min-width: 0.9375rem;
-  text-align: center;
-  font-family: "Geist", sans-serif;
   font-size: 0.8125rem;
-  font-weight: 700;
-  color: #1a1a1a;
+  line-height: 1;
+  pointer-events: none;
 }
 
-.flavorSelectedRow {
+.flavorSlots {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.9375rem;
+  margin-top: 1rem;
 }
 
-.flavorChip {
+.flavorSlot {
   position: relative;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 3.375rem;
+  height: 3.375rem;
   flex-shrink: 0;
-}
-
-.flavorChipImage {
+  border-radius: 2.5rem;
+  border: 1px dashed rgba(1, 75, 168, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 1.5px solid var(--flavor-accent, #c7c7c2);
-  overflow: hidden;
-  background: #f2f2ef;
+  box-sizing: border-box;
 }
 
-.flavorChipImage img {
+.flavorSlot.is-filled {
+  border: 1px solid var(--flavor-accent, #007aff);
+  background: color-mix(in srgb, var(--flavor-accent, #007aff) 8%, #f0f7ff);
+}
+
+.flavorSlotImage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.flavorSlotImage img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.flavorChipQty {
+.flavorSlotRemove {
   position: absolute;
-  bottom: -0.125rem;
-  left: -0.125rem;
-  min-width: 1rem;
-  height: 1rem;
-  padding: 0 0.1875rem;
-  border-radius: 9999px;
-  background: var(--flavor-accent, #1a1a1a);
-  color: #fff;
-  font-family: "Geist", sans-serif;
-  font-size: 0.625rem;
-  font-weight: 700;
-  line-height: 1rem;
-  text-align: center;
-}
-
-.flavorChipRemove {
-  position: absolute;
-  top: -0.25rem;
-  right: -0.25rem;
+  top: -0.125rem;
+  right: -0.125rem;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 1.125rem;
   height: 1.125rem;
-  border: 1px solid #e5e1d8;
+  border: 1px solid #fff;
   border-radius: 50%;
   background: #1a1a1a;
   color: #fff;

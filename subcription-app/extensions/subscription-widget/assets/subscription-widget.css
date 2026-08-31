@@ -225,17 +225,19 @@
 .subscription-widget__flavor-heading-value {
   display: inline-block;
   margin-left: 0.5rem;
-  padding: 0.125rem 0.625rem;
-  border-radius: 9999px;
-  background: #1e1e1e;
   vertical-align: middle;
   font-family: "Geist", sans-serif;
   font-style: normal;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 20px;
   letter-spacing: 0;
-  color: #fff;
+  color: #1e1e1e;
+  transition: color 0.2s ease;
+}
+
+.subscription-widget__flavor-heading-value.is-complete {
+  color: #0c9c4d;
 }
 
 /* --- Flavor swatches: colored-outline pill picker --- */
@@ -274,15 +276,20 @@
   display: inline-flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.625rem;
+  gap: 7px;
   box-sizing: border-box;
-  padding: 0.375rem 0.625rem 0.375rem 0.5rem;
-  border: 1.5px solid var(--swatch-accent, var(--subscription-widget-swatch-selected, #8c9e56));
-  border-radius: 9999px;
+  padding: 10px 20px;
+  border: 1px solid var(--swatch-accent, var(--subscription-widget-swatch-selected, #8c9e56));
+  border-radius: 30px;
   background: #fdfdfd;
   font: inherit;
   color: inherit;
   overflow: visible;
+  cursor: pointer;
+}
+
+.subscription-widget__swatch:hover {
+  background: #f4f4f4;
 }
 
 .subscription-widget__swatch.is-selected {
@@ -319,8 +326,8 @@
 }
 
 .subscription-widget__swatch-image {
-  width: 34px;
-  height: 34px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
@@ -347,116 +354,74 @@
   color: #1e1e1e;
 }
 
-.subscription-widget__swatch-stepper {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  flex: 0 0 auto;
-}
-
+/* Decorative -- the swatch itself is the click target, this badge is just
+   the visual "add" affordance sitting on the pill's edge. */
 .subscription-widget__swatch-toggle {
+  position: absolute;
+  top: -10px;
+  right: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: center;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 auto;
-  padding: 0;
-  border: 1.5px solid var(--swatch-accent, var(--subscription-widget-swatch-selected, #8c9e56));
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: #fff;
-  color: var(--swatch-accent, var(--subscription-widget-swatch-selected, #8c9e56));
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.subscription-widget__swatch-toggle:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.subscription-widget__swatch-toggle.is-filled {
   background: var(--swatch-accent, var(--subscription-widget-swatch-selected, #8c9e56));
   color: #fff;
-}
-
-.subscription-widget__swatch-qty-count {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 14px;
-  font-family: "Geist", sans-serif;
   font-size: 13px;
-  font-weight: 700;
-  color: #1e1e1e;
-  text-align: center;
+  line-height: 1;
+  pointer-events: none;
 }
 
-.subscription-widget__flavor-heading-value.is-incomplete {
-  background: #f2f2ef;
-  color: #6b6b6b;
-}
+/* --- Flavor slots: one per unit of plan quantity, dashed until filled --- */
 
-/* --- Selected-flavors summary row: small removable chips below the grid --- */
-
-.subscription-widget__flavor-selected {
+.subscription-widget__flavor-slots {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  gap: 15px;
+  margin-top: 1rem;
 }
 
-.subscription-widget__flavor-chip {
+.subscription-widget__flavor-slot {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 54px;
+  height: 54px;
   flex-shrink: 0;
-}
-
-.subscription-widget__flavor-chip-image {
+  border-radius: 40px;
+  border: 1px dashed rgba(1, 75, 168, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 1.5px solid var(--swatch-accent, #8c9e56);
-  overflow: hidden;
-  background: #f2f2ef;
+  box-sizing: border-box;
 }
 
-.subscription-widget__flavor-chip-image img {
+.subscription-widget__flavor-slot.is-filled {
+  border: 1px solid var(--swatch-accent, #007aff);
+  background: color-mix(in srgb, var(--swatch-accent, #007aff) 8%, #f0f7ff);
+}
+
+.subscription-widget__flavor-slot-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.subscription-widget__flavor-slot-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.subscription-widget__flavor-chip-qty {
+.subscription-widget__flavor-slot-remove {
   position: absolute;
-  bottom: -2px;
-  left: -2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 3px;
-  border-radius: 9999px;
-  background: var(--swatch-accent, #1e1e1e);
-  color: #fff;
-  font-family: "Geist", sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 16px;
-  text-align: center;
-}
-
-.subscription-widget__flavor-chip-remove {
-  position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -2px;
+  right: -2px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -518,6 +483,36 @@
 
   .subscription-widget__swatch-badge {
     font-size: 10px;
+  }
+
+  .subscription-widget__swatch-grid {
+    gap: 8px;
+  }
+
+  .subscription-widget__swatch {
+    padding: 7px 12px;
+  }
+
+  .subscription-widget__swatch-toggle {
+    top: -6px;
+    right: 6px;
+    width: 16px;
+    height: 16px;
+    font-size: 11px;
+  }
+
+  .subscription-widget__flavor-slots {
+    gap: 10px;
+  }
+
+  .subscription-widget__flavor-slot {
+    width: 44px;
+    height: 44px;
+  }
+
+  .subscription-widget__flavor-slot-image {
+    width: 22px;
+    height: 22px;
   }
 
   .subscription-widget__bundle-card {

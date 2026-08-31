@@ -216,13 +216,13 @@
           <span class="subscription-widget__flavor-heading-value" data-flavor-remaining></span>
         </p>
         {%- comment -%}
-          Multi-flavor mix picker: a plan with quantity > 1 lets the customer
-          split that quantity across different flavors (e.g. 3 bottles = 2
-          Sour Green Apple + 1 Blood Orange), including more than one of the
-          same flavor. Each swatch carries its own variant id and a +/-
-          stepper (the "-" and count stay hidden until that flavor has at
-          least one unit); subscription-widget.js owns the counting/cap logic
-          -- this is just an empty, unselected shell at render time.
+          Multi-flavor slot picker: a plan with quantity > 1 gives the
+          customer that many slots to fill with distinct flavors (e.g. 3
+          bottles = Sour Green Apple + Blood Orange + Mixed Berry) -- no
+          repeats. Each swatch carries its own variant id and is itself the
+          click target (its "+" badge is decorative); subscription-widget.js
+          owns the slot-filling/cap logic -- this is just an empty,
+          unselected shell at render time.
         {%- endcomment -%}
         <div class="subscription-widget__swatch-grid">
           {%- for value in first_option.values -%}
@@ -255,6 +255,9 @@
               data-flavor-swatch
               data-variant-id="{{ swatch_variant.id }}"
               data-swatch-label="{{ value | escape }}"
+              role="button"
+              tabindex="0"
+              aria-label="Add {{ value | escape }}"
             >
               {%- if is_favourite and block.settings.favourite_badge_text != blank -%}
                 <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--favourite">{{ block.settings.favourite_badge_text }}</span>
@@ -267,32 +270,17 @@
                 {%- endif -%}
               </span>
               <span class="subscription-widget__swatch-name">{{ value }}</span>
-              <div class="subscription-widget__swatch-stepper">
-                <button
-                  type="button"
-                  class="subscription-widget__swatch-toggle"
-                  data-qty-minus
-                  hidden
-                  aria-label="Decrease {{ value | escape }} quantity"
-                >−</button>
-                <span class="subscription-widget__swatch-qty-count" data-qty-count hidden>0</span>
-                <button
-                  type="button"
-                  class="subscription-widget__swatch-toggle"
-                  data-qty-plus
-                  aria-label="Add {{ value | escape }}"
-                >+</button>
-              </div>
+              <span class="subscription-widget__swatch-toggle" aria-hidden="true">+</span>
             </div>
           {%- endfor -%}
         </div>
         {%- comment -%}
-          Populated by subscription-widget.js from whichever swatches
-          currently have quantity > 0 -- a compact row of removable chips
-          mirroring the selection, since the grid above can hold more
-          flavors than fit comfortably as a running summary.
+          Populated by subscription-widget.js: one slot per unit of the
+          selected plan's quantity, always visible -- empty slots show as
+          dashed placeholders, filled ones show the flavor's image and a
+          remove button.
         {%- endcomment -%}
-        <div class="subscription-widget__flavor-selected" data-flavor-selected hidden></div>
+        <div class="subscription-widget__flavor-slots" data-flavor-selected></div>
       </div>
 
       {%- for option in product.options_with_values -%}
