@@ -380,7 +380,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
-  margin-top: 1rem;
+  margin-top: 1.75rem;
 }
 
 .subscription-widget__flavor-slot {
