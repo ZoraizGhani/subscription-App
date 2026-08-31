@@ -313,6 +313,11 @@
   background: var(--swatch-accent, var(--subscription-widget-swatch-selected, #8c9e56));
 }
 
+.subscription-widget__swatch-badge.subscription-widget__swatch-badge--favourite {
+  top: -13px;
+  font-size: 10px;
+}
+
 .subscription-widget__swatch-image {
   width: 34px;
   height: 34px;
