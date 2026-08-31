@@ -381,6 +381,7 @@
   flex-wrap: wrap;
   gap: 15px;
   margin-top: 1.75rem;
+  padding-top: 13px;
 }
 
 .subscription-widget__flavor-slot {
