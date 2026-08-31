@@ -272,6 +272,7 @@
 .subscription-widget__swatch {
   position: relative;
   display: inline-flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.625rem;
   box-sizing: border-box;
@@ -341,19 +342,29 @@
   color: #1e1e1e;
 }
 
+.subscription-widget__swatch-stepper {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
 .subscription-widget__swatch-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
   padding: 0;
   border: 1.5px solid var(--swatch-accent, var(--subscription-widget-swatch-selected, #8c9e56));
   border-radius: 50%;
   background: #fff;
   color: var(--swatch-accent, var(--subscription-widget-swatch-selected, #8c9e56));
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
 }
@@ -366,6 +377,18 @@
 .subscription-widget__swatch-toggle.is-filled {
   background: var(--swatch-accent, var(--subscription-widget-swatch-selected, #8c9e56));
   color: #fff;
+}
+
+.subscription-widget__swatch-qty-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  font-family: "Geist", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e1e1e;
+  text-align: center;
 }
 
 .subscription-widget__flavor-heading-value.is-incomplete {
@@ -406,6 +429,23 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.subscription-widget__flavor-chip-qty {
+  position: absolute;
+  bottom: -2px;
+  left: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 9999px;
+  background: var(--swatch-accent, #1e1e1e);
+  color: #fff;
+  font-family: "Geist", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
 }
 
 .subscription-widget__flavor-chip-remove {

@@ -813,16 +813,28 @@ function ManageSubscriptionModal({
                           {variant.title}
                           {!variant.availableForSale && " (out of stock)"}
                         </span>
-                        <button
-                          type="button"
-                          className={`${styles.flavorPillToggle} ${selected ? styles["is-filled"] : ""}`}
-                          onClick={() => setFlavorQty(variant.id, selected ? 0 : 1)}
-                          disabled={!variant.availableForSale || (!selected && atMaxQuantity)}
-                          aria-label={`${selected ? "Remove" : "Add"} ${variant.title}`}
-                          aria-pressed={selected}
-                        >
-                          {selected ? <>&minus;</> : "+"}
-                        </button>
+                        <div className={styles.flavorPillStepper}>
+                          {selected && (
+                            <button
+                              type="button"
+                              className={styles.flavorPillToggle}
+                              onClick={() => decrementFlavor(variant.id)}
+                              aria-label={`Decrease ${variant.title} quantity`}
+                            >
+                              &minus;
+                            </button>
+                          )}
+                          {flavorQty > 1 && <span className={styles.flavorPillCount}>{flavorQty}</span>}
+                          <button
+                            type="button"
+                            className={`${styles.flavorPillToggle} ${selected ? styles["is-filled"] : ""}`}
+                            onClick={() => incrementFlavor(variant.id)}
+                            disabled={!variant.availableForSale || atMaxQuantity}
+                            aria-label={`Add ${variant.title}`}
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -842,6 +854,7 @@ function ManageSubscriptionModal({
                           <span className={styles.flavorChipImage}>
                             {variant.imageUrl && <img src={variant.imageUrl} alt={variant.title} />}
                           </span>
+                          {qty > 1 && <span className={styles.flavorChipQty}>{qty}</span>}
                           <button
                             type="button"
                             className={styles.flavorChipRemove}

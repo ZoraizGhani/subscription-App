@@ -216,13 +216,13 @@
           <span class="subscription-widget__flavor-heading-value" data-flavor-remaining></span>
         </p>
         {%- comment -%}
-          Multi-flavor picker: a plan with quantity > 1 lets the customer pick
-          that many distinct flavors (e.g. 3 bottles = Sour Green Apple +
-          Blood Orange + Mixed Berry), one unit each, instead of one flavor
-          times the quantity. Each swatch carries its own variant id and a
-          simple add/remove toggle; subscription-widget.js owns the
-          selection/cap logic -- this is just an empty, unselected shell at
-          render time.
+          Multi-flavor mix picker: a plan with quantity > 1 lets the customer
+          split that quantity across different flavors (e.g. 3 bottles = 2
+          Sour Green Apple + 1 Blood Orange), including more than one of the
+          same flavor. Each swatch carries its own variant id and a +/-
+          stepper (the "-" and count stay hidden until that flavor has at
+          least one unit); subscription-widget.js owns the counting/cap logic
+          -- this is just an empty, unselected shell at render time.
         {%- endcomment -%}
         <div class="subscription-widget__swatch-grid">
           {%- for value in first_option.values -%}
@@ -267,12 +267,22 @@
                 {%- endif -%}
               </span>
               <span class="subscription-widget__swatch-name">{{ value }}</span>
-              <button
-                type="button"
-                class="subscription-widget__swatch-toggle"
-                data-flavor-toggle
-                aria-label="Add {{ value | escape }}"
-              >+</button>
+              <div class="subscription-widget__swatch-stepper">
+                <button
+                  type="button"
+                  class="subscription-widget__swatch-toggle"
+                  data-qty-minus
+                  hidden
+                  aria-label="Decrease {{ value | escape }} quantity"
+                >−</button>
+                <span class="subscription-widget__swatch-qty-count" data-qty-count hidden>0</span>
+                <button
+                  type="button"
+                  class="subscription-widget__swatch-toggle"
+                  data-qty-plus
+                  aria-label="Add {{ value | escape }}"
+                >+</button>
+              </div>
             </div>
           {%- endfor -%}
         </div>

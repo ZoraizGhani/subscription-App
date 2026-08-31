@@ -86,13 +86,12 @@
       return flavorSwatches.reduce((sum, el) => sum + (flavorQuantities[el.dataset.variantId] || 0), 0);
     }
 
-    // Resets the mix whenever the selected plan's quantity changes -- each
-    // flavor is either picked (1) or not (0), so the default pre-selects the
-    // first `quantity` flavors (favourite first) and leaves the rest for the
-    // customer to swap in from there.
+    // Resets the mix whenever the selected plan's quantity changes -- all of
+    // it defaults onto the first (favourite) flavor, and the customer can
+    // then redistribute it across other flavors from there.
     function resetFlavorQuantities(quantity) {
       flavorSwatches.forEach((el, i) => {
-        flavorQuantities[el.dataset.variantId] = i < quantity ? 1 : 0;
+        flavorQuantities[el.dataset.variantId] = i === 0 ? quantity : 0;
       });
     }
 
@@ -305,6 +304,7 @@
       flavorSelectedEl.innerHTML = "";
       selected.forEach((el) => {
         const variantId = el.dataset.variantId;
+        const qty = flavorQuantities[variantId] || 0;
         const label = el.dataset.swatchLabel || "";
         const sourceImg = el.querySelector(".subscription-widget__swatch-image img");
         const accent = getComputedStyle(el).getPropertyValue("--swatch-accent").trim();
@@ -317,6 +317,13 @@
         imageWrap.className = "subscription-widget__flavor-chip-image";
         if (sourceImg) imageWrap.appendChild(sourceImg.cloneNode(true));
         chip.appendChild(imageWrap);
+
+        if (qty > 1) {
+          const qtyBadge = document.createElement("span");
+          qtyBadge.className = "subscription-widget__flavor-chip-qty";
+          qtyBadge.textContent = String(qty);
+          chip.appendChild(qtyBadge);
+        }
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
@@ -333,9 +340,10 @@
       });
     }
 
-    // Reflects flavorQuantities in the DOM: each swatch's toggle button
-    // (+ to add / − once selected, disabled once the mix is full), and the
-    // "N of M selected" progress line.
+    // Reflects flavorQuantities in the DOM: each swatch's count, its +/-
+    // buttons' disabled/hidden state (can't go below 0 or push the total
+    // over the plan's allowed quantity), and the "N of M selected" progress
+    // line.
     function updateFlavorUI() {
       if (!flavorSwatches.length) return;
       const sum = flavorTotalSelected();
@@ -343,12 +351,19 @@
         const qty = flavorQuantities[el.dataset.variantId] || 0;
         const selected = qty > 0;
         el.classList.toggle("is-selected", selected);
-        const toggleBtn = el.querySelector("[data-flavor-toggle]");
-        if (toggleBtn) {
-          toggleBtn.textContent = selected ? "−" : "+";
-          toggleBtn.classList.toggle("is-filled", selected);
-          toggleBtn.disabled = !selected && sum >= currentPlanQuantity;
-          toggleBtn.setAttribute("aria-label", `${selected ? "Remove" : "Add"} ${el.dataset.swatchLabel || ""}`);
+        const countEl = el.querySelector("[data-qty-count]");
+        if (countEl) {
+          countEl.textContent = String(qty);
+          countEl.hidden = !selected;
+        }
+        const minusBtn = el.querySelector("[data-qty-minus]");
+        const plusBtn = el.querySelector("[data-qty-plus]");
+        if (minusBtn) {
+          minusBtn.hidden = !selected;
+        }
+        if (plusBtn) {
+          plusBtn.classList.toggle("is-filled", selected);
+          plusBtn.disabled = sum >= currentPlanQuantity;
         }
       });
       updateFlavorSelectedRow();
@@ -393,22 +408,25 @@
       });
     });
 
-    // Each flavor's own add/remove toggle -- clamped so the total across all
-    // flavors never exceeds the selected plan's quantity. One unit per
-    // flavor; picking a plan quantity > 1 means picking that many distinct
-    // flavors, not stacking multiples of the same one.
+    // Each flavor's own +/- stepper -- clamped so the total across all
+    // flavors never exceeds the selected plan's quantity, and never drops a
+    // single flavor below 0. The same flavor can be picked more than once.
     flavorSwatches.forEach((el) => {
       const variantId = el.dataset.variantId;
-      const toggleBtn = el.querySelector("[data-flavor-toggle]");
-      if (toggleBtn) {
-        toggleBtn.addEventListener("click", () => {
-          const selected = (flavorQuantities[variantId] || 0) > 0;
-          if (selected) {
-            flavorQuantities[variantId] = 0;
-          } else {
-            if (flavorTotalSelected() >= currentPlanQuantity) return;
-            flavorQuantities[variantId] = 1;
-          }
+      const minusBtn = el.querySelector("[data-qty-minus]");
+      const plusBtn = el.querySelector("[data-qty-plus]");
+      if (minusBtn) {
+        minusBtn.addEventListener("click", () => {
+          const current = flavorQuantities[variantId] || 0;
+          if (current <= 0) return;
+          flavorQuantities[variantId] = current - 1;
+          render();
+        });
+      }
+      if (plusBtn) {
+        plusBtn.addEventListener("click", () => {
+          if (flavorTotalSelected() >= currentPlanQuantity) return;
+          flavorQuantities[variantId] = (flavorQuantities[variantId] || 0) + 1;
           render();
         });
       }
