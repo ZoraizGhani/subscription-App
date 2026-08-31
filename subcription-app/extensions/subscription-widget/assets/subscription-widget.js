@@ -273,10 +273,11 @@
       // A one-time purchase skips the selling plan entirely, so it's priced
       // off the variant's own price/compare-at price -- not the subscription
       // discount (`selectedPrice`), which only applies when actually
-      // subscribing. Always a single unit regardless of the selected plan's
-      // quantity (see addToCart) -- a try-it-once option, not a scaled-down
-      // bundle. Show the strikethrough only when the variant genuinely has a
-      // compare-at price higher than its price; otherwise just the price.
+      // subscribing. This headline number is always a single unit's price
+      // (a "from $X" tag), independent of how many flavors/units addToCart()
+      // actually adds to the cart for the one-time mix. Show the
+      // strikethrough only when the variant genuinely has a compare-at price
+      // higher than its price; otherwise just the price.
       const oneTimePrice = variant.price;
       const oneTimeCompare = variant.compare_at_price;
       const oneTimeHasCompare = Boolean(oneTimeCompare) && oneTimeCompare > oneTimePrice;
@@ -427,30 +428,41 @@
     // entry points to the same cart, not independent flows. A subscription
     // uses whatever quantity the merchant configured for that specific plan
     // in the app's admin (Selling Plan Settings), split across the chosen
-    // flavor mix. A one-time purchase always adds a single unit of whichever
-    // flavor/variant is currently active, regardless of which plan (and its
-    // quantity) happens to be selected -- it's a try-it-once option, not a
-    // scaled-down bundle, so the plan's quantity and flavor mix don't apply.
+    // flavor mix. A one-time purchase mirrors that same flavor mix (3
+    // flavors selected -> 3 units split across them, 1 selected -> 1 unit)
+    // but with no selling_plan attached and no requirement that the mix add
+    // up to the plan's quantity -- it's just "buy exactly what's currently
+    // picked," not a scaled-down bundle.
     async function addToCart({ oneTime } = {}) {
       let items;
-      if (oneTime) {
-        items = [{ id: currentVariant().id, quantity: 1 }];
-      } else if (flavorSwatches.length) {
-        // Mixed flavors -> one cart line item per flavor with quantity > 0
-        // (each is a different variant, so they can't be combined into a
-        // single line the way one flavor at quantity N could be). Block the
-        // submit entirely if the mix doesn't add up to what the plan allows
-        // -- the same total the "N of M selected" progress line shows.
-        if (flavorTotalSelected() !== currentPlanQuantity) {
-          statusEl.textContent = `Select ${currentPlanQuantity} total across flavors before adding to cart.`;
-          statusEl.classList.add("is-error");
-          return;
-        }
-        const planId = selectedPlanId();
-        items = flavorSwatches
+      if (flavorSwatches.length) {
+        const selectedItems = flavorSwatches
           .map((el) => ({ id: Number(el.dataset.variantId), quantity: flavorQuantities[el.dataset.variantId] || 0 }))
-          .filter((item) => item.quantity > 0)
-          .map((item) => ({ ...item, selling_plan: planId }));
+          .filter((item) => item.quantity > 0);
+
+        if (oneTime) {
+          if (selectedItems.length === 0) {
+            statusEl.textContent = "Select at least one flavor before adding to cart.";
+            statusEl.classList.add("is-error");
+            return;
+          }
+          items = selectedItems;
+        } else {
+          // One cart line item per flavor with quantity > 0 (each is a
+          // different variant, so they can't be combined into a single line
+          // the way one flavor at quantity N could be). Block the submit
+          // entirely if the mix doesn't add up to what the plan allows --
+          // the same total the "N of M selected" progress line shows.
+          if (flavorTotalSelected() !== currentPlanQuantity) {
+            statusEl.textContent = `Select ${currentPlanQuantity} total across flavors before adding to cart.`;
+            statusEl.classList.add("is-error");
+            return;
+          }
+          const planId = selectedPlanId();
+          items = selectedItems.map((item) => ({ ...item, selling_plan: planId }));
+        }
+      } else if (oneTime) {
+        items = [{ id: currentVariant().id, quantity: 1 }];
       } else {
         items = [{ id: currentVariant().id, quantity: currentPlanQuantity, selling_plan: selectedPlanId() }];
       }
