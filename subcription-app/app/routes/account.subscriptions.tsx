@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { CSSProperties } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 
@@ -20,6 +21,10 @@ import {
   PortalOwnershipError,
 } from "../models/portalSubscription.server";
 import styles from "../styles/portal.module.css";
+
+// Cycled by flavor index so each pill gets a distinct accent color without
+// requiring merchants to configure one per variant.
+const FLAVOR_PALETTE = ["#4F8EF7", "#F5A623", "#EF5DA8", "#4CAF50", "#9B59B6", "#1ABC9C"];
 
 const INTERVAL_OPTIONS = [
   { value: "DAY", label: "Day(s)" },
@@ -774,35 +779,55 @@ function ManageSubscriptionModal({
                 number. */}
             {!swapProduct && displayVariants.length > 1 && (
               <div className={styles.manageField}>
-                <span className={styles.manageFieldLabel}>1. Select flavor(s)</span>
-                <div className={styles.manageSwatchGrid}>
-                  {displayVariants.map((variant) => {
+                <div className={styles.flavorHeaderRow}>
+                  <span className={styles.manageFieldLabel}>1. Select flavor(s)</span>
+                  <span
+                    className={`${styles.flavorCounterBadge} ${
+                      options?.maxQuantity != null && flavorTotal === options.maxQuantity ? styles["is-complete"] : ""
+                    }`}
+                  >
+                    {flavorTotal}
+                    {options?.maxQuantity != null ? `/${options.maxQuantity}` : ""} selected
+                  </span>
+                </div>
+                <div className={styles.flavorPillGrid}>
+                  {displayVariants.map((variant, index) => {
                     const flavorQty = activeFlavorQuantities[variant.id] ?? 0;
+                    const selected = flavorQty > 0;
+                    const accent = FLAVOR_PALETTE[index % FLAVOR_PALETTE.length];
                     return (
                       <div
                         key={variant.id}
-                        className={`${styles.manageSwatch} ${flavorQty > 0 ? styles["is-selected"] : ""}`}
-                        style={{ opacity: variant.availableForSale ? 1 : 0.5 }}
+                        className={`${styles.flavorPill} ${selected ? styles["is-selected"] : ""}`}
+                        style={
+                          {
+                            "--flavor-accent": accent,
+                            opacity: variant.availableForSale ? 1 : 0.5,
+                          } as CSSProperties
+                        }
                       >
-                        <span className={styles.manageSwatchImage}>
+                        <span className={styles.flavorPillImage}>
                           {variant.imageUrl && <img src={variant.imageUrl} alt={variant.title} />}
                         </span>
-                        <span className={styles.manageSwatchName}>
+                        <span className={styles.flavorPillName}>
                           {variant.title}
                           {!variant.availableForSale && " (out of stock)"}
                         </span>
-                        <div className={styles.manageQuantity}>
+                        <div className={styles.flavorPillStepper}>
+                          {selected && (
+                            <button
+                              type="button"
+                              className={styles.flavorPillBtn}
+                              onClick={() => decrementFlavor(variant.id)}
+                              aria-label={`Decrease ${variant.title} quantity`}
+                            >
+                              &minus;
+                            </button>
+                          )}
+                          {selected && <span className={styles.flavorPillCount}>{flavorQty}</span>}
                           <button
                             type="button"
-                            onClick={() => decrementFlavor(variant.id)}
-                            disabled={flavorQty <= 0}
-                            aria-label={`Decrease ${variant.title} quantity`}
-                          >
-                            &minus;
-                          </button>
-                          <span>{flavorQty}</span>
-                          <button
-                            type="button"
+                            className={`${styles.flavorPillBtn} ${selected ? styles["is-filled"] : ""}`}
                             onClick={() => incrementFlavor(variant.id)}
                             disabled={!variant.availableForSale || atMaxQuantity}
                             aria-label={`Increase ${variant.title} quantity`}
@@ -814,11 +839,36 @@ function ManageSubscriptionModal({
                     );
                   })}
                 </div>
-                <p className={styles.manageMixNote}>
-                  Mix flavors freely &mdash; {flavorTotal}
-                  {options?.maxQuantity != null ? ` of ${options.maxQuantity}` : ""} pouch
-                  {flavorTotal === 1 ? "" : "es"} selected, same price per pouch either way.
-                </p>
+                {flavorTotal > 0 && (
+                  <div className={styles.flavorSelectedRow}>
+                    {displayVariants.map((variant, index) => {
+                      const qty = activeFlavorQuantities[variant.id] ?? 0;
+                      if (qty <= 0) return null;
+                      const accent = FLAVOR_PALETTE[index % FLAVOR_PALETTE.length];
+                      return (
+                        <div
+                          key={variant.id}
+                          className={styles.flavorChip}
+                          style={{ "--flavor-accent": accent } as CSSProperties}
+                        >
+                          <span className={styles.flavorChipImage}>
+                            {variant.imageUrl && <img src={variant.imageUrl} alt={variant.title} />}
+                          </span>
+                          {qty > 1 && <span className={styles.flavorChipQty}>{qty}</span>}
+                          <button
+                            type="button"
+                            className={styles.flavorChipRemove}
+                            onClick={() => setFlavorQty(variant.id, 0)}
+                            aria-label={`Remove ${variant.title}`}
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className={styles.manageMixNote}>Mix flavors freely &mdash; same price per pouch either way.</p>
               </div>
             )}
 

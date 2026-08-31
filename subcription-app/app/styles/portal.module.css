@@ -1440,6 +1440,196 @@
   color: #6b7280;
 }
 
+/* --- Flavor pills: colored-outline chip picker + selected-chips row --- */
+
+.flavorHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.flavorCounterBadge {
+  padding: 0.1875rem 0.625rem;
+  border-radius: 9999px;
+  background: #f2f2ef;
+  font-family: "Geist", sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b6b6b;
+  white-space: nowrap;
+}
+
+.flavorCounterBadge.is-complete {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.flavorPillGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.flavorPill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4375rem 0.5rem 0.4375rem 0.4375rem;
+  border: 1.5px solid var(--flavor-accent, #c7c7c2);
+  border-radius: 9999px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.flavorPill.is-selected {
+  background: color-mix(in srgb, var(--flavor-accent, #c7c7c2) 10%, #fff);
+}
+
+.flavorPillImage {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f2f2ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flavorPillImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.flavorPillName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Geist", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.flavorPillStepper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.flavorPillBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1.5px solid var(--flavor-accent, #c7c7c2);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--flavor-accent, #6b6b6b);
+  font-size: 0.8125rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.flavorPillBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.flavorPillBtn.is-filled {
+  background: var(--flavor-accent, #1a1a1a);
+  border-color: var(--flavor-accent, #1a1a1a);
+  color: #fff;
+}
+
+.flavorPillCount {
+  min-width: 0.875rem;
+  text-align: center;
+  font-family: "Geist", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.flavorSelectedRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.flavorChip {
+  position: relative;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+}
+
+.flavorChipImage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1.5px solid var(--flavor-accent, #c7c7c2);
+  overflow: hidden;
+  background: #f2f2ef;
+}
+
+.flavorChipImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.flavorChipQty {
+  position: absolute;
+  bottom: -0.125rem;
+  left: -0.125rem;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.1875rem;
+  border-radius: 9999px;
+  background: var(--flavor-accent, #1a1a1a);
+  color: #fff;
+  font-family: "Geist", sans-serif;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1rem;
+  text-align: center;
+}
+
+.flavorChipRemove {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1px solid #e5e1d8;
+  border-radius: 50%;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 0.6875rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
 .manageQuantityRow {
   display: flex;
   align-items: center;
@@ -2034,6 +2224,10 @@
     width: 1.375rem;
     height: 1.125rem;
     font-size: 0.6875rem;
+  }
+
+  .flavorPillGrid {
+    grid-template-columns: 1fr;
   }
 
   .addonThumb {

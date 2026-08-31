@@ -275,6 +275,13 @@
             </div>
           {%- endfor -%}
         </div>
+        {%- comment -%}
+          Populated by subscription-widget.js from whichever swatches
+          currently have quantity > 0 -- a compact row of removable chips
+          mirroring the selection, since the grid above can hold more
+          flavors than fit comfortably as a running summary.
+        {%- endcomment -%}
+        <div class="subscription-widget__flavor-selected" data-flavor-selected hidden></div>
       </div>
 
       {%- for option in product.options_with_values -%}

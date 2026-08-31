@@ -21,6 +21,7 @@
     const optionEls = Array.from(root.querySelectorAll("[data-option-index]"));
     const flavorSwatches = Array.from(root.querySelectorAll("[data-flavor-swatch]"));
     const flavorRemainingEl = root.querySelector("[data-flavor-remaining]");
+    const flavorSelectedEl = root.querySelector("[data-flavor-selected]");
     const submitBtn = root.querySelector("[data-add-to-cart]");
     const statusEl = root.querySelector("[data-status]");
 
@@ -292,6 +293,53 @@
       updateFlavorUI();
     }
 
+    // Compact row of removable chips below the grid, one per flavor that
+    // currently has quantity > 0 -- rebuilt from flavorSwatches/
+    // flavorQuantities on every render rather than diffed, since the whole
+    // row is small and selection changes infrequently.
+    function updateFlavorSelectedRow() {
+      if (!flavorSelectedEl) return;
+      const selected = flavorSwatches.filter((el) => (flavorQuantities[el.dataset.variantId] || 0) > 0);
+      flavorSelectedEl.hidden = selected.length === 0;
+      flavorSelectedEl.innerHTML = "";
+      selected.forEach((el) => {
+        const variantId = el.dataset.variantId;
+        const qty = flavorQuantities[variantId] || 0;
+        const label = el.dataset.swatchLabel || "";
+        const sourceImg = el.querySelector(".subscription-widget__swatch-image img");
+        const accent = getComputedStyle(el).getPropertyValue("--swatch-accent").trim();
+
+        const chip = document.createElement("div");
+        chip.className = "subscription-widget__flavor-chip";
+        if (accent) chip.style.setProperty("--swatch-accent", accent);
+
+        const imageWrap = document.createElement("span");
+        imageWrap.className = "subscription-widget__flavor-chip-image";
+        if (sourceImg) imageWrap.appendChild(sourceImg.cloneNode(true));
+        chip.appendChild(imageWrap);
+
+        if (qty > 1) {
+          const qtyBadge = document.createElement("span");
+          qtyBadge.className = "subscription-widget__flavor-chip-qty";
+          qtyBadge.textContent = String(qty);
+          chip.appendChild(qtyBadge);
+        }
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "subscription-widget__flavor-chip-remove";
+        removeBtn.setAttribute("aria-label", `Remove ${label}`);
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", () => {
+          flavorQuantities[variantId] = 0;
+          render();
+        });
+        chip.appendChild(removeBtn);
+
+        flavorSelectedEl.appendChild(chip);
+      });
+    }
+
     // Reflects flavorQuantities in the DOM: each swatch's count, its +/-
     // buttons' disabled state (can't go below 0 or push the total over the
     // plan's allowed quantity), and the "N of M selected" progress line.
@@ -300,14 +348,22 @@
       const sum = flavorTotalSelected();
       flavorSwatches.forEach((el) => {
         const qty = flavorQuantities[el.dataset.variantId] || 0;
+        const selected = qty > 0;
         const countEl = el.querySelector("[data-qty-count]");
-        if (countEl) countEl.textContent = String(qty);
-        el.classList.toggle("is-selected", qty > 0);
+        if (countEl) {
+          countEl.textContent = String(qty);
+          countEl.hidden = !selected;
+        }
+        el.classList.toggle("is-selected", selected);
         const minusBtn = el.querySelector("[data-qty-minus]");
         const plusBtn = el.querySelector("[data-qty-plus]");
-        if (minusBtn) minusBtn.disabled = qty <= 0;
+        if (minusBtn) {
+          minusBtn.disabled = !selected;
+          minusBtn.hidden = !selected;
+        }
         if (plusBtn) plusBtn.disabled = sum >= currentPlanQuantity;
       });
+      updateFlavorSelectedRow();
       if (flavorRemainingEl) {
         flavorRemainingEl.textContent = `${sum} of ${currentPlanQuantity} selected`;
         flavorRemainingEl.classList.toggle("is-incomplete", sum !== currentPlanQuantity);
