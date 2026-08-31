@@ -296,12 +296,18 @@
 
     // One slot per unit of the plan's quantity, always rendered (not just
     // once something's picked) -- empty slots show as dashed placeholders,
-    // filled ones show the flavor's image plus a remove button. Rebuilt from
-    // flavorSwatches/flavorQuantities on every render rather than diffed,
-    // since the whole row is small and selection changes infrequently.
+    // filled ones show the flavor's image plus a remove button. A flavor
+    // with quantity 2 fills two slots, not one -- slots are flattened by
+    // unit, not deduped by flavor. Rebuilt from flavorSwatches/
+    // flavorQuantities on every render rather than diffed, since the whole
+    // row is small and selection changes infrequently.
     function updateFlavorSlots() {
       if (!flavorSelectedEl) return;
-      const selectedEls = flavorSwatches.filter((el) => (flavorQuantities[el.dataset.variantId] || 0) > 0);
+      const selectedEls = [];
+      flavorSwatches.forEach((el) => {
+        const qty = flavorQuantities[el.dataset.variantId] || 0;
+        for (let n = 0; n < qty; n++) selectedEls.push(el);
+      });
       const slotCount = Math.max(currentPlanQuantity, selectedEls.length);
       flavorSelectedEl.innerHTML = "";
       for (let i = 0; i < slotCount; i++) {
@@ -329,7 +335,8 @@
           removeBtn.textContent = "×";
           removeBtn.addEventListener("click", (event) => {
             event.stopPropagation();
-            flavorQuantities[variantId] = 0;
+            const current = flavorQuantities[variantId] || 0;
+            flavorQuantities[variantId] = Math.max(0, current - 1);
             render();
           });
           slot.appendChild(removeBtn);
@@ -346,11 +353,10 @@
       const sum = flavorTotalSelected();
       flavorSwatches.forEach((el) => {
         const qty = flavorQuantities[el.dataset.variantId] || 0;
-        const selected = qty > 0;
         const label = el.dataset.swatchLabel || "";
-        el.classList.toggle("is-selected", selected);
-        el.setAttribute("aria-disabled", String(selected || sum >= currentPlanQuantity));
-        el.setAttribute("aria-label", selected ? `${label} selected` : `Add ${label}`);
+        el.classList.toggle("is-selected", qty > 0);
+        el.setAttribute("aria-disabled", String(sum >= currentPlanQuantity));
+        el.setAttribute("aria-label", `Add ${label}`);
       });
       updateFlavorSlots();
       if (flavorRemainingEl) {
@@ -395,16 +401,15 @@
     });
 
     // Clicking (or Enter/Space, since the swatch is a role="button" div, not
-    // a native button) fills the next empty slot with that flavor -- a
-    // no-op if it's already picked, or if every slot is already full.
-    // Removal only happens from the slot row (updateFlavorSlots' remove
-    // button), not by activating the flavor again.
+    // a native button) fills the next empty slot with that flavor -- the
+    // same flavor can fill more than one slot, so this doesn't no-op once
+    // it's already picked, only once every slot is full. Removing a unit
+    // happens from the slot row (updateFlavorSlots' remove button).
     flavorSwatches.forEach((el) => {
       const variantId = el.dataset.variantId;
       const fillSlot = () => {
-        if ((flavorQuantities[variantId] || 0) > 0) return;
         if (flavorTotalSelected() >= currentPlanQuantity) return;
-        flavorQuantities[variantId] = 1;
+        flavorQuantities[variantId] = (flavorQuantities[variantId] || 0) + 1;
         render();
       };
       el.addEventListener("click", fillSlot);

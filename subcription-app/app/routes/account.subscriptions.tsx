@@ -800,8 +800,8 @@ function ManageSubscriptionModal({
                         key={variant.id}
                         role="button"
                         tabIndex={0}
-                        aria-disabled={selected || atMaxQuantity}
-                        aria-label={selected ? `${variant.title} selected` : `Add ${variant.title}`}
+                        aria-disabled={atMaxQuantity}
+                        aria-label={`Add ${variant.title}`}
                         className={`${styles.flavorPill} ${selected ? styles["is-selected"] : ""}`}
                         style={
                           {
@@ -810,14 +810,14 @@ function ManageSubscriptionModal({
                           } as CSSProperties
                         }
                         onClick={() => {
-                          if (!variant.availableForSale || selected || atMaxQuantity) return;
-                          setFlavorQty(variant.id, 1);
+                          if (!variant.availableForSale) return;
+                          incrementFlavor(variant.id);
                         }}
                         onKeyDown={(e) => {
                           if (e.key !== "Enter" && e.key !== " ") return;
                           e.preventDefault();
-                          if (!variant.availableForSale || selected || atMaxQuantity) return;
-                          setFlavorQty(variant.id, 1);
+                          if (!variant.availableForSale) return;
+                          incrementFlavor(variant.id);
                         }}
                       >
                         <span className={styles.flavorPillImage}>
@@ -836,7 +836,11 @@ function ManageSubscriptionModal({
                 </div>
                 <div className={styles.flavorSlots}>
                   {Array.from({ length: Math.max(options?.maxQuantity ?? flavorTotal, flavorTotal) }).map((_, i) => {
-                    const selectedVariants = displayVariants.filter((v) => (activeFlavorQuantities[v.id] ?? 0) > 0);
+                    // Flattened so a flavor with qty 2 fills two slots, not one --
+                    // slots represent units, not distinct flavors.
+                    const selectedVariants = displayVariants.flatMap((v) =>
+                      Array(activeFlavorQuantities[v.id] ?? 0).fill(v),
+                    );
                     const variant = selectedVariants[i];
                     if (!variant) {
                       return <div key={`empty-${i}`} className={styles.flavorSlot} />;
@@ -845,7 +849,7 @@ function ManageSubscriptionModal({
                     const accent = FLAVOR_PALETTE[index % FLAVOR_PALETTE.length];
                     return (
                       <div
-                        key={variant.id}
+                        key={`${variant.id}-${i}`}
                         className={`${styles.flavorSlot} ${styles["is-filled"]}`}
                         style={{ "--flavor-accent": accent } as CSSProperties}
                       >
@@ -855,7 +859,7 @@ function ManageSubscriptionModal({
                         <button
                           type="button"
                           className={styles.flavorSlotRemove}
-                          onClick={() => setFlavorQty(variant.id, 0)}
+                          onClick={() => decrementFlavor(variant.id)}
                           aria-label={`Remove ${variant.title}`}
                         >
                           &times;
