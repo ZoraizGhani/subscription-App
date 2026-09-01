@@ -22,7 +22,6 @@
     const flavorSwatches = Array.from(root.querySelectorAll("[data-flavor-swatch]"));
     const flavorRemainingEl = root.querySelector("[data-flavor-remaining]");
     const flavorProgressDotsEl = root.querySelector("[data-flavor-progress-dots]");
-    const flavorSelectedEl = root.querySelector("[data-flavor-selected]");
     const submitBtn = root.querySelector("[data-add-to-cart]");
     const statusEl = root.querySelector("[data-status]");
 
@@ -295,48 +294,56 @@
       updateFlavorUI();
     }
 
-    // Compact row of removable chips below the grid, one per selected UNIT
-    // (not deduped by flavor) -- a 3-quantity bundle with all 3 on one
-    // flavor shows 3 chips, not 1 chip with a "3" badge, so the row always
-    // mirrors the bundle's quantity. Rebuilt from flavorSwatches/
-    // flavorQuantities on every render rather than diffed, since the whole
-    // row is small and selection changes infrequently.
-    function updateFlavorSelectedRow() {
-      if (!flavorSelectedEl) return;
+    // The progress-dot row below the grid: one slot per unit the selected
+    // plan ships. The first `sum` slots (in the order flavors were tapped,
+    // not deduped -- a 3-quantity bundle with all 3 on one flavor fills 3
+    // slots with that same flavor's image, not one slot with a "3" badge)
+    // show that unit's flavor image with a small "x" to remove just that
+    // unit; the rest stay plain dashed placeholders. Always rendered (never
+    // hidden) so the placeholders show from page load, and rebuilt on every
+    // render since currentPlanQuantity can change between renders
+    // (switching bundles).
+    function updateFlavorProgressDots() {
+      if (!flavorProgressDotsEl) return;
       const units = [];
       flavorSwatches.forEach((el) => {
         const qty = flavorQuantities[el.dataset.variantId] || 0;
         for (let n = 0; n < qty; n++) units.push(el);
       });
-      flavorSelectedEl.hidden = units.length === 0;
-      flavorSelectedEl.innerHTML = "";
-      units.forEach((el) => {
-        const variantId = el.dataset.variantId;
-        const label = el.dataset.swatchLabel || "";
-        const sourceImg = el.querySelector(".subscription-widget__swatch-image img");
 
-        const chip = document.createElement("div");
-        chip.className = "subscription-widget__flavor-chip";
+      flavorProgressDotsEl.innerHTML = "";
+      for (let i = 0; i < currentPlanQuantity; i++) {
+        const unitEl = units[i];
+        const dot = document.createElement("span");
 
-        const imageWrap = document.createElement("span");
-        imageWrap.className = "subscription-widget__flavor-chip-image";
-        if (sourceImg) imageWrap.appendChild(sourceImg.cloneNode(true));
-        chip.appendChild(imageWrap);
+        if (unitEl) {
+          dot.className = "subscription-widget__flavor-progress-dot is-filled";
+          const variantId = unitEl.dataset.variantId;
+          const label = unitEl.dataset.swatchLabel || "";
+          const sourceImg = unitEl.querySelector(".subscription-widget__swatch-image img");
+          if (sourceImg) {
+            const img = sourceImg.cloneNode(true);
+            img.className = "subscription-widget__flavor-progress-dot-image";
+            dot.appendChild(img);
+          }
 
-        const removeBtn = document.createElement("button");
-        removeBtn.type = "button";
-        removeBtn.className = "subscription-widget__flavor-chip-remove";
-        removeBtn.setAttribute("aria-label", `Remove ${label}`);
-        removeBtn.textContent = "×";
-        removeBtn.addEventListener("click", () => {
-          const current = flavorQuantities[variantId] || 0;
-          flavorQuantities[variantId] = Math.max(0, current - 1);
-          render();
-        });
-        chip.appendChild(removeBtn);
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "subscription-widget__flavor-progress-dot-remove";
+          removeBtn.setAttribute("aria-label", `Remove ${label}`);
+          removeBtn.textContent = "×";
+          removeBtn.addEventListener("click", () => {
+            const current = flavorQuantities[variantId] || 0;
+            flavorQuantities[variantId] = Math.max(0, current - 1);
+            render();
+          });
+          dot.appendChild(removeBtn);
+        } else {
+          dot.className = "subscription-widget__flavor-progress-dot";
+        }
 
-        flavorSelectedEl.appendChild(chip);
-      });
+        flavorProgressDotsEl.appendChild(dot);
+      }
     }
 
     // Reflects flavorQuantities in the DOM: each swatch's "+" affordance
@@ -352,25 +359,10 @@
         const plusBtn = el.querySelector("[data-qty-plus]");
         if (plusBtn) plusBtn.disabled = sum >= currentPlanQuantity;
       });
-      updateFlavorSelectedRow();
+      updateFlavorProgressDots();
       if (flavorRemainingEl) {
         flavorRemainingEl.textContent = `${sum}/${currentPlanQuantity} selected`;
         flavorRemainingEl.classList.toggle("is-incomplete", sum !== currentPlanQuantity);
-      }
-
-      // One dot per unit the selected plan ships, filling in left-to-right
-      // as ANY flavor is tapped -- always rendered (never hidden), so the
-      // placeholders show from page load even at 0 selected. Rebuilt every
-      // render since currentPlanQuantity can change between renders
-      // (switching bundles).
-      if (flavorProgressDotsEl) {
-        flavorProgressDotsEl.innerHTML = "";
-        for (let i = 0; i < currentPlanQuantity; i++) {
-          const dot = document.createElement("span");
-          dot.className =
-            "subscription-widget__flavor-progress-dot" + (i < sum ? " is-filled" : "");
-          flavorProgressDotsEl.appendChild(dot);
-        }
       }
 
       // Subscription add-to-cart entry points stay disabled until the flavor

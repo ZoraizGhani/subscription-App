@@ -221,12 +221,11 @@
           quantity. Tapping anywhere on a swatch adds one unit to it (the
           top-right "+" is just a visual cue, not a separate control) --
           there's no per-swatch count shown here; the "N/M selected" line
-          and dot row below the grid, plus the selected-flavor chip row
-          further down (one image+"x" chip per unit, across all flavors),
-          are the only places the mix is reflected back.
-          subscription-widget.js owns all the counting/redistribution logic
-          and the total is capped at whatever quantity the selected plan
-          allows -- these are just empty shells at render time.
+          and image-filled dot row below the grid is the only place the mix
+          is reflected back. subscription-widget.js owns all the counting/
+          redistribution logic and the total is capped at whatever quantity
+          the selected plan allows -- these are just empty shells at render
+          time.
         {%- endcomment -%}
         <div class="subscription-widget__swatch-grid">
           {%- for value in first_option.values -%}
@@ -277,20 +276,14 @@
         </div>
         {%- comment -%}
           Progress readout: "N/M selected" plus one dot per unit the plan
-          ships, filling in left-to-right as ANY flavor is tapped (not tied
-          to a specific one -- that's what the chip row below is for). Always
+          ships, filling in left-to-right as flavors are tapped. Always
           rendered, never hidden, so the placeholders show from page load.
+          An unfilled dot stays a plain dashed placeholder; a filled one
+          shows that unit's own flavor image with a small "x" to remove
+          just that unit -- populated entirely by subscription-widget.js.
         {%- endcomment -%}
         <p class="subscription-widget__flavor-progress-label" data-flavor-remaining></p>
         <div class="subscription-widget__flavor-progress-dots" data-flavor-progress-dots aria-hidden="true"></div>
-
-        {%- comment -%}
-          Populated by subscription-widget.js from whichever swatches
-          currently have quantity > 0 -- a compact row of removable chips
-          mirroring the selection, since the grid above can hold more
-          flavors than fit comfortably as a running summary.
-        {%- endcomment -%}
-        <div class="subscription-widget__flavor-selected" data-flavor-selected hidden></div>
       </div>
 
       {%- for option in product.options_with_values -%}
