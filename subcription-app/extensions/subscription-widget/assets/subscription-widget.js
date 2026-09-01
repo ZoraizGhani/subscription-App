@@ -351,16 +351,43 @@
         const plusBtn = el.querySelector("[data-qty-plus]");
         if (plusBtn) plusBtn.disabled = sum >= currentPlanQuantity;
 
-        // One dot per unit the selected plan ships, filling in left-to-right
+        // One slot per unit the selected plan ships, filling in left-to-right
         // up to this swatch's own quantity -- rebuilt every render since
         // currentPlanQuantity can change between renders (switching bundles).
+        // An empty slot stays a plain dashed placeholder circle; a filled
+        // one shows this flavor's own image with a small "x" to remove that
+        // one unit (stopPropagation so it doesn't also trigger the swatch's
+        // own add-on-click handler).
         const dotsEl = el.querySelector("[data-qty-dots]");
         if (dotsEl) {
           dotsEl.innerHTML = "";
+          const variantId = el.dataset.variantId;
+          const sourceImg = el.querySelector(".subscription-widget__swatch-image img");
+          const label = el.dataset.swatchLabel || "";
           for (let i = 0; i < currentPlanQuantity; i++) {
             const dot = document.createElement("span");
-            dot.className =
-              "subscription-widget__swatch-dot" + (i < qty ? " is-filled" : "");
+            if (i < qty) {
+              dot.className = "subscription-widget__swatch-dot is-filled";
+              if (sourceImg) {
+                const img = sourceImg.cloneNode(true);
+                img.className = "subscription-widget__swatch-dot-image";
+                dot.appendChild(img);
+              }
+              const removeBtn = document.createElement("button");
+              removeBtn.type = "button";
+              removeBtn.className = "subscription-widget__swatch-dot-remove";
+              removeBtn.setAttribute("aria-label", `Remove one ${label}`);
+              removeBtn.textContent = "×";
+              removeBtn.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const current = flavorQuantities[variantId] || 0;
+                flavorQuantities[variantId] = Math.max(0, current - 1);
+                render();
+              });
+              dot.appendChild(removeBtn);
+            } else {
+              dot.className = "subscription-widget__swatch-dot";
+            }
             dotsEl.appendChild(dot);
           }
         }

@@ -223,11 +223,13 @@
           top-right "+" is just a visual cue, not a separate control), and a
           row of dot placeholders below its name -- always empty on page
           load, sized to the selected bundle's quantity -- fills in
-          left-to-right to show that flavor's own count. Removing a unit
-          happens from the selected-flavor chip row further down instead.
-          subscription-widget.js owns all the counting/redistribution logic
-          and the total is capped at whatever quantity the selected plan
-          allows -- these are just empty shells at render time.
+          left-to-right to show that flavor's own count. An unfilled dot
+          stays a plain dashed placeholder; a filled one shows that
+          flavor's own image with a small "x" to remove just that unit,
+          same as the selected-flavor chip row further down. subscription-
+          widget.js owns all the counting/redistribution logic and the
+          total is capped at whatever quantity the selected plan allows --
+          these are just empty shells at render time.
         {%- endcomment -%}
         <div class="subscription-widget__swatch-grid">
           {%- for value in first_option.values -%}
