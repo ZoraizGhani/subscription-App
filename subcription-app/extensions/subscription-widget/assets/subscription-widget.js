@@ -86,13 +86,12 @@
       return flavorSwatches.reduce((sum, el) => sum + (flavorQuantities[el.dataset.variantId] || 0), 0);
     }
 
-    // Resets the mix whenever the selected plan's quantity changes -- each
-    // flavor fills at most one slot (no repeats), so the default
-    // pre-selects the first `quantity` flavors (favourite first) and leaves
-    // the rest of the slots empty for the customer to fill from there.
+    // Resets the mix whenever the selected plan's quantity changes -- all of
+    // it defaults onto the first (favourite) flavor, and the customer can
+    // then redistribute it across other flavors from there.
     function resetFlavorQuantities(quantity) {
       flavorSwatches.forEach((el, i) => {
-        flavorQuantities[el.dataset.variantId] = i < quantity ? 1 : 0;
+        flavorQuantities[el.dataset.variantId] = i === 0 ? quantity : 0;
       });
     }
 
@@ -295,74 +294,83 @@
       updateFlavorUI();
     }
 
-    // One slot per unit of the plan's quantity, always rendered (not just
-    // once something's picked) -- empty slots show as dashed placeholders,
-    // filled ones show the flavor's image plus a remove button. A flavor
-    // with quantity 2 fills two slots, not one -- slots are flattened by
-    // unit, not deduped by flavor. Rebuilt from flavorSwatches/
+    // Compact row of removable chips below the grid, one per flavor that
+    // currently has quantity > 0 -- rebuilt from flavorSwatches/
     // flavorQuantities on every render rather than diffed, since the whole
     // row is small and selection changes infrequently.
-    function updateFlavorSlots() {
+    function updateFlavorSelectedRow() {
       if (!flavorSelectedEl) return;
-      const selectedEls = [];
-      flavorSwatches.forEach((el) => {
-        const qty = flavorQuantities[el.dataset.variantId] || 0;
-        for (let n = 0; n < qty; n++) selectedEls.push(el);
-      });
-      const slotCount = Math.max(currentPlanQuantity, selectedEls.length);
+      const selected = flavorSwatches.filter((el) => (flavorQuantities[el.dataset.variantId] || 0) > 0);
+      flavorSelectedEl.hidden = selected.length === 0;
       flavorSelectedEl.innerHTML = "";
-      for (let i = 0; i < slotCount; i++) {
-        const sourceEl = selectedEls[i];
-        const slot = document.createElement("div");
-        slot.className = "subscription-widget__flavor-slot";
+      selected.forEach((el) => {
+        const variantId = el.dataset.variantId;
+        const qty = flavorQuantities[variantId] || 0;
+        const label = el.dataset.swatchLabel || "";
+        const sourceImg = el.querySelector(".subscription-widget__swatch-image img");
+        const accent = getComputedStyle(el).getPropertyValue("--swatch-accent").trim();
 
-        if (sourceEl) {
-          const variantId = sourceEl.dataset.variantId;
-          const label = sourceEl.dataset.swatchLabel || "";
-          const accent = getComputedStyle(sourceEl).getPropertyValue("--swatch-accent").trim();
-          slot.classList.add("is-filled");
-          if (accent) slot.style.setProperty("--swatch-accent", accent);
+        const chip = document.createElement("div");
+        chip.className = "subscription-widget__flavor-chip";
+        if (accent) chip.style.setProperty("--swatch-accent", accent);
 
-          const sourceImg = sourceEl.querySelector(".subscription-widget__swatch-image img");
-          const imageWrap = document.createElement("span");
-          imageWrap.className = "subscription-widget__flavor-slot-image";
-          if (sourceImg) imageWrap.appendChild(sourceImg.cloneNode(true));
-          slot.appendChild(imageWrap);
+        const imageWrap = document.createElement("span");
+        imageWrap.className = "subscription-widget__flavor-chip-image";
+        if (sourceImg) imageWrap.appendChild(sourceImg.cloneNode(true));
+        chip.appendChild(imageWrap);
 
-          const removeBtn = document.createElement("button");
-          removeBtn.type = "button";
-          removeBtn.className = "subscription-widget__flavor-slot-remove";
-          removeBtn.setAttribute("aria-label", `Remove ${label}`);
-          removeBtn.textContent = "×";
-          removeBtn.addEventListener("click", (event) => {
-            event.stopPropagation();
-            const current = flavorQuantities[variantId] || 0;
-            flavorQuantities[variantId] = Math.max(0, current - 1);
-            render();
-          });
-          slot.appendChild(removeBtn);
+        if (qty > 1) {
+          const qtyBadge = document.createElement("span");
+          qtyBadge.className = "subscription-widget__flavor-chip-qty";
+          qtyBadge.textContent = String(qty);
+          chip.appendChild(qtyBadge);
         }
 
-        flavorSelectedEl.appendChild(slot);
-      }
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "subscription-widget__flavor-chip-remove";
+        removeBtn.setAttribute("aria-label", `Remove ${label}`);
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", () => {
+          flavorQuantities[variantId] = 0;
+          render();
+        });
+        chip.appendChild(removeBtn);
+
+        flavorSelectedEl.appendChild(chip);
+      });
     }
 
-    // Reflects flavorQuantities in the DOM: each swatch's selected state,
-    // the slot row below, and the "N of M selected" progress line.
+    // Reflects flavorQuantities in the DOM: each swatch's count, its +/-
+    // buttons' disabled/hidden state (can't go below 0 or push the total
+    // over the plan's allowed quantity), and the "N of M selected" progress
+    // line.
     function updateFlavorUI() {
       if (!flavorSwatches.length) return;
       const sum = flavorTotalSelected();
       flavorSwatches.forEach((el) => {
         const qty = flavorQuantities[el.dataset.variantId] || 0;
-        const label = el.dataset.swatchLabel || "";
-        el.classList.toggle("is-selected", qty > 0);
-        el.setAttribute("aria-disabled", String(sum >= currentPlanQuantity));
-        el.setAttribute("aria-label", `Add ${label}`);
+        const selected = qty > 0;
+        el.classList.toggle("is-selected", selected);
+        const countEl = el.querySelector("[data-qty-count]");
+        if (countEl) {
+          countEl.textContent = String(qty);
+          countEl.hidden = !selected;
+        }
+        const minusBtn = el.querySelector("[data-qty-minus]");
+        const plusBtn = el.querySelector("[data-qty-plus]");
+        if (minusBtn) {
+          minusBtn.hidden = !selected;
+        }
+        if (plusBtn) {
+          plusBtn.classList.toggle("is-filled", selected);
+          plusBtn.disabled = sum >= currentPlanQuantity;
+        }
       });
-      updateFlavorSlots();
+      updateFlavorSelectedRow();
       if (flavorRemainingEl) {
-        flavorRemainingEl.textContent = `${sum}/${currentPlanQuantity} selected`;
-        flavorRemainingEl.classList.toggle("is-complete", sum === currentPlanQuantity);
+        flavorRemainingEl.textContent = `${sum} of ${currentPlanQuantity} selected`;
+        flavorRemainingEl.classList.toggle("is-incomplete", sum !== currentPlanQuantity);
       }
 
       // Subscription add-to-cart entry points stay disabled until the flavor
@@ -401,24 +409,28 @@
       });
     });
 
-    // Clicking (or Enter/Space, since the swatch is a role="button" div, not
-    // a native button) fills the next empty slot with that flavor -- the
-    // same flavor can fill more than one slot, so this doesn't no-op once
-    // it's already picked, only once every slot is full. Removing a unit
-    // happens from the slot row (updateFlavorSlots' remove button).
+    // Each flavor's own +/- stepper -- clamped so the total across all
+    // flavors never exceeds the selected plan's quantity, and never drops a
+    // single flavor below 0. The same flavor can be picked more than once.
     flavorSwatches.forEach((el) => {
       const variantId = el.dataset.variantId;
-      const fillSlot = () => {
-        if (flavorTotalSelected() >= currentPlanQuantity) return;
-        flavorQuantities[variantId] = (flavorQuantities[variantId] || 0) + 1;
-        render();
-      };
-      el.addEventListener("click", fillSlot);
-      el.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        fillSlot();
-      });
+      const minusBtn = el.querySelector("[data-qty-minus]");
+      const plusBtn = el.querySelector("[data-qty-plus]");
+      if (minusBtn) {
+        minusBtn.addEventListener("click", () => {
+          const current = flavorQuantities[variantId] || 0;
+          if (current <= 0) return;
+          flavorQuantities[variantId] = current - 1;
+          render();
+        });
+      }
+      if (plusBtn) {
+        plusBtn.addEventListener("click", () => {
+          if (flavorTotalSelected() >= currentPlanQuantity) return;
+          flavorQuantities[variantId] = (flavorQuantities[variantId] || 0) + 1;
+          render();
+        });
+      }
     });
 
     bundleRadios.forEach((input) => input.addEventListener("change", render));
