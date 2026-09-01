@@ -344,23 +344,24 @@
   cursor: default;
 }
 
-.subscription-widget__flavor-progress-dots {
+.subscription-widget__swatch-dots {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.625rem;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 14px;
 }
 
-.subscription-widget__flavor-progress-dot {
-  width: 32px;
-  height: 32px;
+.subscription-widget__swatch-dot {
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   border: 1.5px dashed #9db8dd;
   background: transparent;
   box-sizing: border-box;
 }
 
-.subscription-widget__flavor-progress-dot.is-filled {
+.subscription-widget__swatch-dot.is-filled {
   border-style: solid;
   border-color: var(--subscription-widget-swatch-selected, #8c9e56);
   background: var(--subscription-widget-swatch-selected, #8c9e56);

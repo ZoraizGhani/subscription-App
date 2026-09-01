@@ -21,7 +21,6 @@
     const optionEls = Array.from(root.querySelectorAll("[data-option-index]"));
     const flavorSwatches = Array.from(root.querySelectorAll("[data-flavor-swatch]"));
     const flavorRemainingEl = root.querySelector("[data-flavor-remaining]");
-    const flavorProgressDotsEl = root.querySelector("[data-flavor-progress-dots]");
     const flavorSelectedEl = root.querySelector("[data-flavor-selected]");
     const submitBtn = root.querySelector("[data-add-to-cart]");
     const statusEl = root.querySelector("[data-status]");
@@ -351,25 +350,25 @@
         el.classList.toggle("is-selected", qty > 0);
         const plusBtn = el.querySelector("[data-qty-plus]");
         if (plusBtn) plusBtn.disabled = sum >= currentPlanQuantity;
+
+        // One dot per unit the selected plan ships, filling in left-to-right
+        // up to this swatch's own quantity -- rebuilt every render since
+        // currentPlanQuantity can change between renders (switching bundles).
+        const dotsEl = el.querySelector("[data-qty-dots]");
+        if (dotsEl) {
+          dotsEl.innerHTML = "";
+          for (let i = 0; i < currentPlanQuantity; i++) {
+            const dot = document.createElement("span");
+            dot.className =
+              "subscription-widget__swatch-dot" + (i < qty ? " is-filled" : "");
+            dotsEl.appendChild(dot);
+          }
+        }
       });
       updateFlavorSelectedRow();
       if (flavorRemainingEl) {
         flavorRemainingEl.textContent = `${sum}/${currentPlanQuantity} selected`;
         flavorRemainingEl.classList.toggle("is-incomplete", sum !== currentPlanQuantity);
-      }
-
-      // One dot per unit the selected plan ships, filling in left-to-right
-      // as flavors are tapped regardless of which one -- a visual echo of
-      // the "N of M selected" text above, rebuilt every render since
-      // currentPlanQuantity can change between renders (switching bundles).
-      if (flavorProgressDotsEl) {
-        flavorProgressDotsEl.innerHTML = "";
-        for (let i = 0; i < currentPlanQuantity; i++) {
-          const dot = document.createElement("span");
-          dot.className =
-            "subscription-widget__flavor-progress-dot" + (i < sum ? " is-filled" : "");
-          flavorProgressDotsEl.appendChild(dot);
-        }
       }
 
       // Subscription add-to-cart entry points stay disabled until the flavor
