@@ -216,17 +216,25 @@
           <span class="subscription-widget__flavor-heading-value" data-flavor-remaining></span>
         </p>
         {%- comment -%}
+          One dot per unit the selected plan ships, filling in left-to-right
+          as the customer taps flavors below (regardless of which flavor) --
+          a visual echo of the "N of M selected" text above, always empty on
+          page load. Which flavor each unit belongs to isn't shown here --
+          that's what the selected-flavor chip row further down is for.
+        {%- endcomment -%}
+        <div class="subscription-widget__flavor-progress-dots" data-flavor-progress-dots aria-hidden="true"></div>
+        {%- comment -%}
           Multi-flavor mix picker: a plan with quantity > 1 lets the customer
           split that quantity across different flavors (e.g. 3 bottles = 2
           Sour Green Apple + 1 Blood Orange) instead of one flavor times the
           quantity. Tapping anywhere on a swatch adds one unit to it (the
-          top-right "+" is just a visual cue, not a separate control), and a
-          row of dot placeholders -- always empty on page load -- fills in
-          to show its count; removing a unit happens from the selected-
-          flavor chip row below instead. subscription-widget.js owns all the
-          counting/redistribution logic and the total is capped at whatever
-          quantity the selected plan allows -- these are just empty shells
-          at render time.
+          top-right "+" is just a visual cue, not a separate control); overall
+          progress toward the plan's quantity shows via the dot row above,
+          not on the swatch itself. Removing a unit happens from the
+          selected-flavor chip row below instead. subscription-widget.js owns
+          all the counting/redistribution logic and the total is capped at
+          whatever quantity the selected plan allows -- these are just empty
+          shells at render time.
         {%- endcomment -%}
         <div class="subscription-widget__swatch-grid">
           {%- for value in first_option.values -%}
@@ -272,7 +280,6 @@
                 {%- endif -%}
               </span>
               <span class="subscription-widget__swatch-name">{{ value }}</span>
-              <div class="subscription-widget__swatch-dots" data-qty-dots aria-hidden="true"></div>
             </div>
           {%- endfor -%}
         </div>
