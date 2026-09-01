@@ -86,12 +86,12 @@
       return flavorSwatches.reduce((sum, el) => sum + (flavorQuantities[el.dataset.variantId] || 0), 0);
     }
 
-    // Resets the mix whenever the selected plan's quantity changes -- all of
-    // it defaults onto the first (favourite) flavor, and the customer can
-    // then redistribute it across other flavors from there.
-    function resetFlavorQuantities(quantity) {
-      flavorSwatches.forEach((el, i) => {
-        flavorQuantities[el.dataset.variantId] = i === 0 ? quantity : 0;
+    // Resets the mix whenever the selected plan's quantity changes -- always
+    // back to empty (no flavor pre-filled), so the dots start blank on page
+    // load and the customer builds the mix themselves by tapping flavors.
+    function resetFlavorQuantities() {
+      flavorSwatches.forEach((el) => {
+        flavorQuantities[el.dataset.variantId] = 0;
       });
     }
 
@@ -184,7 +184,7 @@
       // customer redistributes from there via the +/- steppers below.
       if (flavorSwatches.length && currentPlanQuantity !== lastFlavorPlanQuantity) {
         lastFlavorPlanQuantity = currentPlanQuantity;
-        resetFlavorQuantities(currentPlanQuantity);
+        resetFlavorQuantities();
       }
       // selectedPrice/variant.price are both per single variant unit --
       // multiply by quantity (how many units this plan actually ships) to
@@ -338,22 +338,33 @@
       });
     }
 
-    // Reflects flavorQuantities in the DOM: each swatch's count, its +/-
-    // buttons' disabled state (can't go below 0 or push the total over the
-    // plan's allowed quantity), the chip summary row, and the "N of M
-    // selected" progress line.
+    // Reflects flavorQuantities in the DOM: each swatch's dot row and its
+    // "+" affordance's disabled state (can't push the total over the plan's
+    // allowed quantity), the chip summary row, and the "N of M selected"
+    // progress line.
     function updateFlavorUI() {
       if (!flavorSwatches.length) return;
       const sum = flavorTotalSelected();
       flavorSwatches.forEach((el) => {
         const qty = flavorQuantities[el.dataset.variantId] || 0;
-        const countEl = el.querySelector("[data-qty-count]");
-        if (countEl) countEl.textContent = String(qty);
         el.classList.toggle("is-selected", qty > 0);
-        const minusBtn = el.querySelector("[data-qty-minus]");
         const plusBtn = el.querySelector("[data-qty-plus]");
-        if (minusBtn) minusBtn.disabled = qty <= 0;
         if (plusBtn) plusBtn.disabled = sum >= currentPlanQuantity;
+
+        // One dot per unit the selected plan ships, filled in left-to-right
+        // up to this swatch's own quantity -- a lightweight stand-in for the
+        // removed numeric stepper, rebuilt on every render same as the chip
+        // row below since currentPlanQuantity can change between renders.
+        const dotsEl = el.querySelector("[data-qty-dots]");
+        if (dotsEl) {
+          dotsEl.innerHTML = "";
+          for (let i = 0; i < currentPlanQuantity; i++) {
+            const dot = document.createElement("span");
+            dot.className =
+              "subscription-widget__swatch-dot" + (i < qty ? " is-filled" : "");
+            dotsEl.appendChild(dot);
+          }
+        }
       });
       updateFlavorSelectedRow();
       if (flavorRemainingEl) {
@@ -397,28 +408,19 @@
       });
     });
 
-    // Each flavor's own +/- stepper -- clamped so the total across all
-    // flavors never exceeds the selected plan's quantity, and never drops a
-    // single flavor below 0. The same flavor can be picked more than once.
+    // Tapping anywhere on a flavor tile adds one unit to it -- the top-right
+    // "+" is just a visual affordance inside the tile, not a separate
+    // control (a click on it bubbles up to this same handler). Clamped so
+    // the total across all flavors never exceeds the selected plan's
+    // quantity; the same flavor can be picked more than once. Removing a
+    // unit happens from the selected-flavor chip row below instead of here.
     flavorSwatches.forEach((el) => {
       const variantId = el.dataset.variantId;
-      const minusBtn = el.querySelector("[data-qty-minus]");
-      const plusBtn = el.querySelector("[data-qty-plus]");
-      if (minusBtn) {
-        minusBtn.addEventListener("click", () => {
-          const current = flavorQuantities[variantId] || 0;
-          if (current <= 0) return;
-          flavorQuantities[variantId] = current - 1;
-          render();
-        });
-      }
-      if (plusBtn) {
-        plusBtn.addEventListener("click", () => {
-          if (flavorTotalSelected() >= currentPlanQuantity) return;
-          flavorQuantities[variantId] = (flavorQuantities[variantId] || 0) + 1;
-          render();
-        });
-      }
+      el.addEventListener("click", () => {
+        if (flavorTotalSelected() >= currentPlanQuantity) return;
+        flavorQuantities[variantId] = (flavorQuantities[variantId] || 0) + 1;
+        render();
+      });
     });
 
     bundleRadios.forEach((input) => input.addEventListener("change", render));
@@ -531,16 +533,20 @@
       });
     });
 
-    // Shows the sticky bar once the main order summary's own submit button
-    // scrolls out of view, hides it again once that button is back on screen.
-    if (stickyBar && summarySubmitBtn && "IntersectionObserver" in window) {
+    // Shows the sticky bar only once the whole subscription widget has
+    // scrolled out of view, hides it again as soon as any part of the
+    // widget is back on screen. Watches `root` itself (not just the order
+    // summary's submit button) so the sticky bar stays hidden the entire
+    // time the widget -- flavors, bundles, order summary -- is still
+    // visible, not just while that one button is.
+    if (stickyBar && "IntersectionObserver" in window) {
       const stickyBarObserver = new IntersectionObserver(
         ([entry]) => {
           stickyBar.hidden = entry.isIntersecting;
         },
         { threshold: 0 },
       );
-      stickyBarObserver.observe(summarySubmitBtn);
+      stickyBarObserver.observe(root);
     }
 
     render();

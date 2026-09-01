@@ -258,6 +258,7 @@
   font: inherit;
   color: inherit;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .subscription-widget__swatch.is-selected {
@@ -314,49 +315,54 @@
   color: #1e1e1e;
 }
 
-.subscription-widget__swatch-qty {
-  display: inline-flex;
-  align-items: stretch;
-  justify-content: center;
-  border: 1px solid #1e1e1e;
-  border-radius: 9999px;
-  overflow: hidden;
-}
-
-.subscription-widget__swatch-qty-btn {
+.subscription-widget__swatch-add-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: none;
-  background: transparent;
-  color: #1e1e1e;
-  font-size: 14px;
+  border-radius: 0 0.875rem 0 0.875rem;
+  background: #1e1e1e;
+  color: #fff;
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
 }
 
-.subscription-widget__swatch-qty-btn:disabled {
+.subscription-widget__swatch.is-selected .subscription-widget__swatch-add-btn {
+  background: var(--subscription-widget-swatch-selected, #8c9e56);
+}
+
+.subscription-widget__swatch-add-btn:disabled {
   opacity: 0.35;
   cursor: default;
 }
 
-.subscription-widget__swatch-qty-count {
+.subscription-widget__swatch-dots {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 26px;
-  padding: 0 2px;
-  border-left: 1px solid #1e1e1e;
-  border-right: 1px solid #1e1e1e;
-  font-family: "Geist", sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: #1e1e1e;
-  text-align: center;
+  gap: 0.25rem;
+  min-height: 6px;
+}
+
+.subscription-widget__swatch-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid #1e1e1e;
+  background: transparent;
+}
+
+.subscription-widget__swatch-dot.is-filled {
+  border-color: var(--subscription-widget-swatch-selected, #8c9e56);
+  background: var(--subscription-widget-swatch-selected, #8c9e56);
 }
 
 .subscription-widget__flavor-heading-value.is-incomplete {
