@@ -180,8 +180,8 @@
       const count = selectedRadio ? Number(selectedRadio.dataset.count) || days : days;
       currentPlanQuantity = selectedRadio ? Math.max(1, Number(selectedRadio.dataset.quantity) || 1) : 1;
       // A plan-quantity change (including the very first render) resets the
-      // flavor mix -- all of it defaults back onto the first flavor, and the
-      // customer redistributes from there via the +/- steppers below.
+      // flavor mix back to empty -- the customer builds it themselves by
+      // tapping flavors below.
       if (flavorSwatches.length && currentPlanQuantity !== lastFlavorPlanQuantity) {
         lastFlavorPlanQuantity = currentPlanQuantity;
         resetFlavorQuantities();
