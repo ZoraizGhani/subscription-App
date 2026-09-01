@@ -317,22 +317,23 @@
 }
 
 .subscription-widget__swatch-qty {
-  display: flex;
-  align-items: center;
+  display: inline-flex;
+  align-items: stretch;
   justify-content: center;
-  gap: 0.625rem;
+  border: 1px solid #1e1e1e;
+  border-radius: 9999px;
+  overflow: hidden;
 }
 
 .subscription-widget__swatch-qty-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   padding: 0;
-  border: 1px solid #1e1e1e;
-  border-radius: 9999px;
-  background: #fff;
+  border: none;
+  background: transparent;
   color: #1e1e1e;
   font-size: 14px;
   line-height: 1;
@@ -345,7 +346,14 @@
 }
 
 .subscription-widget__swatch-qty-count {
-  min-width: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 26px;
+  padding: 0 2px;
+  border-left: 1px solid #1e1e1e;
+  border-right: 1px solid #1e1e1e;
   font-family: "Geist", sans-serif;
   font-size: 14px;
   font-weight: 700;
@@ -390,23 +398,6 @@
   height: 100%;
   object-fit: cover;
   display: block;
-}
-
-.subscription-widget__flavor-chip-qty {
-  position: absolute;
-  bottom: -2px;
-  left: -2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 3px;
-  border-radius: 9999px;
-  background: var(--subscription-widget-swatch-selected, #1e1e1e);
-  color: #fff;
-  font-family: "Geist", sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 16px;
-  text-align: center;
 }
 
 .subscription-widget__flavor-chip-remove {

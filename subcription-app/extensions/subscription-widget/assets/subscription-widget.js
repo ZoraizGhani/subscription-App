@@ -294,18 +294,23 @@
       updateFlavorUI();
     }
 
-    // Compact row of removable chips below the grid, one per flavor that
-    // currently has quantity > 0 -- rebuilt from flavorSwatches/
+    // Compact row of removable chips below the grid, one per selected UNIT
+    // (not deduped by flavor) -- a 3-quantity bundle with all 3 on one
+    // flavor shows 3 chips, not 1 chip with a "3" badge, so the row always
+    // mirrors the bundle's quantity. Rebuilt from flavorSwatches/
     // flavorQuantities on every render rather than diffed, since the whole
     // row is small and selection changes infrequently.
     function updateFlavorSelectedRow() {
       if (!flavorSelectedEl) return;
-      const selected = flavorSwatches.filter((el) => (flavorQuantities[el.dataset.variantId] || 0) > 0);
-      flavorSelectedEl.hidden = selected.length === 0;
+      const units = [];
+      flavorSwatches.forEach((el) => {
+        const qty = flavorQuantities[el.dataset.variantId] || 0;
+        for (let n = 0; n < qty; n++) units.push(el);
+      });
+      flavorSelectedEl.hidden = units.length === 0;
       flavorSelectedEl.innerHTML = "";
-      selected.forEach((el) => {
+      units.forEach((el) => {
         const variantId = el.dataset.variantId;
-        const qty = flavorQuantities[variantId] || 0;
         const label = el.dataset.swatchLabel || "";
         const sourceImg = el.querySelector(".subscription-widget__swatch-image img");
 
@@ -317,20 +322,14 @@
         if (sourceImg) imageWrap.appendChild(sourceImg.cloneNode(true));
         chip.appendChild(imageWrap);
 
-        if (qty > 1) {
-          const qtyBadge = document.createElement("span");
-          qtyBadge.className = "subscription-widget__flavor-chip-qty";
-          qtyBadge.textContent = String(qty);
-          chip.appendChild(qtyBadge);
-        }
-
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
         removeBtn.className = "subscription-widget__flavor-chip-remove";
         removeBtn.setAttribute("aria-label", `Remove ${label}`);
         removeBtn.textContent = "×";
         removeBtn.addEventListener("click", () => {
-          flavorQuantities[variantId] = 0;
+          const current = flavorQuantities[variantId] || 0;
+          flavorQuantities[variantId] = Math.max(0, current - 1);
           render();
         });
         chip.appendChild(removeBtn);
