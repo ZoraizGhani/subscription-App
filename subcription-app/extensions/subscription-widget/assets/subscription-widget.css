@@ -358,13 +358,14 @@
 
 .subscription-widget__flavor-progress-dot {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1.5px dashed #9db8dd;
   background: transparent;
   box-sizing: border-box;
   flex-shrink: 0;
+  padding: 7px;
 }
 
 .subscription-widget__flavor-progress-dot.is-filled {
