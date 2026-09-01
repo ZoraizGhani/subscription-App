@@ -370,6 +370,7 @@
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 1.5rem;
+  padding-top: 13px;
 }
 
 .subscription-widget__flavor-chip {
@@ -391,6 +392,10 @@
   border: 1.5px solid var(--subscription-widget-swatch-selected, #8c9e56);
   overflow: hidden;
   background: #f2f2ef;
+}
+
+span.subscription-widget__flavor-chip-image {
+  padding: 4px;
 }
 
 .subscription-widget__flavor-chip-image img {
