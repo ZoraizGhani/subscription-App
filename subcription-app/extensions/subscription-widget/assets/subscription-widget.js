@@ -21,6 +21,7 @@
     const optionEls = Array.from(root.querySelectorAll("[data-option-index]"));
     const flavorSwatches = Array.from(root.querySelectorAll("[data-flavor-swatch]"));
     const flavorRemainingEl = root.querySelector("[data-flavor-remaining]");
+    const flavorProgressDotsEl = root.querySelector("[data-flavor-progress-dots]");
     const flavorSelectedEl = root.querySelector("[data-flavor-selected]");
     const submitBtn = root.querySelector("[data-add-to-cart]");
     const statusEl = root.querySelector("[data-status]");
@@ -338,10 +339,10 @@
       });
     }
 
-    // Reflects flavorQuantities in the DOM: each swatch's dot row and its
-    // "+" affordance's disabled state (can't push the total over the plan's
-    // allowed quantity), the chip summary row, and the "N of M selected"
-    // progress line.
+    // Reflects flavorQuantities in the DOM: each swatch's "+" affordance
+    // disabled state (can't push the total over the plan's allowed
+    // quantity), the chip summary row, the "N/M selected" progress line,
+    // and its always-visible dot row.
     function updateFlavorUI() {
       if (!flavorSwatches.length) return;
       const sum = flavorTotalSelected();
@@ -355,6 +356,21 @@
       if (flavorRemainingEl) {
         flavorRemainingEl.textContent = `${sum}/${currentPlanQuantity} selected`;
         flavorRemainingEl.classList.toggle("is-incomplete", sum !== currentPlanQuantity);
+      }
+
+      // One dot per unit the selected plan ships, filling in left-to-right
+      // as ANY flavor is tapped -- always rendered (never hidden), so the
+      // placeholders show from page load even at 0 selected. Rebuilt every
+      // render since currentPlanQuantity can change between renders
+      // (switching bundles).
+      if (flavorProgressDotsEl) {
+        flavorProgressDotsEl.innerHTML = "";
+        for (let i = 0; i < currentPlanQuantity; i++) {
+          const dot = document.createElement("span");
+          dot.className =
+            "subscription-widget__flavor-progress-dot" + (i < sum ? " is-filled" : "");
+          flavorProgressDotsEl.appendChild(dot);
+        }
       }
 
       // Subscription add-to-cart entry points stay disabled until the flavor
