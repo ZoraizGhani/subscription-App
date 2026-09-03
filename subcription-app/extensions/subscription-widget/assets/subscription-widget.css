@@ -200,6 +200,18 @@
   color: #1a1a1a;
 }
 
+.subscription-widget__step-label {
+  margin: 0;
+  padding-bottom: 6px;
+  font-family: "Geist", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #6b6b6b;
+}
+
 .subscription-widget__plan-heading {
   margin: 0;
   padding-bottom: 10px;
@@ -248,12 +260,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.625rem;
-  /* Top padding is taller than the others so the checkmark badge (absolutely
-     positioned, top-left corner) always has clearance above the image; the
-     favourite/new/best-seller badge sits in normal flow below the name now,
-     so it doesn't need its own reserved corner. */
-  padding: 2.25rem 0.75rem 1rem;
+  gap: 0.375rem;
+  /* Top padding clears the checkmark badge (absolutely positioned, top-left
+     corner); bottom padding reserves room for the favourite/new/best-seller
+     badge, which floats half outside the card overlapping the border (same
+     treatment as the bundle card's "Best value" pill) whether or not a
+     given swatch actually has one. */
+  padding: 2.25rem 0.75rem 1.5rem;
   border: 1px solid #e9abac;
   border-radius: 0.875rem;
   background: #fdfdfd;
@@ -267,10 +280,22 @@
   border-color: var(--subscription-widget-swatch-selected, #1e1e1e);
 }
 
+.subscription-widget__swatch-subtitle {
+  font-family: "Geist", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 14px;
+  letter-spacing: 0;
+  text-align: center;
+  color: #6b6b6b;
+}
+
 .subscription-widget__swatch-badge {
-  display: inline-block;
-  margin-top: 0.125rem;
-  padding: 0.25rem 0.625rem;
+  position: absolute;
+  left: 50%;
+  bottom: -0.8125rem;
+  transform: translateX(-50%);
+  padding: 0.4375rem 1rem;
   border-radius: 9999px;
   font-family: "Geist", sans-serif;
   font-size: 11px;
@@ -278,6 +303,7 @@
   line-height: 16px;
   letter-spacing: 0;
   text-align: center;
+  white-space: nowrap;
   color: #fff;
   /* Badge color reflects whether ITS swatch is the active one, regardless of
      whether it's the "Most Favourite" or "New" badge -- the .is-selected
@@ -516,28 +542,32 @@
   .subscription-widget__bundle-card {
     flex-direction: column;
     align-items: center;
-    padding: 8px 4px;
-    gap: 0.25rem;
+    /* Extra top padding clears the checkmark badge (top-left corner);
+       extra bottom padding reserves room for the "Best value" pill, which
+       floats half outside the card overlapping the border -- see
+       .subscription-widget__bundle-badge below. */
+    padding: 26px 10px 28px;
+    gap: 0;
   }
 
   .subscription-widget__bundle-media {
-    width: auto;
+    width: 100%;
     max-width: 100%;
   }
 
   .subscription-widget__bundle-image {
-    width: 44px;
-    height: 44px;
+    width: 100%;
+    height: auto;
+    margin-top: 4px;
   }
 
   .subscription-widget__bundle-image img {
-    max-width: 40px !important;
-    height: 40px;
-  }
-
-  .subscription-widget__bundle-badge {
-    font-size: 7px;
-    padding: 0.1rem 0.25rem;
+    width: 100%;
+    height: auto;
+    max-width: 100px !important;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
   }
 
   .subscription-widget__bundle-text,
@@ -551,16 +581,23 @@
     max-width: 100%;
     align-items: center;
     text-align: center;
+    gap: 0.25rem;
+    margin-top: 10px;
   }
 
-  .subscription-widget__bundle-title,
+  .subscription-widget__bundle-title {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 22px;
+    white-space: normal;
+  }
+
   .subscription-widget__bundle-count {
-    /* No white-space: nowrap here -- the card clips overflow, so forcing
-       one line just truncated "45 Count" to "45 Cour" instead. Letting it
-       wrap at the word boundary (2 lines max, never mid-word) reads much
-       better than losing characters. */
-    font-size: 8px;
-    line-height: 11px;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 18px;
+    color: #4b4b4b;
+    white-space: normal;
   }
 
   /* The desktop -28px nudge is sized for a much wider card -- on a ~1/3-
@@ -570,25 +607,23 @@
     margin: -10px !important;
   }
 
-  span.subscription-widget__bundle-text * {
-    font-size: 10px !important;
+  .subscription-widget__bundle-check {
+    top: 8px;
+    left: 8px;
   }
 
-  .subscription-widget__bundle-image img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: contain !important;
-    display: block !important;
-    max-width: 71px !important;
-    height: 40px !important;
-  }
-
-  span.subscription-widget__bundle-image {
-    height: 82px !important;
-  }
-
-  span.subscription-widget__bundle-badge {
-    font-size: 10px !important;
+  /* Floats as a centered pill half outside the bottom border, instead of
+     the desktop's flush top-right corner ribbon. */
+  .subscription-widget__bundle-badge {
+    top: auto;
+    right: auto;
+    left: 50%;
+    bottom: -13px;
+    transform: translateX(-50%);
+    border-radius: 9999px;
+    padding: 7px 16px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 
   .subscription-widget__order-summary-title {

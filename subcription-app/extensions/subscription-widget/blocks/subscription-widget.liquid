@@ -109,6 +109,9 @@
     </div>
 
     <div class="subscription-widget__section">
+      {%- if block.settings.plan_step_label != blank -%}
+        <p class="subscription-widget__step-label">{{ block.settings.plan_step_label }}</p>
+      {%- endif -%}
       <p class="subscription-widget__plan-heading">{{ block.settings.plan_section_label }}</p>
 
       {%- comment -%}
@@ -211,6 +214,14 @@
         {%- assign new_values_configured = true -%}
       {%- endif -%}
 
+      {%- comment -%}
+        Same "merchant types the exact flavor name" pattern as
+        favourite_value/new_values above, but one line per flavor since each
+        needs its own subtitle: "Flavor Name: subtitle text", one pair per
+        line. Blank/unmatched flavors just show no subtitle.
+      {%- endcomment -%}
+      {%- assign flavor_subtitle_lines = block.settings.flavor_subtitles | newline_to_br | split: "<br />" -%}
+
       <div class="subscription-widget__section">
         <p class="subscription-widget__flavor-heading">
           {{ block.settings.flavor_section_label }}
@@ -254,6 +265,15 @@
               {%- assign is_new = true -%}
             {%- endif -%}
 
+            {%- assign flavor_subtitle = blank -%}
+            {%- for line in flavor_subtitle_lines -%}
+              {%- assign line_parts = line | split: ":" -%}
+              {%- assign line_key = line_parts.first | strip -%}
+              {%- if line_key == value -%}
+                {%- assign flavor_subtitle = line | remove_first: line_key | remove_first: ":" | strip -%}
+              {%- endif -%}
+            {%- endfor -%}
+
             <div
               class="subscription-widget__swatch"
               data-flavor-swatch
@@ -267,6 +287,9 @@
                 {%- endif -%}
               </span>
               <span class="subscription-widget__swatch-name">{{ value }}</span>
+              {%- if flavor_subtitle != blank -%}
+                <span class="subscription-widget__swatch-subtitle">{{ flavor_subtitle }}</span>
+              {%- endif -%}
               {%- if is_favourite and block.settings.favourite_badge_text != blank -%}
                 <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--favourite">{{ block.settings.favourite_badge_text }}</span>
               {%- elsif is_new and block.settings.new_badge_text != blank -%}
@@ -407,8 +430,16 @@
     { "type": "text", "id": "favourite_badge_text", "label": "Most-favourite badge text", "default": "Most Favourite" },
     { "type": "text", "id": "new_values", "label": "\"New\" flavors", "info": "Comma-separated, must exactly match flavor values. Leave blank to hide." },
     { "type": "text", "id": "new_badge_text", "label": "New badge text", "default": "New" },
+    {
+      "type": "textarea",
+      "id": "flavor_subtitles",
+      "label": "Flavor subtitles",
+      "info": "One per line, formatted as \"Flavor Name: subtitle text\" -- e.g. \"Cherry Lime: Tart cherry · Lime finish\". Leave a flavor out to show no subtitle for it.",
+      "default": "Cherry Lime: Tart cherry · Lime finish\nSour Green Apple: Tart apple · Clean finish\nBlood Orange: Bold citrus · Smooth finish"
+    },
 
     { "type": "header", "content": "Plan section" },
+    { "type": "text", "id": "plan_step_label", "label": "Plan step eyebrow", "default": "Step 01 • Build Your Ritual", "info": "Small label above the heading. Leave blank to hide." },
     { "type": "text", "id": "plan_section_label", "label": "Plan section heading", "default": "Valuable Bundles" },
     { "type": "checkbox", "id": "show_best_value_badge", "label": "Show \"best value\" badge on the best-discount plan", "default": true },
     { "type": "text", "id": "best_value_badge_text", "label": "Best value badge text", "default": "Best Value" },
