@@ -173,6 +173,7 @@
               data-quantity="{{ bundle_quantity }}"
               {% if forloop.first %}checked{% endif %}
             >
+            <span class="subscription-widget__bundle-check" aria-hidden="true"></span>
             <span class="subscription-widget__bundle-media">
               {%- if bundle_image -%}
                 <span class="subscription-widget__bundle-image">
@@ -259,11 +260,6 @@
               data-variant-id="{{ swatch_variant.id }}"
               data-swatch-label="{{ value | escape }}"
             >
-              {%- if is_favourite and block.settings.favourite_badge_text != blank -%}
-                <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--favourite">{{ block.settings.favourite_badge_text }}</span>
-              {%- elsif is_new and block.settings.new_badge_text != blank -%}
-                <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--new">{{ block.settings.new_badge_text }}</span>
-              {%- endif -%}
               <button type="button" class="subscription-widget__swatch-add-btn" data-qty-plus aria-label="Increase {{ value | escape }} quantity">+</button>
               <span class="subscription-widget__swatch-image">
                 {%- if swatch_image -%}
@@ -271,6 +267,11 @@
                 {%- endif -%}
               </span>
               <span class="subscription-widget__swatch-name">{{ value }}</span>
+              {%- if is_favourite and block.settings.favourite_badge_text != blank -%}
+                <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--favourite">{{ block.settings.favourite_badge_text }}</span>
+              {%- elsif is_new and block.settings.new_badge_text != blank -%}
+                <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--new">{{ block.settings.new_badge_text }}</span>
+              {%- endif -%}
             </div>
           {%- endfor -%}
         </div>
@@ -328,8 +329,7 @@
         <div class="subscription-widget__order-summary-top">
           <span class="subscription-widget__order-summary-title-group">
             <svg class="subscription-widget__order-summary-title-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect x="2" y="2" width="16" height="16" rx="8" stroke="#1E1E1E" stroke-width="4"/>
-              <rect x="7" y="7" width="6" height="6" rx="3" fill="#1E1E1E"/>
+              <circle cx="10" cy="10" r="8" stroke="#1E1E1E" stroke-width="1.5"/>
             </svg>
             <span class="subscription-widget__order-summary-title" data-summary-title></span>
           </span>
@@ -402,7 +402,7 @@
   "settings": [
     { "type": "header", "content": "Flavor / variant section" },
     { "type": "text", "id": "flavor_section_label", "label": "Flavor section heading", "default": "Flavors:" },
-    { "type": "color", "id": "swatch_selected_color", "label": "Selected flavor border / \"most favourite\" badge color", "default": "#8C9E56" },
+    { "type": "color", "id": "swatch_selected_color", "label": "Selected flavor border / \"most favourite\" badge color", "default": "#1E1E1E" },
     { "type": "text", "id": "favourite_value", "label": "\"Most favourite\" flavor", "info": "Must exactly match one flavor value. Leave blank to hide." },
     { "type": "text", "id": "favourite_badge_text", "label": "Most-favourite badge text", "default": "Most Favourite" },
     { "type": "text", "id": "new_values", "label": "\"New\" flavors", "info": "Comma-separated, must exactly match flavor values. Leave blank to hide." },

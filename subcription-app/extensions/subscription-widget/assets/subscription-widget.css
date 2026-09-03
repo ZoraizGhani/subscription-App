@@ -1,5 +1,6 @@
 .subscription-widget {
   --subscription-widget-accent: #1a1a1a;
+  --subscription-widget-coral: #c0453c;
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
@@ -226,10 +227,11 @@
   margin: 1.25rem 0 0;
   font-family: "Geist", sans-serif;
   font-style: normal;
-  font-weight: 600;
-  font-size: 16px;
-  line-height: 24px;
-  letter-spacing: 0;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   color: #1e1e1e;
 }
 
@@ -247,47 +249,45 @@
   flex-direction: column;
   align-items: center;
   gap: 0.625rem;
-  /* Top padding is taller than the others so the badge (absolutely
-     positioned, sitting flush in the corner) always has clearance above
-     the image, whether or not this particular swatch has one -- keeps
-     every swatch's image aligned to the same height either way. */
+  /* Top padding is taller than the others so the checkmark badge (absolutely
+     positioned, top-left corner) always has clearance above the image; the
+     favourite/new/best-seller badge sits in normal flow below the name now,
+     so it doesn't need its own reserved corner. */
   padding: 2.25rem 0.75rem 1rem;
-  border: 1px solid #1e1e1e;
+  border: 1px solid #e9abac;
   border-radius: 0.875rem;
   background: #fdfdfd;
   font: inherit;
   color: inherit;
-  overflow: hidden;
   cursor: pointer;
 }
 
 .subscription-widget__swatch.is-selected {
   border-width: 2px;
-  border-color: var(--subscription-widget-swatch-selected, #8c9e56);
+  border-color: var(--subscription-widget-swatch-selected, #1e1e1e);
 }
 
 .subscription-widget__swatch-badge {
-  position: absolute;
-  top: 0;
-  left: 0;
+  display: inline-block;
+  margin-top: 0.125rem;
   padding: 0.25rem 0.625rem;
-  border-radius: 0 0 0.875rem 0;
+  border-radius: 9999px;
   font-family: "Geist", sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 18px;
+  line-height: 16px;
   letter-spacing: 0;
   text-align: center;
   color: #fff;
-  z-index: 1;
   /* Badge color reflects whether ITS swatch is the active one, regardless of
-     whether it's the "Most Favourite" or "New" badge -- not the active
-     swatch by default; the .is-selected rule below turns it green. */
+     whether it's the "Most Favourite" or "New" badge -- the .is-selected
+     rule below switches it to the merchant's configured selected-color
+     (black by default). */
   background: #1e1e1e;
 }
 
 .subscription-widget__swatch.is-selected .subscription-widget__swatch-badge {
-  background: var(--subscription-widget-swatch-selected, #8c9e56);
+  background: var(--subscription-widget-swatch-selected, #1e1e1e);
 }
 
 .subscription-widget__swatch-image {
@@ -317,26 +317,45 @@
 
 .subscription-widget__swatch-add-btn {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 0.625rem;
+  left: 0.625rem;
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   padding: 0;
-  border: none;
-  border-radius: 0 0rem 0 0.875rem;
-  background: #1e1e1e;
-  color: #fff;
-  font-size: 16px;
+  border: 1.5px solid #1e1e1e;
+  border-radius: 50%;
+  background: #fff;
+  color: #1e1e1e;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
+/* Selected state swaps the "+" for a checkmark -- drawn with a rotated
+   ::after (same technique as the bundle card's checkmark) rather than
+   swapping textContent, so no JS change is needed to reflect it; the
+   is-selected class is already toggled by subscription-widget.js. */
 .subscription-widget__swatch.is-selected .subscription-widget__swatch-add-btn {
-  background: var(--subscription-widget-swatch-selected, #8c9e56);
+  background: var(--subscription-widget-swatch-selected, #1e1e1e);
+  border-color: var(--subscription-widget-swatch-selected, #1e1e1e);
+  color: transparent;
+}
+
+.subscription-widget__swatch.is-selected .subscription-widget__swatch-add-btn::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 4px;
+  width: 9px;
+  height: 4px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg);
 }
 
 .subscription-widget__swatch-add-btn:disabled {
@@ -346,32 +365,77 @@
 
 
 .subscription-widget__flavor-progress-label.is-incomplete {
-  color: #5a0b0b;
+  color: var(--subscription-widget-coral, #c0453c);
 }
 
 .subscription-widget__flavor-progress-dots {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-start;
+  gap: 0.75rem;
   margin-top: 0.625rem;
+}
+
+.subscription-widget__flavor-progress-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
 }
 
 .subscription-widget__flavor-progress-dot {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  border: 1.5px dashed #9db8dd;
+  border: 1.5px dashed #e9abac;
   background: transparent;
   box-sizing: border-box;
   flex-shrink: 0;
-  padding: 7px;
+  padding: 9px;
 }
 
 .subscription-widget__flavor-progress-dot.is-filled {
   border-style: solid;
-  border-color: var(--subscription-widget-swatch-selected, #8c9e56);
+  border-color: var(--subscription-widget-swatch-selected, #1e1e1e);
   background: #fff;
+}
+
+/* An empty slot gets a "+" cue, drawn with two bars rather than text so it
+   stays crisp at any zoom -- mirrors the coral accent used for the price
+   strike-through and the "select N more" callout elsewhere in the widget. */
+.subscription-widget__flavor-progress-dot:not(.is-filled)::before,
+.subscription-widget__flavor-progress-dot:not(.is-filled)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: var(--subscription-widget-coral, #c0453c);
+  transform: translate(-50%, -50%);
+}
+
+.subscription-widget__flavor-progress-dot:not(.is-filled)::before {
+  width: 14px;
+  height: 2px;
+}
+
+.subscription-widget__flavor-progress-dot:not(.is-filled)::after {
+  width: 2px;
+  height: 14px;
+}
+
+.subscription-widget__flavor-progress-caption {
+  font-family: "Geist", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  text-align: center;
+  color: #1e1e1e;
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .subscription-widget__flavor-progress-dot-image {
@@ -694,7 +758,40 @@
 
 .subscription-widget__bundle-card:has(.subscription-widget__bundle-radio-input:checked) {
   border-width: 2px;
-  border-color: #e9abac;
+  border-color: #1e1e1e;
+}
+
+/* Checkmark badge, top-left -- a pure CSS reflection of the radio input's
+   own checked state (no JS involved): an outlined ring by default, filled
+   black with a checkmark drawn via two rotated ::after pseudo-elements once
+   :has() sees the input checked. */
+.subscription-widget__bundle-check {
+  position: absolute;
+  top: 0.625rem;
+  left: 0.625rem;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid #1e1e1e;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.subscription-widget__bundle-card:has(.subscription-widget__bundle-radio-input:checked) .subscription-widget__bundle-check {
+  background: #1e1e1e;
+}
+
+.subscription-widget__bundle-card:has(.subscription-widget__bundle-radio-input:checked) .subscription-widget__bundle-check::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 4px;
+  width: 10px;
+  height: 5px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg);
 }
 
 .subscription-widget__bundle-radio-input {
@@ -734,13 +831,13 @@ input.subscription-widget__bundle-radio-input {
   right: 0;
   padding: 0.1875rem 0.5rem;
   border-radius: 0 0rem 0 0.875rem;
-  background: #e9abac;
+  background: #1e1e1e;
   font-family: "Geist", sans-serif;
   font-size: 12px;
   font-weight: 600;
   line-height: 18px;
   letter-spacing: 0;
-  color: #1e1e1e;
+  color: #fff;
   z-index: 1;
 }
 
@@ -807,7 +904,7 @@ span.subscription-widget__bundle-text {
    is plan-specific in the markup) --- */
 
 .subscription-widget__order-summary {
-  border: 1px solid #5a0b0b;
+  border: 1px solid #1e1e1e;
   border-radius: 1.5rem;
   overflow: hidden;
   background: #fff;
@@ -837,7 +934,7 @@ span.subscription-widget__bundle-text {
   gap: 20px;
   padding: 26px 16px;
   border-radius: 1.5rem 1.5rem 0rem 0rem;
-  border-top: 1px solid #5a0b0b;
+  border-top: 1px solid #1e1e1e;
   background: #fff;
   margin-top: -11px !important;
 }
@@ -874,13 +971,13 @@ span.subscription-widget__bundle-text {
   flex-shrink: 0;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
-  background: #e6ddd3;
+  background: #1e1e1e;
   font-family: "Geist", sans-serif;
   font-size: 11px;
   font-weight: 700;
   line-height: 16.5px;
   letter-spacing: 0;
-  color: #1e1e1e;
+  color: #fff;
 }
 
 .subscription-widget__order-summary-price-row {
@@ -904,7 +1001,7 @@ span.subscription-widget__bundle-text {
   font-weight: 500;
   line-height: 28px;
   letter-spacing: 0;
-  color: #a89c8a;
+  color: var(--subscription-widget-coral, #c0453c);
   text-decoration: line-through;
 }
 
@@ -926,7 +1023,7 @@ span.subscription-widget__bundle-text {
 }
 
 .subscription-widget__order-summary-per-serving {
-  color: #5a0b0b;
+  color: var(--subscription-widget-coral, #c0453c);
 }
 
 .subscription-widget__order-summary-benefits ul {
@@ -1091,6 +1188,15 @@ span.subscription-widget__order-summary-onetime-label {
 }
 
 .subscription-widget__status.is-error {
-  color: #5a0b0b;
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  background: #f4dcd9;
+  color: var(--subscription-widget-coral, #c0453c);
+  font-family: "Geist", sans-serif;
   font-weight: 700;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  text-align: center;
 }

@@ -315,6 +315,8 @@
       for (let i = 0; i < currentPlanQuantity; i++) {
         const unitEl = units[i];
         const dot = document.createElement("span");
+        const caption = document.createElement("span");
+        caption.className = "subscription-widget__flavor-progress-caption";
 
         if (unitEl) {
           dot.className = "subscription-widget__flavor-progress-dot is-filled";
@@ -338,11 +340,17 @@
             render();
           });
           dot.appendChild(removeBtn);
+          caption.textContent = label;
         } else {
           dot.className = "subscription-widget__flavor-progress-dot";
+          caption.textContent = "Add";
         }
 
-        flavorProgressDotsEl.appendChild(dot);
+        const item = document.createElement("span");
+        item.className = "subscription-widget__flavor-progress-item";
+        item.appendChild(dot);
+        item.appendChild(caption);
+        flavorProgressDotsEl.appendChild(item);
       }
     }
 
@@ -361,7 +369,7 @@
       });
       updateFlavorProgressDots();
       if (flavorRemainingEl) {
-        flavorRemainingEl.textContent = `${sum}/${currentPlanQuantity} selected`;
+        flavorRemainingEl.textContent = `${sum} of ${currentPlanQuantity} selected`;
         flavorRemainingEl.classList.toggle("is-incomplete", sum !== currentPlanQuantity);
       }
 
