@@ -727,7 +727,8 @@ span.subscription-widget__bundle-text {
   padding-bottom: 26px;
   border-radius: 0;
   border: 0;
-  background: #e6ddd3;
+  border-bottom: 1px solid #1e1e1e;
+  background: none;
   text-align: center;
   font-family: "Geist", sans-serif;
   font-size: 18px;
