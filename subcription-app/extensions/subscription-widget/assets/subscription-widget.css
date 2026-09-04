@@ -1107,17 +1107,14 @@ span.subscription-widget__order-summary-onetime-label {
     text-overflow: ellipsis;
   }
 
-  /* white-space: normal (not the desktop's nowrap) is the actual fix here --
-     "Best Seller" at the desktop font size/nowrap was wider than a narrow
-     mobile card, so it overflowed sideways past the card's edges and bled
-     into whatever content sat next to or below it. Wrapping to 2 lines
-     inside the card is what stops that. */
+  /* Small enough at 8px/tight padding to fit "Best Seller" on one line
+     within the mobile card's own width -- nowrap keeps it a clean single-
+     line pill instead of wrapping into "Best" / "Seller". */
   .subscription-widget__swatch-badge {
-    font-size: 9px;
-    line-height: 13px;
-    padding: 0.3rem 0.6rem;
-    max-width: calc(100% - 12px);
-    white-space: normal;
+    font-size: 8px;
+    line-height: 12px;
+    padding: 0.25rem 0.5rem;
+    white-space: nowrap;
   }
 
   .subscription-widget__flavor-progress-label {
@@ -1202,11 +1199,7 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   /* Floats as a centered pill half outside the bottom border, instead of
-     the desktop's flush top-right corner ribbon. white-space: normal (not
-     nowrap) + the max-width cap is the actual fix -- "Best Value" at the
-     nowrap desktop sizing was wider than a narrow mobile card, so it
-     overflowed sideways past the card's own edges instead of rendering as
-     a clean pill.
+     the desktop's flush top-right corner ribbon.
 
      Must match span.subscription-widget__bundle-badge's specificity
      (0,1,1), not just .subscription-widget__bundle-badge (0,1,0) -- that
@@ -1216,8 +1209,10 @@ span.subscription-widget__order-summary-onetime-label {
      !important except another !important. Left uncancelled, having both
      `left: 50%` and `right: 24%` set forces the browser to solve for width
      from the position equation instead of sizing to content -- collapsing
-     the badge down to ~26% of the card's width, which is what was making
-     "Best Value" wrap into "Be" / "Val". */
+     the badge down to ~26% of the card's width, which used to make "Best
+     Value" wrap into "Be" / "Val" even with white-space: normal. Now that
+     `right` is properly cancelled, the badge sizes to its own content again
+     -- small enough at 8px that nowrap fits "Best Value" on one line. */
   span.subscription-widget__bundle-badge {
     top: auto;
     right: auto;
@@ -1225,10 +1220,9 @@ span.subscription-widget__order-summary-onetime-label {
     bottom: -11px;
     transform: translateX(-50%);
     border-radius: 9999px !important;
-    padding: 4px 10px;
-    font-size: 9px;
-    max-width: calc(100% - 12px);
-    white-space: normal;
+    padding: 4px 8px;
+    font-size: 8px;
+    white-space: nowrap;
   }
 
   .subscription-widget__order-summary-title {
