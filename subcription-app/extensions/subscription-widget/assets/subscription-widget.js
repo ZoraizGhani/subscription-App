@@ -141,10 +141,23 @@
       let bestDiscount = -1;
       bundleCards.forEach((card) => {
         const radio = card.querySelector("[data-plan-radio]");
-        const { discount } = planDiscount(variant, Number(radio.value));
+        const { price, discount } = planDiscount(variant, Number(radio.value));
         if (discount > bestDiscount) {
           bestDiscount = discount;
           bestCard = card;
+        }
+
+        // Every card shows its own "$X / day" simultaneously (not just the
+        // selected one) -- total price for THAT plan's quantity, divided by
+        // its own delivery-cadence day count, same shape as the per-serving
+        // math further down for the selected plan.
+        const perDayEl = card.querySelector("[data-bundle-per-day]");
+        if (perDayEl) {
+          const cardDays = Number(radio.dataset.days) || 0;
+          const cardQuantity = Math.max(1, Number(radio.dataset.quantity) || 1);
+          const cardTotal = price * cardQuantity;
+          const perDay = cardDays ? cardTotal / cardDays : cardTotal;
+          perDayEl.textContent = `${formatMoney(perDay, moneyFormat)} / day`;
         }
       });
 

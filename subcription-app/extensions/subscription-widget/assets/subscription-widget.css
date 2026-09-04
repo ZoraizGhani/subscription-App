@@ -9,6 +9,10 @@
   box-sizing: border-box;
   font-family: inherit;
   color: #1a1a1a;
+  /* Cards/swatches/buttons throughout are tap targets on mobile -- without
+     this, the browser's default blue tap-highlight rectangle flashes across
+     whichever one was just tapped (inherits down to every descendant). */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* --- Sticky add-to-cart bar --- */
@@ -262,11 +266,12 @@
   align-items: center;
   gap: 0.375rem;
   /* Top padding clears the checkmark badge (absolutely positioned, top-left
-     corner); bottom padding reserves room for the favourite/new/best-seller
-     badge, which floats half outside the card overlapping the border (same
-     treatment as the bundle card's "Best value" pill) whether or not a
-     given swatch actually has one. */
-  padding: 2.25rem 0.75rem 1.5rem;
+     corner) with real breathing room above the image, not just enough to
+     avoid overlap; bottom padding reserves room for the favourite/new/
+     best-seller badge, which floats half outside the card overlapping the
+     border (same treatment as the bundle card's "Best value" pill) whether
+     or not a given swatch actually has one. */
+  padding: 2.75rem 0.75rem 1.5rem;
   border: 1px solid #e9abac;
   border-radius: 0.875rem;
   background: #fdfdfd;

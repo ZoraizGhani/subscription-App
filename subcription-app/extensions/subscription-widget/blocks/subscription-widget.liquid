@@ -187,7 +187,14 @@
             </span>
             <span class="subscription-widget__bundle-text">
               <span class="subscription-widget__bundle-title">{{ bundle_title }}</span>
-              <span class="subscription-widget__bundle-count">{{ bundle_count }} Count</span>
+              {%- comment -%}
+                The count itself is static (Liquid-rendered from the plan's
+                own options), but the "$X / day" figure depends on live
+                price/selling-plan-discount data the same way every other
+                price in this widget does -- computed and filled in by
+                subscription-widget.js's render(), not hardcoded here.
+              {%- endcomment -%}
+              <span class="subscription-widget__bundle-count">{{ bundle_count }} Count · <span data-bundle-per-day></span></span>
             </span>
           </label>
         {%- endfor -%}
