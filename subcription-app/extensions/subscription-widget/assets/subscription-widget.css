@@ -1027,6 +1027,10 @@ span.subscription-widget__order-summary-onetime-label {
 }
 
 .subscription-widget__status.is-error {
+  /* Pulls it up out of the widget's usual 2.5rem inter-section gap so it
+     reads as attached to the order-summary card right above it, instead of
+     floating as a separate, disconnected block further down the page. */
+  margin-top: -1.5rem;
   padding: 0.875rem 1rem;
   border-radius: 1.25rem;
   background: #f4dcd9;

@@ -393,23 +393,23 @@
         <button type="button" class="subscription-widget__order-summary-submit" data-add-to-cart-summary>
           {{ block.settings.order_summary_button_label }}
         </button>
-
-        {%- comment -%}
-          Sits right after the subscription "Add to cart" button and before
-          the one-time-purchase alternative below -- the flavor-mix
-          requirement this message reports on only gates the subscription
-          button, not the one-time purchase, so it reads as feedback on the
-          button directly above it rather than a general page-level notice.
-        {%- endcomment -%}
-        <p class="subscription-widget__status" data-status role="status" aria-live="polite"></p>
-
-        <button type="button" class="subscription-widget__order-summary-onetime" data-add-to-cart-onetime>
-          <span class="subscription-widget__order-summary-onetime-label">One-time purchase</span> - <span data-summary-onetime-compare></span>
-          <span data-summary-onetime-price></span>
-          <span class="subscription-widget__order-summary-onetime-perday-wrap">(<span data-summary-onetime-perday></span> / Day)</span>
-        </button>
       </div>
     </div>
+
+    {%- comment -%}
+      Sits right below the bordered order-summary card, outside it -- the
+      flavor-mix requirement this message reports on only gates the
+      subscription "Add to cart" button inside that card, but the message
+      itself and the one-time-purchase alternative below it are deliberately
+      NOT enclosed by the card's border.
+    {%- endcomment -%}
+    <p class="subscription-widget__status" data-status role="status" aria-live="polite"></p>
+
+    <button type="button" class="subscription-widget__order-summary-onetime" data-add-to-cart-onetime>
+      <span class="subscription-widget__order-summary-onetime-label">One-time purchase</span> - <span data-summary-onetime-compare></span>
+      <span data-summary-onetime-price></span>
+      <span class="subscription-widget__order-summary-onetime-perday-wrap">(<span data-summary-onetime-perday></span> / Day)</span>
+    </button>
 
     {%- comment -%}
       Hidden, not removed -- the order summary card above has its own "Add
@@ -466,7 +466,7 @@
     { "type": "image_picker", "id": "bundle_image_3", "label": "Bundle image -- 3rd plan" },
 
     { "type": "header", "content": "Order summary -- 1st plan" },
-    { "type": "text", "id": "order_summary_badge_text_1", "label": "Banner text -- 1st plan", "default": "Most Popular" },
+    { "type": "text", "id": "order_summary_badge_text_1", "label": "Banner text -- 1st plan", "default": "" },
     {
       "type": "richtext",
       "id": "order_summary_benefits_1",
@@ -476,7 +476,7 @@
     },
 
     { "type": "header", "content": "Order summary -- 2nd plan" },
-    { "type": "text", "id": "order_summary_badge_text_2", "label": "Banner text -- 2nd plan", "default": "Most Popular" },
+    { "type": "text", "id": "order_summary_badge_text_2", "label": "Banner text -- 2nd plan", "default": "" },
     {
       "type": "richtext",
       "id": "order_summary_benefits_2",
@@ -486,7 +486,7 @@
     },
 
     { "type": "header", "content": "Order summary -- 3rd plan" },
-    { "type": "text", "id": "order_summary_badge_text_3", "label": "Banner text -- 3rd plan", "default": "Most Popular" },
+    { "type": "text", "id": "order_summary_badge_text_3", "label": "Banner text -- 3rd plan", "default": "" },
     {
       "type": "richtext",
       "id": "order_summary_benefits_3",
