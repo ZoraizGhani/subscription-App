@@ -230,10 +230,9 @@
 .subscription-widget__flavor-heading {
   margin: 0;
   padding-bottom: 16px;
-  font-family: "Playfair Display", Georgia, serif;
-  font-style: italic;
-  font-weight: 400;
-  font-size: 18px;
+  font-family: "Geist", sans-serif;
+  font-size: 20px;
+  font-weight: 600;
   line-height: 28px;
   letter-spacing: 0;
   color: #111827;
@@ -852,7 +851,7 @@ span.subscription-widget__bundle-text {
   gap: 0.75rem;
   font-family: "Geist", sans-serif;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 22.5px;
   letter-spacing: 0;
   color: #1e1e1e;

@@ -230,6 +230,9 @@
       {%- assign flavor_subtitle_lines = block.settings.flavor_subtitles | newline_to_br | split: "<br />" -%}
 
       <div class="subscription-widget__section">
+        {%- if block.settings.flavor_step_label != blank -%}
+          <p class="subscription-widget__step-label">{{ block.settings.flavor_step_label }}</p>
+        {%- endif -%}
         <p class="subscription-widget__flavor-heading">
           {{ block.settings.flavor_section_label }}
         </p>
@@ -438,7 +441,8 @@
   "target": "section",
   "settings": [
     { "type": "header", "content": "Flavor / variant section" },
-    { "type": "text", "id": "flavor_section_label", "label": "Flavor section heading", "default": "Flavors:" },
+    { "type": "text", "id": "flavor_step_label", "label": "Flavor step eyebrow", "default": "Step 02 • Personalize Your Box", "info": "Small label above the heading. Leave blank to hide." },
+    { "type": "text", "id": "flavor_section_label", "label": "Flavor section heading", "default": "Choose Your Flavors" },
     { "type": "color", "id": "swatch_selected_color", "label": "Selected flavor border / \"most favourite\" badge color", "default": "#1E1E1E" },
     { "type": "text", "id": "favourite_value", "label": "\"Most favourite\" flavor", "info": "Must exactly match one flavor value. Leave blank to hide." },
     { "type": "text", "id": "favourite_badge_text", "label": "Most-favourite badge text", "default": "Most Favourite" },
