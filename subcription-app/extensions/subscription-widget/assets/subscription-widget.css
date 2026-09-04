@@ -1076,8 +1076,40 @@ span.subscription-widget__order-summary-onetime-label {
     gap: 0.5rem;
   }
 
+  .subscription-widget__swatch {
+    padding: 34px 6px 26px;
+  }
+
+  .subscription-widget__swatch-image {
+    width: 44px;
+    height: 44px;
+  }
+
+  .subscription-widget__swatch-name {
+    font-size: 11px;
+    line-height: 15px;
+  }
+
+  .subscription-widget__swatch-subtitle {
+    font-size: 9px;
+    line-height: 12px;
+  }
+
+  /* white-space: normal (not the desktop's nowrap) is the actual fix here --
+     "Best Seller" at the desktop font size/nowrap was wider than a narrow
+     mobile card, so it overflowed sideways past the card's edges and bled
+     into whatever content sat next to or below it. Wrapping to 2 lines
+     inside the card is what stops that. */
   .subscription-widget__swatch-badge {
-    font-size: 10px;
+    font-size: 9px;
+    line-height: 13px;
+    padding: 0.3rem 0.6rem;
+    max-width: calc(100% - 12px);
+    white-space: normal;
+  }
+
+  .subscription-widget__flavor-progress-label {
+    font-size: 11px;
   }
 
   .subscription-widget__bundle-card {
