@@ -280,6 +280,10 @@
   cursor: pointer;
 }
 
+.subscription-widget__swatch {
+  padding-bottom: 22px;
+}
+
 .subscription-widget__swatch.is-selected {
   border-width: 2px;
   border-color: var(--subscription-widget-swatch-selected, #1e1e1e);
@@ -380,8 +384,8 @@
 .subscription-widget__swatch.is-selected .subscription-widget__swatch-add-btn::after {
   content: "";
   position: absolute;
-  top: 6px;
-  left: 4px;
+  top: 7px;
+  left: 5px;
   width: 9px;
   height: 4px;
   border-left: 2px solid #fff;
