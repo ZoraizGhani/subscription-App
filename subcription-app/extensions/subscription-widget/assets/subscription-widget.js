@@ -35,6 +35,11 @@
     const bundleRadios = Array.from(root.querySelectorAll("[data-plan-radio]"));
 
     const summarySubmitBtn = root.querySelector("[data-add-to-cart-summary]");
+    // Captured once, before anything overwrites it, so the "select N more
+    // flavors" state (see updateFlavorUI) has the real label to restore
+    // once the mix is complete again -- the merchant-configured button text
+    // isn't otherwise available to JS (only the liquid template renders it).
+    const summarySubmitDefaultLabel = summarySubmitBtn ? summarySubmitBtn.textContent.trim() : "";
     const summaryTitleEl = root.querySelector("[data-summary-title]");
     const summarySaveEl = root.querySelector("[data-summary-save]");
     const summaryPriceEl = root.querySelector("[data-summary-price]");
@@ -397,16 +402,20 @@
       if (summarySubmitBtn) summarySubmitBtn.disabled = !mixValid;
       if (stickySubmitBtn) stickySubmitBtn.disabled = !mixValid;
 
-      // A disabled button never fires a click, so addToCart()'s own guard
-      // message would never actually show -- this is the message's real
-      // home, shown proactively instead of only after a (now-impossible)
-      // click attempt.
-      if (!mixValid) {
-        statusEl.textContent = `Select ${currentPlanQuantity} total across flavors before adding to cart.`;
-        statusEl.classList.add("is-error");
-      } else if (statusEl.classList.contains("is-error")) {
-        statusEl.textContent = "";
-        statusEl.classList.remove("is-error");
+      // The "select N more flavors" message lives on the order-summary
+      // submit button itself (its own label + a pink is-incomplete style),
+      // not as a separate banner underneath -- a disabled button never
+      // fires a click, so this has to be shown proactively rather than only
+      // after a (now-impossible) click attempt.
+      if (summarySubmitBtn) {
+        if (!mixValid) {
+          const remaining = currentPlanQuantity - sum;
+          summarySubmitBtn.textContent = `Select ${remaining} more flavor${remaining === 1 ? "" : "s"}`;
+          summarySubmitBtn.classList.add("is-incomplete");
+        } else {
+          summarySubmitBtn.textContent = summarySubmitDefaultLabel;
+          summarySubmitBtn.classList.remove("is-incomplete");
+        }
       }
     }
 

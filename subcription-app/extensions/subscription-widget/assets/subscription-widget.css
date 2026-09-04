@@ -926,6 +926,14 @@ span.subscription-widget__bundle-text {
   cursor: pointer;
 }
 
+/* Shown instead of the normal label while the flavor mix is incomplete --
+   same pink/coral treatment the old standalone banner used, just carried by
+   the button itself now instead of a separate element underneath it. */
+.subscription-widget__order-summary-submit.is-incomplete {
+  background: #f4dcd9;
+  color: var(--subscription-widget-coral, #c0453c);
+}
+
 .subscription-widget__order-summary-onetime {
   /* Same solid pill treatment as the main "Add to cart" button above it --
      a real secondary button, not a plain underlined text link. */
@@ -940,7 +948,7 @@ span.subscription-widget__bundle-text {
   cursor: pointer;
   font-family: "Geist", sans-serif;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 20px;
   letter-spacing: 1.4px;
   text-transform: uppercase;
