@@ -905,6 +905,11 @@ span.subscription-widget__bundle-text {
 }
 
 .subscription-widget__order-summary-submit {
+  /* Now a sibling of the order-summary card rather than nested inside it --
+     pulls it up out of the widget's usual 2.5rem inter-section gap so it
+     reads as attached right below the card instead of floating further
+     down the page. */
+  margin-top: -1.5rem;
   width: 100%;
   padding: 1rem 1.125rem;
   border: none;

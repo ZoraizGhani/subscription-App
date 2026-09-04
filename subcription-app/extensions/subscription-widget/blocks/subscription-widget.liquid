@@ -390,19 +390,19 @@
           {%- endif -%}
         {%- endfor -%}
 
-        <button type="button" class="subscription-widget__order-summary-submit" data-add-to-cart-summary>
-          {{ block.settings.order_summary_button_label }}
-        </button>
       </div>
     </div>
 
     {%- comment -%}
-      Sits right below the bordered order-summary card, outside it -- the
-      flavor-mix requirement this message reports on only gates the
-      subscription "Add to cart" button inside that card, but the message
-      itself and the one-time-purchase alternative below it are deliberately
-      NOT enclosed by the card's border.
+      Sits right below the bordered order-summary card, outside it --
+      "Add to cart", the flavor-mix status message it reports on, and the
+      one-time-purchase alternative are all deliberately NOT enclosed by the
+      card's border.
     {%- endcomment -%}
+    <button type="button" class="subscription-widget__order-summary-submit" data-add-to-cart-summary>
+      {{ block.settings.order_summary_button_label }}
+    </button>
+
     <p class="subscription-widget__status" data-status role="status" aria-live="polite"></p>
 
     <button type="button" class="subscription-widget__order-summary-onetime" data-add-to-cart-onetime>
