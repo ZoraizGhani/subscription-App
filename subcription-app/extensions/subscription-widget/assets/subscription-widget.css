@@ -1096,15 +1096,20 @@ span.subscription-widget__order-summary-onetime-label {
     max-width: 100%;
   }
 
+  /* Fixed height regardless of the source photo's own aspect ratio -- a
+     1-pouch image and a 3-pouch image otherwise render at very different
+     sizes side by side, which is what made the "1 Month" card's image look
+     oddly bigger than the others. */
   .subscription-widget__bundle-image {
     width: 100%;
-    height: auto;
+    height: 64px;
     margin-top: 4px;
   }
 
   .subscription-widget__bundle-image img {
-    width: 100%;
-    height: auto;
+    width: auto;
+    height: 100%;
+    max-width: 100%;
     object-fit: contain;
     display: block;
     margin: 0 auto;
@@ -1126,16 +1131,16 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   .subscription-widget__bundle-title {
-    font-size: 17px;
+    font-size: 14px;
     font-weight: 700;
-    line-height: 22px;
+    line-height: 18px;
     white-space: normal;
   }
 
   .subscription-widget__bundle-count {
-    font-size: 13px;
+    font-size: 10px;
     font-weight: 400;
-    line-height: 18px;
+    line-height: 14px;
     color: #4b4b4b;
     white-space: normal;
   }
