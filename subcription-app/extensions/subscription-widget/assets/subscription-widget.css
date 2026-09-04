@@ -530,8 +530,9 @@
 .subscription-widget__bundle-card {
   position: relative;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.75rem;
   padding: 2px;
   border: 1px solid #e9abac;
@@ -603,8 +604,8 @@ input.subscription-widget__bundle-radio-input {
 
 .subscription-widget__bundle-media {
   position: static;
-  width: 50%;
-  max-width: 50%;
+  width: 100%;
+  max-width: 100%;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -631,9 +632,18 @@ input.subscription-widget__bundle-radio-input {
   display: none;
 }
 
+span.subscription-widget__bundle-badge {
+  bottom: -11px;
+  top: unset;
+  right: 24%;
+  z-index: 999;
+  border-radius: 10px !important;
+  padding: 3px 9px;
+}
+
 .subscription-widget__bundle-image {
-  width: 108px;
-  height: 112px;
+  width: auto;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -655,16 +665,20 @@ input.subscription-widget__bundle-radio-input {
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
   gap: 0.125rem;
-  width: 50%;
-  max-width: 50%;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
 }
 
 span.subscription-widget__bundle-text {
-  text-align: left;
-  justify-content: left;
-  align-items: flex-start;
+  max-width: 100% !important;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  padding-bottom: 24px;
 }
 
 .subscription-widget__bundle-title {
