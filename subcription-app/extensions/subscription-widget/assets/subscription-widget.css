@@ -687,7 +687,7 @@ span.subscription-widget__bundle-text {
   text-align: center;
   display: flex;
   align-items: center;
-  padding-bottom: 24px;
+  padding-bottom: 4px;
 }
 
 .subscription-widget__bundle-title {
@@ -1085,7 +1085,7 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   .subscription-widget__swatch {
-    padding: 34px 6px 26px;
+    padding: 27px 6px 21px;
   }
 
   .subscription-widget__swatch-image {
