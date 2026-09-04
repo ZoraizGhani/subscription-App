@@ -271,12 +271,15 @@
      border (same treatment as the bundle card's "Best value" pill) whether
      or not a given swatch actually has one. */
   padding: 2.75rem 0.75rem 1.5rem;
-  border: 1px solid #e9abac;
+  border: 1px solid #1e1e1e;
   border-radius: 0.875rem;
   background: #fdfdfd;
   font: inherit;
   color: inherit;
   cursor: pointer;
+  /* Unselected cards read as visually secondary next to whichever one is
+     actually selected. */
+  opacity: 0.6;
 }
 
 .subscription-widget__swatch {
@@ -286,6 +289,7 @@
 .subscription-widget__swatch.is-selected {
   border-width: 2px;
   border-color: var(--subscription-widget-swatch-selected, #1e1e1e);
+  opacity: 1;
 }
 
 .subscription-widget__swatch-subtitle {
@@ -537,16 +541,20 @@
   justify-content: flex-start;
   gap: 0.75rem;
   padding: 2px;
-  border: 1px solid #e9abac;
+  border: 1px solid #1e1e1e;
   border-radius: 0.875rem;
   background: #fff;
   cursor: pointer;
   text-align: center;
+  /* Unselected cards read as visually secondary next to whichever plan is
+     actually selected. */
+  opacity: 0.6;
 }
 
 .subscription-widget__bundle-card:has(.subscription-widget__bundle-radio-input:checked) {
   border-width: 2px;
   border-color: #1e1e1e;
+  opacity: 1;
 }
 
 /* Checkmark badge, top-left -- a pure CSS reflection of the radio input's
@@ -1091,8 +1099,12 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   .subscription-widget__swatch-subtitle {
-    font-size: 9px;
-    line-height: 12px;
+    font-size: 8px;
+    line-height: 11px;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* white-space: normal (not the desktop's nowrap) is the actual fix here --
@@ -1194,14 +1206,25 @@ span.subscription-widget__order-summary-onetime-label {
      nowrap) + the max-width cap is the actual fix -- "Best Value" at the
      nowrap desktop sizing was wider than a narrow mobile card, so it
      overflowed sideways past the card's own edges instead of rendering as
-     a clean pill. */
-  .subscription-widget__bundle-badge {
+     a clean pill.
+
+     Must match span.subscription-widget__bundle-badge's specificity
+     (0,1,1), not just .subscription-widget__bundle-badge (0,1,0) -- that
+     unconditional, non-media rule sets `right: 24%` and `border-radius:
+     10px !important`. A lower-specificity rule here can't cancel `right`
+     (specificity beats source order on a conflict), and nothing beats
+     !important except another !important. Left uncancelled, having both
+     `left: 50%` and `right: 24%` set forces the browser to solve for width
+     from the position equation instead of sizing to content -- collapsing
+     the badge down to ~26% of the card's width, which is what was making
+     "Best Value" wrap into "Be" / "Val". */
+  span.subscription-widget__bundle-badge {
     top: auto;
     right: auto;
     left: 50%;
     bottom: -11px;
     transform: translateX(-50%);
-    border-radius: 9999px;
+    border-radius: 9999px !important;
     padding: 4px 10px;
     font-size: 9px;
     max-width: calc(100% - 12px);
