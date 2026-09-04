@@ -540,7 +540,6 @@
   background: #fff;
   cursor: pointer;
   text-align: center;
-  overflow: hidden;
 }
 
 .subscription-widget__bundle-card:has(.subscription-widget__bundle-radio-input:checked) {
