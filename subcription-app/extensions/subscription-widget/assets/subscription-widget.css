@@ -738,6 +738,10 @@ span.subscription-widget__bundle-text {
   color: #1e1e1e;
 }
 
+p.subscription-widget__order-summary-banner {
+  display: none;
+}
+
 .subscription-widget__order-summary-body {
   display: flex;
   flex-direction: column;
@@ -746,7 +750,7 @@ span.subscription-widget__bundle-text {
   border-radius: 1.5rem 1.5rem 0rem 0rem;
   border-top: 1px solid #1e1e1e;
   background: #fff;
-  margin-top: -11px !important;
+  margin-top: -2px !important;
 }
 
 .subscription-widget__order-summary-top {
@@ -765,6 +769,15 @@ span.subscription-widget__bundle-text {
 
 .subscription-widget__order-summary-title-icon {
   flex-shrink: 0;
+}
+
+svg.subscription-widget__order-summary-title-icon {
+  border-radius: 100% !important;
+}
+
+svg.subscription-widget__order-summary-title-icon circle {
+  stroke-width: 6px;
+  border-radius: 100% !important;
 }
 
 .subscription-widget__order-summary-title {
