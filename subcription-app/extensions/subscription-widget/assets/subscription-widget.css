@@ -419,14 +419,14 @@
 
 .subscription-widget__flavor-progress-dot {
   position: relative;
-  width: 48px;
-  height: 48px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   border: 1.5px dashed #e9abac;
   background: transparent;
   box-sizing: border-box;
   flex-shrink: 0;
-  padding: 9px;
+  padding: 11px;
 }
 
 .subscription-widget__flavor-progress-dot.is-filled {
@@ -467,10 +467,9 @@
   text-transform: uppercase;
   text-align: center;
   color: #1e1e1e;
-  max-width: 64px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 80px;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .subscription-widget__flavor-progress-dot-image {
