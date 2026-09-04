@@ -367,6 +367,7 @@
         </div>
         <div class="subscription-widget__order-summary-price-row">
           <span class="subscription-widget__order-summary-price" data-summary-price></span>
+          <span class="subscription-widget__order-summary-price-suffix">/ month</span>
           <span class="subscription-widget__order-summary-compare" data-summary-compare></span>
         </div>
         <div class="subscription-widget__order-summary-billing">
@@ -390,6 +391,15 @@
           {{ block.settings.order_summary_button_label }}
         </button>
 
+        {%- comment -%}
+          Sits right after the subscription "Add to cart" button and before
+          the one-time-purchase alternative below -- the flavor-mix
+          requirement this message reports on only gates the subscription
+          button, not the one-time purchase, so it reads as feedback on the
+          button directly above it rather than a general page-level notice.
+        {%- endcomment -%}
+        <p class="subscription-widget__status" data-status role="status" aria-live="polite"></p>
+
         <button type="button" class="subscription-widget__order-summary-onetime" data-add-to-cart-onetime>
           <span class="subscription-widget__order-summary-onetime-label">One-time purchase</span> - <span data-summary-onetime-compare></span>
           <span data-summary-onetime-price></span>
@@ -409,9 +419,6 @@
     <button type="button" class="subscription-widget__submit" data-add-to-cart hidden>
       {{ block.settings.subscribe_button_label }}
     </button>
-
-
-    <p class="subscription-widget__status" data-status role="status" aria-live="polite"></p>
   </div>
 
   <script src="{{ 'subscription-widget.js' | asset_url }}" defer></script>
@@ -460,8 +467,8 @@
       "type": "richtext",
       "id": "order_summary_benefits_1",
       "label": "Benefits list -- 1st plan",
-      "info": "Rendered as a bulleted list with a custom checkmark icon. To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
-      "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
+      "info": "Rendered as a bulleted list, each line in its own outlined circle icon (shipping / discount / pause / guarantee, in that order -- reordering or adding lines needs a matching CSS update). To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
+      "default": "<ul><li>Free shipping on every subscription</li><li>Save 20% on every delivery</li><li>Pause, skip, or cancel anytime</li><li>60-day money-back guarantee</li></ul>"
     },
 
     { "type": "header", "content": "Order summary -- 2nd plan" },
@@ -470,8 +477,8 @@
       "type": "richtext",
       "id": "order_summary_benefits_2",
       "label": "Benefits list -- 2nd plan",
-      "info": "Rendered as a bulleted list with a custom checkmark icon. To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
-      "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
+      "info": "Rendered as a bulleted list, each line in its own outlined circle icon (shipping / discount / pause / guarantee, in that order -- reordering or adding lines needs a matching CSS update). To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
+      "default": "<ul><li>Free shipping on every subscription</li><li>Save 20% on every delivery</li><li>Pause, skip, or cancel anytime</li><li>60-day money-back guarantee</li></ul>"
     },
 
     { "type": "header", "content": "Order summary -- 3rd plan" },
@@ -480,8 +487,8 @@
       "type": "richtext",
       "id": "order_summary_benefits_3",
       "label": "Benefits list -- 3rd plan",
-      "info": "Rendered as a bulleted list with a custom checkmark icon. To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
-      "default": "<ul><li>Exclusive access to your plan's perks</li><li>Free welcome kit</li><li>Cancel or pause anytime</li></ul>"
+      "info": "Rendered as a bulleted list, each line in its own outlined circle icon (shipping / discount / pause / guarantee, in that order -- reordering or adding lines needs a matching CSS update). To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
+      "default": "<ul><li>Free shipping on every subscription</li><li>Save 20% on every delivery</li><li>Pause, skip, or cancel anytime</li><li>60-day money-back guarantee</li></ul>"
     },
 
     { "type": "header", "content": "Buttons & appearance" },

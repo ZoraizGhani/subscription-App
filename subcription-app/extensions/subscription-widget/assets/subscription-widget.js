@@ -273,7 +273,7 @@
       if (summaryPriceEl) summaryPriceEl.textContent = formatMoney(selectedPrice, moneyFormat);
       if (summaryCompareEl) {
         summaryCompareEl.hidden = selectedDiscount <= 0;
-        summaryCompareEl.textContent = selectedDiscount > 0 ? `${formatMoney(variant.price, moneyFormat)}/month` : "";
+        summaryCompareEl.textContent = selectedDiscount > 0 ? formatMoney(variant.price, moneyFormat) : "";
       }
 
       const weeks = days ? Math.round(days / 7) || 1 : 0;

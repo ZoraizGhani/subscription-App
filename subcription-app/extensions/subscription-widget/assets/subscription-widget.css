@@ -797,6 +797,15 @@ span.subscription-widget__bundle-text {
   color: #1e1e1e;
 }
 
+.subscription-widget__order-summary-price-suffix {
+  font-family: "Geist", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: #6b6b6b;
+}
+
 .subscription-widget__order-summary-compare {
   font-family: "Geist", sans-serif;
   font-size: 18px;
@@ -839,8 +848,8 @@ span.subscription-widget__bundle-text {
 
 .subscription-widget__order-summary-benefits li {
   display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
   font-family: "Geist", sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -857,14 +866,43 @@ span.subscription-widget__bundle-text {
   text-decoration: underline;
 }
 
+/* Outlined circle icon per benefit line, matched by position rather than
+   content -- richtext has no per-line "icon type" field, and these four
+   lines (shipping / discount / pause-anytime / guarantee) are this
+   merchant's fixed default set. If the copy is reordered or a 5th line is
+   added, its icon needs updating here to match. */
 .subscription-widget__order-summary-benefits li::before {
   content: "";
   flex-shrink: 0;
-  width: 10px;
-  height: 11px;
-  margin-top: 0.5em;
-  background: no-repeat center / contain
-    url("data:image/svg+xml,%3Csvg width='10' height='11' viewBox='0 0 10 11' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.74854 0.300293C7.36084 3.7085 4.90723 6.86279 2.3877 9.76318C2.19727 9.98291 2.03125 10.0928 1.88965 10.0928C1.72852 10.0928 1.43799 9.66797 1.01807 8.81836C0.339355 7.44629 0 6.62598 0 6.35742C0 6.25977 0.065918 6.14502 0.197754 6.01318C0.480957 5.71533 0.681152 5.56641 0.79834 5.56641C0.905762 5.56641 1.02051 5.7373 1.14258 6.0791C1.46484 6.94824 1.8042 7.72217 2.16064 8.40088C4.63135 5.90088 7.0752 3.10059 9.49219 0L9.74854 0.300293Z' fill='%231E1E1E'/%3E%3C/svg%3E");
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid #1e1e1e;
+  border-radius: 50%;
+  background: no-repeat center / 14px 14px;
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e1e1e;
+  box-sizing: border-box;
+}
+
+.subscription-widget__order-summary-benefits li:nth-child(1)::before {
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231E1E1E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='9' width='16' height='11' rx='1.5'/%3E%3Cpath d='M4 9l8-4.5L20 9M9 20v-7M15 20v-7'/%3E%3C/svg%3E");
+}
+
+.subscription-widget__order-summary-benefits li:nth-child(2)::before {
+  content: "%";
+}
+
+.subscription-widget__order-summary-benefits li:nth-child(3)::before {
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='%231E1E1E' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='7' y='4' width='3.5' height='16' rx='1'/%3E%3Crect x='13.5' y='4' width='3.5' height='16' rx='1'/%3E%3C/svg%3E");
+}
+
+.subscription-widget__order-summary-benefits li:nth-child(4)::before {
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231E1E1E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2.5l7.5 3v6c0 5.2-3.6 8.6-7.5 9.7-3.9-1.1-7.5-4.5-7.5-9.7v-6l7.5-3z'/%3E%3Cpath d='M8.5 12.2l2.3 2.3 4.7-4.7'/%3E%3C/svg%3E");
 }
 
 .subscription-widget__order-summary-submit {
@@ -991,7 +1029,7 @@ span.subscription-widget__order-summary-onetime-label {
 
 .subscription-widget__status.is-error {
   padding: 0.875rem 1rem;
-  border-radius: 0.75rem;
+  border-radius: 1.25rem;
   background: #f4dcd9;
   color: var(--subscription-widget-coral, #c0453c);
   font-family: "Geist", sans-serif;
