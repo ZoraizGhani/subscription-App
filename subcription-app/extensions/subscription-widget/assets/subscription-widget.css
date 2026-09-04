@@ -935,28 +935,26 @@ span.subscription-widget__bundle-text {
 }
 
 .subscription-widget__order-summary-onetime {
-  /* Same solid pill treatment as the main "Add to cart" button above it --
-     a real secondary button, not a plain underlined text link. */
   display: block;
   width: 100%;
-  margin-top: 0.75rem;
-  padding: 1rem 1.125rem;
-  background: #1e1e1e;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  background: none;
   border: none;
-  border-radius: 9999px;
-  text-align: center;
+  border-radius: 0;
+  text-align: left;
   cursor: pointer;
   font-family: "Geist", sans-serif;
-  font-size: 14px;
+  font-size: 19px;
   font-weight: 400;
   line-height: 20px;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  color: #fff;
+  letter-spacing: 0;
+  color: #000000;
 }
 
 button.subscription-widget__order-summary-onetime {
-  max-width: 100%;
+  border-bottom: 2px solid #1e1e1e;
+  max-width: max-content;
   margin: 0.75rem auto 0;
 }
 
@@ -970,17 +968,17 @@ span.subscription-widget__order-summary-onetime-label {
 }
 
 .subscription-widget__order-summary-onetime [data-summary-onetime-compare] {
-  font-size: 13px;
+  font-size: 19px;
   font-weight: 400;
-  line-height: 20px;
+  line-height: 28px;
   text-decoration: line-through;
-  color: #a8a8a8;
+  color: #e6ddd3;
 }
 
 .subscription-widget__order-summary-onetime-perday-wrap {
-  font-size: 13px;
+  font-size: 19px;
   font-weight: 400;
-  color: #a8a8a8;
+  color: #e6ddd3;
 }
 
 /* --- Benefits list --- */
