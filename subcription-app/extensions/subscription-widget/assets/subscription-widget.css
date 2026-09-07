@@ -418,6 +418,13 @@
   cursor: default;
 }
 
+/* A selected swatch's checkmark button also becomes :disabled once the mix
+   is full (nothing more can be added) -- it should stay solid black, not
+   dim along with it like an unselected "+" correctly does. */
+.subscription-widget__swatch.is-selected .subscription-widget__swatch-add-btn:disabled {
+  opacity: 1;
+}
+
 
 .subscription-widget__flavor-progress-label.is-incomplete {
   color: #1e1e1e;
