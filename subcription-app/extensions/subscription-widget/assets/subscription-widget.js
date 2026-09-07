@@ -508,7 +508,7 @@
       submitBtn.disabled = true;
       if (summarySubmitBtn) summarySubmitBtn.disabled = true;
       if (onetimeBtn) onetimeBtn.disabled = true;
-      statusEl.textContent = "Adding to cart…";
+      statusEl.textContent = "Redirecting to checkout…";
 
       try {
         // Empties whatever was already in the cart first -- checkout should
