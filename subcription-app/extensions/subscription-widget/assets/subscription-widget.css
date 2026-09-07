@@ -209,7 +209,7 @@
   padding-bottom: 6px;
   font-family: "Geist", sans-serif;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 16.5px;
   letter-spacing: 1.5px;
   text-transform: uppercase;
@@ -416,7 +416,7 @@
 
 
 .subscription-widget__flavor-progress-label.is-incomplete {
-  color: var(--subscription-widget-coral, #c0453c);
+  color: #1e1e1e;
 }
 
 .subscription-widget__flavor-progress-dots {
@@ -983,20 +983,17 @@ svg.subscription-widget__order-summary-title-icon circle {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1.5px solid var(--subscription-widget-coral, #c0453c);
+  border: 1.5px solid #1e1e1e;
   border-radius: 50%;
   background: no-repeat center / 14px 14px;
   font-family: "Geist", sans-serif;
   font-size: 14px;
   font-weight: 700;
-  color: var(--subscription-widget-coral, #c0453c);
+  color: #1e1e1e;
   box-sizing: border-box;
 }
 
 .subscription-widget__order-summary-benefits li:nth-child(1)::before {
-  /* Kept black rather than the coral used for the other three icons --
-     a deliberate exception, not an inconsistency. */
-  border-color: #1e1e1e;
   background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231E1E1E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='9' width='16' height='11' rx='1.5'/%3E%3Cpath d='M4 9l8-4.5L20 9M9 20v-7M15 20v-7'/%3E%3C/svg%3E");
 }
 
@@ -1005,11 +1002,11 @@ svg.subscription-widget__order-summary-title-icon circle {
 }
 
 .subscription-widget__order-summary-benefits li:nth-child(3)::before {
-  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='%23c0453c' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='7' y='4' width='3.5' height='16' rx='1'/%3E%3Crect x='13.5' y='4' width='3.5' height='16' rx='1'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='%231E1E1E' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='7' y='4' width='3.5' height='16' rx='1'/%3E%3Crect x='13.5' y='4' width='3.5' height='16' rx='1'/%3E%3C/svg%3E");
 }
 
 .subscription-widget__order-summary-benefits li:nth-child(4)::before {
-  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23c0453c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2.5l7.5 3v6c0 5.2-3.6 8.6-7.5 9.7-3.9-1.1-7.5-4.5-7.5-9.7v-6l7.5-3z'/%3E%3Cpath d='M8.5 12.2l2.3 2.3 4.7-4.7'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231E1E1E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2.5l7.5 3v6c0 5.2-3.6 8.6-7.5 9.7-3.9-1.1-7.5-4.5-7.5-9.7v-6l7.5-3z'/%3E%3Cpath d='M8.5 12.2l2.3 2.3 4.7-4.7'/%3E%3C/svg%3E");
 }
 
 .subscription-widget__order-summary-submit {
