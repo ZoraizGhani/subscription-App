@@ -714,7 +714,12 @@ span.subscription-widget__bundle-text {
   text-align: center;
   display: flex;
   align-items: center;
-  padding-bottom: 4px;
+  /* The "Best value" pill floats up from the card's bottom border (see
+     span.subscription-widget__bundle-badge's negative bottom offset below)
+     and intrudes further up into the card than 4px of clearance -- without
+     enough padding here the pill overlaps the count/price line instead of
+     sitting under it with a visible gap. */
+  padding-bottom: 20px;
 }
 
 .subscription-widget__bundle-title {
@@ -815,9 +820,14 @@ p.subscription-widget__order-summary-banner {
 
 .subscription-widget__order-summary-top {
   display: flex;
+  /* Wraps, not the title itself -- if the row is too narrow for the
+     nowrap title plus the "SAVE X%" badge (e.g. once the product photo
+     takes up part of the card's width), the badge drops to its own line
+     below instead of forcing the title to break across two lines. */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.75rem;
+  gap: 0.375rem 0.75rem;
   text-align: left;
 }
 
@@ -847,6 +857,10 @@ svg.subscription-widget__order-summary-title-icon circle {
   line-height: 32px;
   letter-spacing: 0;
   color: #1e1e1e;
+  /* Never wrap to a second line, even once the product photo narrows the
+     available width -- the "SAVE X%" badge shrinks/wraps first instead
+     (see .subscription-widget__order-summary-top). */
+  white-space: nowrap;
 }
 
 .subscription-widget__order-summary-save {

@@ -408,16 +408,26 @@
           {%- endfor -%}
         </div>
 
-        {%- comment -%}
-          Product photo, mirroring whichever variant/flavor is currently
-          selected -- same image subscription-widget.js already resolves for
-          the sticky bar (variant.featured_image, falling back to the
-          product's own featured image), just rendered larger here. Hidden by
-          default and only shown once render() finds an actual image, same
-          pattern as the sticky bar's image.
-        {%- endcomment -%}
         <span class="subscription-widget__order-summary-media">
-          <img data-summary-image alt="" loading="lazy" hidden>
+          {%- if block.settings.order_summary_image -%}
+            {%- comment -%}
+              A merchant-picked photo (theme editor image_picker, same
+              pattern as the bundle images above) -- static, so it doesn't
+              change when the customer picks a different flavor.
+            {%- endcomment -%}
+            {{ block.settings.order_summary_image | image_url: width: 300 | image_tag: loading: "lazy", alt: product.title, widths: "150,300" }}
+          {%- else -%}
+            {%- comment -%}
+              No photo configured -- fall back to mirroring whichever
+              variant/flavor is currently selected, same image
+              subscription-widget.js already resolves for the sticky bar
+              (variant.featured_image, falling back to the product's own
+              featured image). Hidden by default and only shown once
+              render() finds an actual image, same pattern as the sticky
+              bar's image.
+            {%- endcomment -%}
+            <img data-summary-image alt="" loading="lazy" hidden>
+          {%- endif -%}
         </span>
       </div>
     </div>
@@ -493,6 +503,14 @@
     { "type": "image_picker", "id": "bundle_image_1", "label": "Bundle image -- 1st plan" },
     { "type": "image_picker", "id": "bundle_image_2", "label": "Bundle image -- 2nd plan" },
     { "type": "image_picker", "id": "bundle_image_3", "label": "Bundle image -- 3rd plan" },
+
+    { "type": "header", "content": "Order summary photo" },
+    {
+      "type": "image_picker",
+      "id": "order_summary_image",
+      "label": "Order summary photo",
+      "info": "Shown in the order summary card. Leave blank to use the selected flavor's own product photo instead."
+    },
 
     { "type": "header", "content": "Order summary -- 1st plan" },
     { "type": "text", "id": "order_summary_badge_text_1", "label": "Banner text -- 1st plan" },
