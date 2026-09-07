@@ -796,11 +796,29 @@ p.subscription-widget__order-summary-banner {
 }
 
 .subscription-widget__order-summary-content {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 20px;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* Decorative only -- the small circled arrow the design shows in the
+   corner of the benefits area. */
+.subscription-widget__order-summary-arrow {
+  position: absolute;
+  top: -6px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #1e1e1e;
+  border-radius: 50%;
+  background: #fff;
+  box-sizing: border-box;
 }
 
 /* Product photo, mirroring whichever variant/flavor is currently selected --
@@ -928,7 +946,7 @@ svg.subscription-widget__order-summary-title-icon circle {
   gap: 0.5rem;
   font-family: "Geist", sans-serif;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 20px;
   letter-spacing: -0.35px;
   color: #1e1e1e;
