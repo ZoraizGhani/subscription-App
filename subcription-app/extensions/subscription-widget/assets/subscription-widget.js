@@ -522,7 +522,7 @@
           throw new Error((error && error.description) || "Couldn't add this to your cart.");
         }
 
-        window.location.href = "/cart";
+        window.location.href = "/checkout";
       } catch (error) {
         statusEl.textContent = error.message;
         submitBtn.disabled = false;
