@@ -392,8 +392,12 @@
    swapping textContent, so no JS change is needed to reflect it; the
    is-selected class is already toggled by subscription-widget.js. */
 .subscription-widget__swatch.is-selected .subscription-widget__swatch-add-btn {
-  background: var(--subscription-widget-swatch-selected, #1e1e1e);
-  border-color: var(--subscription-widget-swatch-selected, #1e1e1e);
+  /* Always solid black -- not tied to the merchant-configurable
+     swatch-selected-color variable (used elsewhere for the card border/
+     favourite badge), which can be set to a lighter color that made this
+     read as grey instead of a crisp checkmark. */
+  background: #1e1e1e;
+  border-color: #1e1e1e;
   color: transparent;
 }
 
