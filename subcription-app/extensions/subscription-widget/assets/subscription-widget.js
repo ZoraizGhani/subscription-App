@@ -511,6 +511,11 @@
       statusEl.textContent = "Adding to cart…";
 
       try {
+        // Empties whatever was already in the cart first -- checkout should
+        // only ever contain the plan/flavors just picked here, not anything
+        // left over from an earlier visit or a different product's buy box.
+        await fetch("/cart/clear.js", { method: "POST" });
+
         const response = await fetch("/cart/add.js", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
