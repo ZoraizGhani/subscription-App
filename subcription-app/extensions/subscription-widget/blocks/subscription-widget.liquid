@@ -426,7 +426,7 @@
               render() finds an actual image, same pattern as the sticky
               bar's image.
             {%- endcomment -%}
-            <img data-summary-image alt="" loading="lazy" hidden>
+            <img data-summary-image alt="" loading="lazy" width="140" height="220" hidden>
           {%- endif -%}
         </span>
       </div>
@@ -503,8 +503,6 @@
     { "type": "image_picker", "id": "bundle_image_1", "label": "Bundle image -- 1st plan" },
     { "type": "image_picker", "id": "bundle_image_2", "label": "Bundle image -- 2nd plan" },
     { "type": "image_picker", "id": "bundle_image_3", "label": "Bundle image -- 3rd plan" },
-
-    { "type": "header", "content": "Order summary photo" },
     {
       "type": "image_picker",
       "id": "order_summary_image",
