@@ -232,6 +232,20 @@ const SELLING_PLAN_GROUP_CREATE = `#graphql
   }
 `;
 
+// sellingPlanGroupCreate's `resources.productIds` only links whichever
+// variants exist on the product at that exact moment -- a flavor variant
+// added to the product afterward is never wired up to the group, so Shopify
+// silently drops `selling_plan` for it at /cart/add.js (no error, just a
+// full-price one-time line item with no subscription). Re-running this on
+// every save, not just at creation, keeps newly added variants covered.
+const SELLING_PLAN_GROUP_ADD_PRODUCTS = `#graphql
+  mutation AddProductsToSellingPlanGroup($id: ID!, $productIds: [ID!]!) {
+    sellingPlanGroupAddProducts(id: $id, productIds: $productIds) {
+      userErrors { field message }
+    }
+  }
+`;
+
 const SELLING_PLAN_GROUP_UPDATE = `#graphql
   mutation UpdateSellingPlanGroup($id: ID!, $input: SellingPlanGroupInput!) {
     sellingPlanGroupUpdate(id: $id, input: $input) {
@@ -331,6 +345,38 @@ async function mirrorSellingPlanGroup({
 }
 
 /**
+ * Re-associates the group with the product's full current variant set.
+ * Best-effort: the plan tiers themselves have already saved successfully by
+ * the time this runs, so a failure here is logged rather than thrown -- it
+ * shouldn't turn an otherwise-successful tier save into an error the
+ * merchant sees.
+ */
+async function ensureProductVariantsIncluded({
+  graphql,
+  groupId,
+  productId,
+}: {
+  graphql: AdminGraphqlClient;
+  groupId: string;
+  productId: string;
+}) {
+  const response = await graphql(SELLING_PLAN_GROUP_ADD_PRODUCTS, {
+    variables: { id: groupId, productIds: [productId] },
+  });
+  const body = (await response.json()) as {
+    data?: { sellingPlanGroupAddProducts: { userErrors: SellingPlanUserError[] } };
+    errors?: { message: string }[];
+  };
+  const userErrors = body.data?.sellingPlanGroupAddProducts.userErrors ?? [];
+  if (!body.data || userErrors.length) {
+    console.error(
+      "sellingPlanGroupAddProducts failed to resync product variants",
+      body.errors ?? userErrors,
+    );
+  }
+}
+
+/**
  * Creates the product's selling plan group on first save, or updates its
  * existing plans on later saves -- adding new tiers, updating edited ones, and
  * deleting any tier the merchant removed from the form (a planId that existed
@@ -419,6 +465,7 @@ export async function saveSellingPlanTiers({
       throw new Error("sellingPlanGroupUpdate failed: no selling plan group returned");
     }
     await mirrorSellingPlanGroup({ shop, productId, productTitle, group: result.sellingPlanGroup });
+    await ensureProductVariantsIncluded({ graphql, groupId: result.sellingPlanGroup.id, productId });
     return result.sellingPlanGroup.id;
   }
 
@@ -450,5 +497,6 @@ export async function saveSellingPlanTiers({
     throw new Error("sellingPlanGroupCreate failed: no selling plan group returned");
   }
   await mirrorSellingPlanGroup({ shop, productId, productTitle, group: result.sellingPlanGroup });
+  await ensureProductVariantsIncluded({ graphql, groupId: result.sellingPlanGroup.id, productId });
   return result.sellingPlanGroup.id;
 }
