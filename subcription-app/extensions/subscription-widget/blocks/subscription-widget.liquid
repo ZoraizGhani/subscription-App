@@ -176,25 +176,33 @@
               data-quantity="{{ bundle_quantity }}"
               {% if forloop.first %}checked{% endif %}
             >
+            {%- comment -%}
+              The checkmark badge lives outside .bundle-body so the de-
+              emphasis opacity applied to unselected cards (below) never
+              dims it -- it needs to read as solid black the instant a card
+              is checked, not a washed-out grey.
+            {%- endcomment -%}
             <span class="subscription-widget__bundle-check" aria-hidden="true"></span>
-            <span class="subscription-widget__bundle-media">
-              {%- if bundle_image -%}
-                <span class="subscription-widget__bundle-image">
-                  {{ bundle_image | image_url: width: 160 | image_tag: loading: "lazy", alt: plan.name, widths: "80,160" }}
-                </span>
-              {%- endif -%}
-              <span class="subscription-widget__bundle-badge" data-bundle-best-badge hidden>{{ block.settings.best_value_badge_text }}</span>
-            </span>
-            <span class="subscription-widget__bundle-text">
-              <span class="subscription-widget__bundle-title">{{ bundle_title }}</span>
-              {%- comment -%}
-                The count itself is static (Liquid-rendered from the plan's
-                own options), but the "$X / day" figure depends on live
-                price/selling-plan-discount data the same way every other
-                price in this widget does -- computed and filled in by
-                subscription-widget.js's render(), not hardcoded here.
-              {%- endcomment -%}
-              <span class="subscription-widget__bundle-count">{{ bundle_count }} Count · <span data-bundle-per-day></span></span>
+            <span class="subscription-widget__bundle-body">
+              <span class="subscription-widget__bundle-media">
+                {%- if bundle_image -%}
+                  <span class="subscription-widget__bundle-image">
+                    {{ bundle_image | image_url: width: 160 | image_tag: loading: "lazy", alt: plan.name, widths: "80,160" }}
+                  </span>
+                {%- endif -%}
+                <span class="subscription-widget__bundle-badge" data-bundle-best-badge hidden>{{ block.settings.best_value_badge_text }}</span>
+              </span>
+              <span class="subscription-widget__bundle-text">
+                <span class="subscription-widget__bundle-title">{{ bundle_title }}</span>
+                {%- comment -%}
+                  The count itself is static (Liquid-rendered from the plan's
+                  own options), but the "$X / day" figure depends on live
+                  price/selling-plan-discount data the same way every other
+                  price in this widget does -- computed and filled in by
+                  subscription-widget.js's render(), not hardcoded here.
+                {%- endcomment -%}
+                <span class="subscription-widget__bundle-count">{{ bundle_count }} Count · <span data-bundle-per-day></span></span>
+              </span>
             </span>
           </label>
         {%- endfor -%}
@@ -290,21 +298,29 @@
               data-variant-id="{{ swatch_variant.id }}"
               data-swatch-label="{{ value | escape }}"
             >
+              {%- comment -%}
+                The +/check button lives outside .swatch-body so the de-
+                emphasis opacity applied to unselected swatches (below)
+                never dims it -- it needs to read as solid black the
+                instant a swatch is selected, not a washed-out grey.
+              {%- endcomment -%}
               <button type="button" class="subscription-widget__swatch-add-btn" data-qty-plus aria-label="Increase {{ value | escape }} quantity">+</button>
-              <span class="subscription-widget__swatch-image">
-                {%- if swatch_image -%}
-                  {{ swatch_image | image_url: width: 160 | image_tag: loading: "lazy", alt: value, widths: "80,160" }}
+              <span class="subscription-widget__swatch-body">
+                <span class="subscription-widget__swatch-image">
+                  {%- if swatch_image -%}
+                    {{ swatch_image | image_url: width: 160 | image_tag: loading: "lazy", alt: value, widths: "80,160" }}
+                  {%- endif -%}
+                </span>
+                <span class="subscription-widget__swatch-name">{{ value }}</span>
+                {%- if flavor_subtitle != blank -%}
+                  <span class="subscription-widget__swatch-subtitle">{{ flavor_subtitle }}</span>
+                {%- endif -%}
+                {%- if is_favourite and block.settings.favourite_badge_text != blank -%}
+                  <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--favourite">{{ block.settings.favourite_badge_text }}</span>
+                {%- elsif is_new and block.settings.new_badge_text != blank -%}
+                  <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--new">{{ block.settings.new_badge_text }}</span>
                 {%- endif -%}
               </span>
-              <span class="subscription-widget__swatch-name">{{ value }}</span>
-              {%- if flavor_subtitle != blank -%}
-                <span class="subscription-widget__swatch-subtitle">{{ flavor_subtitle }}</span>
-              {%- endif -%}
-              {%- if is_favourite and block.settings.favourite_badge_text != blank -%}
-                <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--favourite">{{ block.settings.favourite_badge_text }}</span>
-              {%- elsif is_new and block.settings.new_badge_text != blank -%}
-                <span class="subscription-widget__swatch-badge subscription-widget__swatch-badge--new">{{ block.settings.new_badge_text }}</span>
-              {%- endif -%}
             </div>
           {%- endfor -%}
         </div>
@@ -359,37 +375,50 @@
         {%- endif -%}
       {%- endfor -%}
       <div class="subscription-widget__order-summary-body">
-        <div class="subscription-widget__order-summary-top">
-          <span class="subscription-widget__order-summary-title-group">
-            <svg class="subscription-widget__order-summary-title-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <circle cx="10" cy="10" r="8" stroke="#1E1E1E" stroke-width="1.5"/>
-            </svg>
-            <span class="subscription-widget__order-summary-title" data-summary-title></span>
-          </span>
-          <span class="subscription-widget__order-summary-save" data-summary-save></span>
-        </div>
-        <div class="subscription-widget__order-summary-price-row">
-          <span class="subscription-widget__order-summary-price" data-summary-price></span>
-          <span class="subscription-widget__order-summary-price-suffix">/ month</span>
-          <span class="subscription-widget__order-summary-compare" data-summary-compare></span>
-        </div>
-        <div class="subscription-widget__order-summary-billing">
-          <span data-summary-billing></span>
-          <span class="subscription-widget__order-summary-per-serving" data-summary-per-serving></span>
+        <div class="subscription-widget__order-summary-content">
+          <div class="subscription-widget__order-summary-top">
+            <span class="subscription-widget__order-summary-title-group">
+              <svg class="subscription-widget__order-summary-title-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="10" cy="10" r="8" stroke="#1E1E1E" stroke-width="1.5"/>
+              </svg>
+              <span class="subscription-widget__order-summary-title" data-summary-title></span>
+            </span>
+            <span class="subscription-widget__order-summary-save" data-summary-save></span>
+          </div>
+          <div class="subscription-widget__order-summary-price-row">
+            <span class="subscription-widget__order-summary-price" data-summary-price></span>
+            <span class="subscription-widget__order-summary-price-suffix">/ month</span>
+            <span class="subscription-widget__order-summary-compare" data-summary-compare></span>
+          </div>
+          <div class="subscription-widget__order-summary-billing">
+            <span data-summary-billing></span>
+            <span class="subscription-widget__order-summary-per-serving" data-summary-per-serving></span>
+          </div>
+
+          {%- for plan in selling_plan_group.selling_plans -%}
+            {%- case forloop.index -%}
+              {%- when 1 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_1 -%}
+              {%- when 2 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_2 -%}
+              {%- when 3 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_3 -%}
+              {%- else -%}{%- assign plan_benefits = nil -%}
+            {%- endcase -%}
+            {%- if plan_benefits != blank -%}
+              <div class="subscription-widget__order-summary-benefits" data-summary-benefits-plan="{{ plan.id }}" {% unless forloop.first %}hidden{% endunless %}>{{ plan_benefits }}</div>
+            {%- endif -%}
+          {%- endfor -%}
         </div>
 
-        {%- for plan in selling_plan_group.selling_plans -%}
-          {%- case forloop.index -%}
-            {%- when 1 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_1 -%}
-            {%- when 2 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_2 -%}
-            {%- when 3 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_3 -%}
-            {%- else -%}{%- assign plan_benefits = nil -%}
-          {%- endcase -%}
-          {%- if plan_benefits != blank -%}
-            <div class="subscription-widget__order-summary-benefits" data-summary-benefits-plan="{{ plan.id }}" {% unless forloop.first %}hidden{% endunless %}>{{ plan_benefits }}</div>
-          {%- endif -%}
-        {%- endfor -%}
-
+        {%- comment -%}
+          Product photo, mirroring whichever variant/flavor is currently
+          selected -- same image subscription-widget.js already resolves for
+          the sticky bar (variant.featured_image, falling back to the
+          product's own featured image), just rendered larger here. Hidden by
+          default and only shown once render() finds an actual image, same
+          pattern as the sticky bar's image.
+        {%- endcomment -%}
+        <span class="subscription-widget__order-summary-media">
+          <img data-summary-image alt="" loading="lazy" hidden>
+        </span>
       </div>
     </div>
 
@@ -445,7 +474,7 @@
     { "type": "text", "id": "flavor_section_label", "label": "Flavor section heading", "default": "Choose Your Flavors" },
     { "type": "color", "id": "swatch_selected_color", "label": "Selected flavor border / \"most favourite\" badge color", "default": "#1E1E1E" },
     { "type": "text", "id": "favourite_value", "label": "\"Most favourite\" flavor", "info": "Must exactly match one flavor value. Leave blank to hide." },
-    { "type": "text", "id": "favourite_badge_text", "label": "Most-favourite badge text", "default": "Most Favourite" },
+    { "type": "text", "id": "favourite_badge_text", "label": "Most-favourite badge text", "default": "Best Seller" },
     { "type": "text", "id": "new_values", "label": "\"New\" flavors", "info": "Comma-separated, must exactly match flavor values. Leave blank to hide." },
     { "type": "text", "id": "new_badge_text", "label": "New badge text", "default": "New" },
     {
@@ -453,12 +482,12 @@
       "id": "flavor_subtitles",
       "label": "Flavor subtitles",
       "info": "One per line, formatted as \"Flavor Name: subtitle text\" -- e.g. \"Sour Green Apple: Tart apple · Clean finish\". Leave a flavor out to show no subtitle for it.",
-      "default": "Sour Green Apple: Tart apple · Clean finish\nMixed Berry: Sweet berry · Bright finish\nStrawberry Lime: Sweet strawberry · Tart finish"
+      "default": "Cherry Lime: Tart cherry · Lime finish\nSour Green Apple: Tart apple · Clean finish\nBlood Orange: Bold citrus · Smooth finish"
     },
 
     { "type": "header", "content": "Plan section" },
     { "type": "text", "id": "plan_step_label", "label": "Plan step eyebrow", "default": "Step 01 • Build Your Ritual", "info": "Small label above the heading. Leave blank to hide." },
-    { "type": "text", "id": "plan_section_label", "label": "Plan section heading", "default": "Valuable Bundles" },
+    { "type": "text", "id": "plan_section_label", "label": "Plan section heading", "default": "Choose Your Supply" },
     { "type": "checkbox", "id": "show_best_value_badge", "label": "Show \"best value\" badge on the best-discount plan", "default": true },
     { "type": "text", "id": "best_value_badge_text", "label": "Best value badge text", "default": "Best Value" },
     { "type": "image_picker", "id": "bundle_image_1", "label": "Bundle image -- 1st plan" },

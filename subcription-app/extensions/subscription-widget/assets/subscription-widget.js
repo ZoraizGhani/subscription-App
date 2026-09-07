@@ -53,6 +53,8 @@
     const summaryBenefitsEls = Array.from(root.querySelectorAll("[data-summary-benefits-plan]"));
     const summaryBannerEls = Array.from(root.querySelectorAll("[data-summary-banner-plan]"));
 
+    const summaryImageEl = root.querySelector("[data-summary-image]");
+
     const stickyBar = root.querySelector("[data-sticky-bar]");
     const stickyImage = root.querySelector("[data-sticky-image]");
     const stickyPlanTrigger = root.querySelector("[data-sticky-plan-trigger]");
@@ -136,6 +138,27 @@
       return checked ? Number(checked.value) : bundleRadios[0] ? Number(bundleRadios[0].value) : null;
     }
 
+    // product.featured_image serializes as a plain URL string; a variant's
+    // featured_image serializes as an object with its own .src -- not the
+    // same shape, so each needs its own extraction. Shared by the sticky bar
+    // and order-summary photos, which both mirror whichever variant is
+    // currently selected.
+    function variantImageSrc(variant) {
+      return product.featured_image || (variant.featured_image && variant.featured_image.src);
+    }
+
+    function setProductImage(imgEl, variant) {
+      if (!imgEl) return;
+      const imageSrc = variantImageSrc(variant);
+      if (imageSrc) {
+        imgEl.src = imageSrc;
+        imgEl.alt = product.title;
+        imgEl.hidden = false;
+      } else {
+        imgEl.hidden = true;
+      }
+    }
+
     function render() {
       const variant = currentVariant();
 
@@ -215,20 +238,8 @@
       // plan label and price all recompute here so picking a plan/flavor in
       // the main widget updates it too, not just the reverse (see the sticky
       // option click handler below for that direction).
-      if (stickyImage) {
-        // product.featured_image serializes as a plain URL string; a
-        // variant's featured_image serializes as an object with its own
-        // .src -- not the same shape, so each needs its own extraction.
-        const imageSrc =
-          product.featured_image || (variant.featured_image && variant.featured_image.src);
-        if (imageSrc) {
-          stickyImage.src = imageSrc;
-          stickyImage.alt = product.title;
-          stickyImage.hidden = false;
-        } else {
-          stickyImage.hidden = true;
-        }
-      }
+      setProductImage(stickyImage, variant);
+      setProductImage(summaryImageEl, variant);
       if (stickyPlanLabel) {
         stickyPlanLabel.textContent =
           selectedDiscount > 0 ? `${days}-Day Supply (Save ${selectedDiscount}%)` : `${days}-Day Supply`;
@@ -264,7 +275,7 @@
       });
 
       // Order summary card -- mirrors whichever plan is selected above.
-      if (summaryTitleEl) summaryTitleEl.textContent = `${days}-Day Supply`;
+      if (summaryTitleEl) summaryTitleEl.textContent = `${days}-Day Subscription`;
       if (summarySaveEl) {
         summarySaveEl.hidden = selectedDiscount <= 0;
         summarySaveEl.textContent = selectedDiscount > 0 ? `SAVE ${selectedDiscount}%` : "";

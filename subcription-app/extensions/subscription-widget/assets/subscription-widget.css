@@ -277,9 +277,6 @@
   font: inherit;
   color: inherit;
   cursor: pointer;
-  /* Unselected cards read as visually secondary next to whichever one is
-     actually selected. */
-  opacity: 0.6;
 }
 
 .subscription-widget__swatch {
@@ -289,6 +286,22 @@
 .subscription-widget__swatch.is-selected {
   border-width: 2px;
   border-color: var(--subscription-widget-swatch-selected, #1e1e1e);
+}
+
+/* Image/name/subtitle/badge live in their own wrapper, separate from the
+   +/check button below, so the "unselected cards read as visually
+   secondary" dimming only ever touches them -- the check button itself
+   always renders at full opacity, so it reads as solid black the instant a
+   swatch is selected rather than a washed-out grey. */
+.subscription-widget__swatch-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  opacity: 0.6;
+}
+
+.subscription-widget__swatch.is-selected .subscription-widget__swatch-body {
   opacity: 1;
 }
 
@@ -546,14 +559,28 @@
   background: #fff;
   cursor: pointer;
   text-align: center;
-  /* Unselected cards read as visually secondary next to whichever plan is
-     actually selected. */
-  opacity: 0.6;
 }
 
 .subscription-widget__bundle-card:has(.subscription-widget__bundle-radio-input:checked) {
   border-width: 2px;
   border-color: #1e1e1e;
+}
+
+/* Media + text live in their own wrapper, separate from the checkmark badge
+   below, so the "unselected cards read as visually secondary" dimming only
+   ever touches them -- the checkmark itself always renders at full opacity,
+   so it reads as solid black the instant it's checked rather than a
+   washed-out grey. */
+.subscription-widget__bundle-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  opacity: 0.6;
+}
+
+.subscription-widget__bundle-card:has(.subscription-widget__bundle-radio-input:checked) .subscription-widget__bundle-body {
   opacity: 1;
 }
 
@@ -744,13 +771,46 @@ p.subscription-widget__order-summary-banner {
 
 .subscription-widget__order-summary-body {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 12px;
   padding: 26px 16px;
   border-radius: 1.5rem 1.5rem 0rem 0rem;
   border-top: 1px solid #1e1e1e;
   background: #fff;
   margin-top: -2px !important;
+}
+
+.subscription-widget__order-summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Product photo, mirroring whichever variant/flavor is currently selected --
+   anchored to the bottom-right of the card so it reads as tucked in behind
+   the price/billing text rather than competing with it for space. */
+.subscription-widget__order-summary-media {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 35%;
+  max-width: 140px;
+}
+
+.subscription-widget__order-summary-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
+}
+
+.subscription-widget__order-summary-media img[hidden] {
+  display: none;
 }
 
 .subscription-widget__order-summary-top {
@@ -1185,6 +1245,12 @@ span.subscription-widget__order-summary-onetime-label {
     margin-top: 10px;
   }
 
+  /* Mobile-only override -- the desktop value (4px, in the unconditional
+     rule above) stays untouched at wider widths. */
+  span.subscription-widget__bundle-text {
+    padding-bottom: 18px;
+  }
+
   .subscription-widget__bundle-title {
     font-size: 14px;
     font-weight: 700;
@@ -1303,6 +1369,15 @@ span.subscription-widget__order-summary-onetime-label {
   .subscription-widget__order-summary-body {
     gap: 10px !important;
     padding: 16px 10px !important;
+  }
+
+  .subscription-widget__order-summary-media {
+    width: 30%;
+    max-width: 100px;
+  }
+
+  .subscription-widget__order-summary-media img {
+    max-height: 150px;
   }
 
   span.subscription-widget__order-summary-price {
