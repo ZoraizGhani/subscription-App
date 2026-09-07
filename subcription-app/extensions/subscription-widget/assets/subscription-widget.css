@@ -776,14 +776,23 @@ p.subscription-widget__order-summary-banner {
 
 .subscription-widget__order-summary-body {
   display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  gap: 12px;
+  flex-direction: column;
+  gap: 20px;
   padding: 26px 16px;
   border-radius: 1.5rem 1.5rem 0rem 0rem;
   border-top: 1px solid #1e1e1e;
   background: #fff;
   margin-top: -2px !important;
+}
+
+/* Billing/per-serving line + benefits list share a row with the photo --
+   the title and price rows above stay full-width (see .order-summary-body),
+   so the photo never competes with them for horizontal space. */
+.subscription-widget__order-summary-lower {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 12px;
 }
 
 .subscription-widget__order-summary-content {
@@ -796,7 +805,7 @@ p.subscription-widget__order-summary-banner {
 
 /* Product photo, mirroring whichever variant/flavor is currently selected --
    anchored to the bottom-right of the card so it reads as tucked in behind
-   the price/billing text rather than competing with it for space. */
+   the billing text rather than competing with it for space. */
 .subscription-widget__order-summary-media {
   flex-shrink: 0;
   display: flex;
@@ -820,11 +829,11 @@ p.subscription-widget__order-summary-banner {
 
 .subscription-widget__order-summary-top {
   display: flex;
-  /* Wraps, not the title itself -- if the row is too narrow for the
-     nowrap title plus the "SAVE X%" badge (e.g. once the product photo
-     takes up part of the card's width), the badge drops to its own line
-     below instead of forcing the title to break across two lines. */
-  flex-wrap: wrap;
+  /* This row now always spans the card's full width (the photo shares a
+     row with the billing/benefits content further down instead), so the
+     nowrap title and the "SAVE X%" badge always have room to sit on the
+     same line together. */
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
   gap: 0.375rem 0.75rem;

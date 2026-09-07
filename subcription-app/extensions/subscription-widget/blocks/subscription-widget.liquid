@@ -375,60 +375,70 @@
         {%- endif -%}
       {%- endfor -%}
       <div class="subscription-widget__order-summary-body">
-        <div class="subscription-widget__order-summary-content">
-          <div class="subscription-widget__order-summary-top">
-            <span class="subscription-widget__order-summary-title-group">
-              <svg class="subscription-widget__order-summary-title-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <circle cx="10" cy="10" r="8" stroke="#1E1E1E" stroke-width="1.5"/>
-              </svg>
-              <span class="subscription-widget__order-summary-title" data-summary-title></span>
-            </span>
-            <span class="subscription-widget__order-summary-save" data-summary-save></span>
-          </div>
-          <div class="subscription-widget__order-summary-price-row">
-            <span class="subscription-widget__order-summary-price" data-summary-price></span>
-            <span class="subscription-widget__order-summary-price-suffix">/ month</span>
-            <span class="subscription-widget__order-summary-compare" data-summary-compare></span>
-          </div>
-          <div class="subscription-widget__order-summary-billing">
-            <span data-summary-billing></span>
-            <span class="subscription-widget__order-summary-per-serving" data-summary-per-serving></span>
-          </div>
-
-          {%- for plan in selling_plan_group.selling_plans -%}
-            {%- case forloop.index -%}
-              {%- when 1 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_1 -%}
-              {%- when 2 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_2 -%}
-              {%- when 3 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_3 -%}
-              {%- else -%}{%- assign plan_benefits = nil -%}
-            {%- endcase -%}
-            {%- if plan_benefits != blank -%}
-              <div class="subscription-widget__order-summary-benefits" data-summary-benefits-plan="{{ plan.id }}" {% unless forloop.first %}hidden{% endunless %}>{{ plan_benefits }}</div>
-            {%- endif -%}
-          {%- endfor -%}
+        {%- comment -%}
+          Title and price rows always span the card's full width -- only the
+          billing/per-serving line and benefits list below share a row with
+          the photo, matching the design (the photo sits low enough that it
+          never competes with the title for horizontal space, which is what
+          was forcing "SAVE X%" to wrap onto its own line).
+        {%- endcomment -%}
+        <div class="subscription-widget__order-summary-top">
+          <span class="subscription-widget__order-summary-title-group">
+            <svg class="subscription-widget__order-summary-title-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <circle cx="10" cy="10" r="8" stroke="#1E1E1E" stroke-width="1.5"/>
+            </svg>
+            <span class="subscription-widget__order-summary-title" data-summary-title></span>
+          </span>
+          <span class="subscription-widget__order-summary-save" data-summary-save></span>
+        </div>
+        <div class="subscription-widget__order-summary-price-row">
+          <span class="subscription-widget__order-summary-price" data-summary-price></span>
+          <span class="subscription-widget__order-summary-price-suffix">/ month</span>
+          <span class="subscription-widget__order-summary-compare" data-summary-compare></span>
         </div>
 
-        <span class="subscription-widget__order-summary-media">
-          {%- if block.settings.order_summary_image -%}
-            {%- comment -%}
-              A merchant-picked photo (theme editor image_picker, same
-              pattern as the bundle images above) -- static, so it doesn't
-              change when the customer picks a different flavor.
-            {%- endcomment -%}
-            {{ block.settings.order_summary_image | image_url: width: 300 | image_tag: loading: "lazy", alt: product.title, widths: "150,300" }}
-          {%- else -%}
-            {%- comment -%}
-              No photo configured -- fall back to mirroring whichever
-              variant/flavor is currently selected, same image
-              subscription-widget.js already resolves for the sticky bar
-              (variant.featured_image, falling back to the product's own
-              featured image). Hidden by default and only shown once
-              render() finds an actual image, same pattern as the sticky
-              bar's image.
-            {%- endcomment -%}
-            <img data-summary-image alt="" loading="lazy" width="140" height="220" hidden>
-          {%- endif -%}
-        </span>
+        <div class="subscription-widget__order-summary-lower">
+          <div class="subscription-widget__order-summary-content">
+            <div class="subscription-widget__order-summary-billing">
+              <span data-summary-billing></span>
+              <span class="subscription-widget__order-summary-per-serving" data-summary-per-serving></span>
+            </div>
+
+            {%- for plan in selling_plan_group.selling_plans -%}
+              {%- case forloop.index -%}
+                {%- when 1 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_1 -%}
+                {%- when 2 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_2 -%}
+                {%- when 3 -%}{%- assign plan_benefits = block.settings.order_summary_benefits_3 -%}
+                {%- else -%}{%- assign plan_benefits = nil -%}
+              {%- endcase -%}
+              {%- if plan_benefits != blank -%}
+                <div class="subscription-widget__order-summary-benefits" data-summary-benefits-plan="{{ plan.id }}" {% unless forloop.first %}hidden{% endunless %}>{{ plan_benefits }}</div>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+
+          <span class="subscription-widget__order-summary-media">
+            {%- if block.settings.order_summary_image -%}
+              {%- comment -%}
+                A merchant-picked photo (theme editor image_picker, same
+                pattern as the bundle images above) -- static, so it doesn't
+                change when the customer picks a different flavor.
+              {%- endcomment -%}
+              {{ block.settings.order_summary_image | image_url: width: 300 | image_tag: loading: "lazy", alt: product.title, widths: "150,300" }}
+            {%- else -%}
+              {%- comment -%}
+                No photo configured -- fall back to mirroring whichever
+                variant/flavor is currently selected, same image
+                subscription-widget.js already resolves for the sticky bar
+                (variant.featured_image, falling back to the product's own
+                featured image). Hidden by default and only shown once
+                render() finds an actual image, same pattern as the sticky
+                bar's image.
+              {%- endcomment -%}
+              <img data-summary-image alt="" loading="lazy" width="140" height="220" hidden>
+            {%- endif -%}
+          </span>
+        </div>
       </div>
     </div>
 
