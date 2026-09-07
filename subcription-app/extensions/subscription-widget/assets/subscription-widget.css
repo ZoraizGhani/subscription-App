@@ -862,7 +862,7 @@ svg.subscription-widget__order-summary-title-icon circle {
 .subscription-widget__order-summary-title {
   font-family: "Geist", sans-serif;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 32px;
   letter-spacing: 0;
   color: #1e1e1e;
