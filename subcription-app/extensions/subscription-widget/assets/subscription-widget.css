@@ -1435,12 +1435,12 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   .subscription-widget__order-summary-media {
-    width: 64%;
+    width: 49%;
     max-width: 255px;
     margin-right: -22px;
     margin-bottom: -31px;
     position: absolute;
-    right: 9px;
+    right: 5px;
     bottom: 0;
   }
 
