@@ -1406,6 +1406,11 @@ span.subscription-widget__order-summary-onetime-label {
 
   .subscription-widget__order-summary-content {
     gap: 10px;
+    /* The photo is position: absolute (out of flow) on mobile, so this
+       column no longer shrinks to make room for it -- without this, the
+       benefits text runs full-width and sits underneath the photo instead
+       of wrapping before it. */
+    padding-right: 42%;
   }
 
   .subscription-widget__order-summary-lower {
