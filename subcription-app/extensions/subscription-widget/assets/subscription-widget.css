@@ -817,16 +817,37 @@ p.subscription-widget__order-summary-banner {
 
 /* Product photo, mirroring whichever variant/flavor is currently selected --
    anchored to the bottom-right of the card so it reads as tucked in behind
-   the billing text rather than competing with it for space. */
+   the billing text rather than competing with it for space. Sizing/position
+   is desktop-only (see the min-width: 641px block below) and mobile-only
+   (see the max-width: 640px block further down) -- kept out of this
+   unscoped rule entirely so neither breakpoint's values ever leak into the
+   other. */
 .subscription-widget__order-summary-media {
   flex-shrink: 0;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  width: 40%;
-  max-width: 170px;
-  margin-right: -16px;
-  margin-bottom: -26px;
+}
+
+/* --- Desktop-only photo treatment: absolute-positioned, bled into the
+   card's bottom-right corner. !important per explicit request, to guarantee
+   it wins regardless of any other rule's specificity -- scoped strictly to
+   min-width: 641px so it can never affect the max-width: 640px mobile
+   styles below. --- */
+@media (min-width: 641px) {
+  .subscription-widget__order-summary-content {
+    padding-right: 42% !important;
+  }
+
+  .subscription-widget__order-summary-media {
+    width: 64% !important;
+    max-width: 255px !important;
+    margin-right: -16px !important;
+    margin-bottom: -26px !important;
+    position: absolute !important;
+    right: 9px !important;
+    bottom: 0 !important;
+  }
 }
 
 .subscription-widget__order-summary-media img {
