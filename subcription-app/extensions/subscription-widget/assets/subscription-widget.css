@@ -1515,12 +1515,9 @@ span.subscription-widget__order-summary-onetime-label {
 
   .subscription-widget__sticky-bar-plan {
     order: 3;
-    /* flex-basis: 0 (not auto) so this shares the row with the submit
-       button by shrink priority alone, rather than the browser's wrap
-       decision being driven by the trigger's own (potentially wide)
-       content size -- that mismatch was pushing the submit button onto
-       its own line below instead of sharing this one. */
-    flex: 1 1 0%;
+    /* Even 50/50 split with the submit button below -- flex-basis: 50%
+       (not auto) so the row divides by width, not by content size. */
+    flex: 1 1 50%;
     min-width: 0;
   }
 
@@ -1572,7 +1569,8 @@ span.subscription-widget__order-summary-onetime-label {
 
   .subscription-widget__sticky-bar-submit {
     order: 4;
-    flex-shrink: 0;
+    flex: 1 1 50%;
+    min-width: 0;
     padding: 10px 16px;
     font-size: 11px;
   }
