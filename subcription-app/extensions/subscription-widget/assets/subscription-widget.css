@@ -823,13 +823,10 @@ p.subscription-widget__order-summary-banner {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  width: 64%;
-  max-width: 255px;
+  width: 40%;
+  max-width: 170px;
   margin-right: -16px;
   margin-bottom: -26px;
-  position: absolute;
-  right: 9px;
-  bottom: 0;
 }
 
 .subscription-widget__order-summary-media img {
@@ -1433,9 +1430,13 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   .subscription-widget__order-summary-media {
-    width: 34%;
-    max-width: 120px;
-    right: 6px;
+    width: 64%;
+    max-width: 255px;
+    margin-right: -22px;
+    margin-bottom: -31px;
+    position: absolute;
+    right: 9px;
+    bottom: 0;
   }
 
   .subscription-widget__order-summary-media img {
