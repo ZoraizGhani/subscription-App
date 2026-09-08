@@ -794,6 +794,7 @@ p.subscription-widget__order-summary-banner {
   border-top: 1px solid #1e1e1e;
   background: #fff;
   margin-top: -2px !important;
+  position: relative;
 }
 
 /* Billing/per-serving line + benefits list share a row with the photo --
@@ -822,14 +823,13 @@ p.subscription-widget__order-summary-banner {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  width: 40%;
-  max-width: 170px;
-  /* Bleeds the photo flush into the card's bottom-right corner -- negative
-     margins matching .order-summary-body's own padding (26px 16px), clipped
-     by the card's overflow: hidden + border-radius so it reads as tucked
-     into the corner rather than floating with a gap around it. */
+  width: 64%;
+  max-width: 255px;
   margin-right: -16px;
   margin-bottom: -26px;
+  position: absolute;
+  right: 9px;
+  bottom: 0;
 }
 
 .subscription-widget__order-summary-media img {
@@ -1435,8 +1435,7 @@ span.subscription-widget__order-summary-onetime-label {
   .subscription-widget__order-summary-media {
     width: 34%;
     max-width: 120px;
-    margin-right: -12px;
-    margin-bottom: -14px;
+    right: 6px;
   }
 
   .subscription-widget__order-summary-media img {
