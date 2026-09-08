@@ -26,7 +26,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  height: 100px;
+  height: 76px;
   padding: 0 1rem;
   background: #e6ddd3;
   border-top: 1px solid #5a0b0b;
@@ -40,8 +40,8 @@
 
 .subscription-widget__sticky-bar-media {
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
+  width: 44px;
+  height: 44px;
   border-radius: 0.5rem;
   overflow: hidden;
   background: #f3eee7;
@@ -79,8 +79,8 @@
   justify-content: space-between;
   gap: 0.75rem;
   min-width: 240px;
-  height: 54px;
-  padding: 8px 20px;
+  height: 44px;
+  padding: 6px 18px;
   border: 1px solid #1e1e1e;
   border-radius: 9999px;
   background: #e6ddd3;
@@ -172,7 +172,7 @@
 
 .subscription-widget__sticky-bar-submit {
   flex-shrink: 0;
-  padding: 16px 40px;
+  padding: 12px 36px;
   border: none;
   border-radius: 9999px;
   background: #1e1e1e;
@@ -1340,26 +1340,27 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   .subscription-widget__order-summary-title {
-    font-size: 18px;
-    line-height: 24px;
+    font-size: 15px;
+    line-height: 20px;
   }
 
   span.subscription-widget__order-summary-title {
-    font-size: 18px !important;
+    font-size: 15px !important;
   }
 
   .subscription-widget__order-summary-save {
-    font-size: 10px;
+    font-size: 9px;
+    padding: 0.1rem 0.4rem;
   }
 
   .subscription-widget__order-summary-price {
-    font-size: 32px;
-    line-height: 32px;
+    font-size: 26px;
+    line-height: 28px;
   }
 
   .subscription-widget__order-summary-compare {
-    font-size: 14px;
-    line-height: 20px;
+    font-size: 12px;
+    line-height: 18px;
   }
 
   .subscription-widget__order-summary-onetime {
@@ -1379,13 +1380,33 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   .subscription-widget__order-summary-billing {
-    font-size: 12px;
-    line-height: 18px;
+    font-size: 11px;
+    line-height: 16px;
   }
 
   .subscription-widget__order-summary-benefits li {
-    font-size: 12px;
-    line-height: 18px;
+    font-size: 11px;
+    line-height: 16px;
+    gap: 0.5rem;
+  }
+
+  .subscription-widget__order-summary-benefits ul {
+    gap: 0.4rem;
+  }
+
+  .subscription-widget__order-summary-benefits li::before {
+    width: 20px;
+    height: 20px;
+    background-size: 11px 11px;
+    font-size: 11px;
+  }
+
+  .subscription-widget__order-summary-content {
+    gap: 10px;
+  }
+
+  .subscription-widget__order-summary-lower {
+    gap: 8px;
   }
 
   .subscription-widget__order-summary-submit {
@@ -1401,17 +1422,17 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   .subscription-widget__order-summary-body {
-    gap: 10px !important;
-    padding: 16px 10px !important;
+    gap: 8px !important;
+    padding: 14px 12px !important;
   }
 
   .subscription-widget__order-summary-media {
-    width: 30%;
-    max-width: 100px;
+    width: 24%;
+    max-width: 84px;
   }
 
   .subscription-widget__order-summary-media img {
-    max-height: 150px;
+    max-height: 110px;
   }
 
   span.subscription-widget__order-summary-price {
@@ -1419,8 +1440,8 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   .subscription-widget__order-summary-billing {
-    font-size: 12px !important;
-    padding-bottom: 10px !important;
+    font-size: 11px !important;
+    padding-bottom: 8px !important;
   }
 
   p.subscription-widget__order-summary-banner {
