@@ -1306,7 +1306,7 @@ span.subscription-widget__order-summary-onetime-label {
   /* Mobile-only override -- the desktop value (4px, in the unconditional
      rule above) stays untouched at wider widths. */
   span.subscription-widget__bundle-text {
-    padding-bottom: 18px;
+    padding-bottom: 0 !important;
   }
 
   .subscription-widget__bundle-title {
@@ -1527,16 +1527,30 @@ span.subscription-widget__order-summary-onetime-label {
     padding: 6px 12px;
   }
 
+  /* Label + sub sit side by side on mobile instead of stacking into two
+     lines -- the trigger is already full-width here (see
+     .sticky-bar-plan-trigger above), so there's no need for the desktop
+     column layout that stacks "90-Day Supply" over "$1.60 USD / serving". */
+  .subscription-widget__sticky-bar-plan-text {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.3rem;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
   .subscription-widget__sticky-bar-plan-label {
     font-size: 8px;
     line-height: 11px;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .subscription-widget__sticky-bar-plan-sub {
     font-size: 8px;
     line-height: 11px;
+    flex-shrink: 0;
   }
 
   .subscription-widget__sticky-bar-plan-list {
