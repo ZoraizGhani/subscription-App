@@ -1515,7 +1515,12 @@ span.subscription-widget__order-summary-onetime-label {
 
   .subscription-widget__sticky-bar-plan {
     order: 3;
-    flex: 1 1 auto;
+    /* flex-basis: 0 (not auto) so this shares the row with the submit
+       button by shrink priority alone, rather than the browser's wrap
+       decision being driven by the trigger's own (potentially wide)
+       content size -- that mismatch was pushing the submit button onto
+       its own line below instead of sharing this one. */
+    flex: 1 1 0%;
     min-width: 0;
   }
 
@@ -1545,12 +1550,18 @@ span.subscription-widget__order-summary-onetime-label {
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    flex: 1 1 auto;
   }
 
+  /* Shrinks (and ellipsizes) before the label does -- the plan name matters
+     more than the per-serving price once space runs out. */
   .subscription-widget__sticky-bar-plan-sub {
     font-size: 8px;
     line-height: 11px;
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .subscription-widget__sticky-bar-plan-list {
