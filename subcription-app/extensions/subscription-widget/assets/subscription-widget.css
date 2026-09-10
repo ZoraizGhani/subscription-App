@@ -1521,9 +1521,11 @@ span.subscription-widget__order-summary-onetime-label {
 
   .subscription-widget__sticky-bar-plan {
     order: 3;
-    /* Even 50/50 split with the submit button below -- flex-basis: 50%
-       (not auto) so the row divides by width, not by content size. */
-    flex: 1 1 50%;
+    /* Selector takes the majority of the row, submit button the rest --
+       matches the reference proportions (a wide selector, a compact
+       button) rather than an even 50/50 split. flex-basis: 0 so this is a
+       pure ratio split, not driven by either side's content size. */
+    flex: 3 1 0%;
     min-width: 0;
   }
 
@@ -1536,34 +1538,32 @@ span.subscription-widget__order-summary-onetime-label {
     padding: 6px 12px;
   }
 
-  /* Label + sub sit side by side on mobile instead of stacking into two
-     lines -- the trigger is already full-width here (see
-     .sticky-bar-plan-trigger above), so there's no need for the desktop
-     column layout that stacks "90-Day Supply" over "$1.60 USD / serving". */
+  /* Label stacked over sub (matching the reference design) now that the
+     selector has its own majority-width slice of the row (see
+     .sticky-bar-plan above) -- there's enough room for both lines without
+     the trigger needing to grow past its neighbors. */
   .subscription-widget__sticky-bar-plan-text {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 0.3rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
     min-width: 0;
     flex: 1 1 auto;
   }
 
   .subscription-widget__sticky-bar-plan-label {
-    font-size: 8px;
-    line-height: 11px;
+    font-size: 11px;
+    line-height: 15px;
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
-    flex: 1 1 auto;
+    max-width: 100%;
   }
 
-  /* Shrinks (and ellipsizes) before the label does -- the plan name matters
-     more than the per-serving price once space runs out. */
   .subscription-widget__sticky-bar-plan-sub {
-    font-size: 8px;
-    line-height: 11px;
-    flex: 0 1 auto;
+    font-size: 10px;
+    line-height: 13px;
     min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -1576,14 +1576,16 @@ span.subscription-widget__order-summary-onetime-label {
 
   .subscription-widget__sticky-bar-submit {
     order: 4;
-    flex: 1 1 50%;
+    flex: 1 1 0%;
     min-width: 0;
     height: 40px;
     box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 16px;
-    font-size: 11px;
+    padding: 0 10px;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
