@@ -165,6 +165,10 @@
 }
 
 .subscription-widget__sticky-bar-plan-option-sub {
+  /* Dropdown rows show just the plan name (one line), matching the
+     reference design -- the count/price sub-line stays on the closed
+     trigger below (.sticky-bar-plan-sub), just not repeated per row here. */
+  display: none;
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
