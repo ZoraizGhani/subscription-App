@@ -1056,9 +1056,9 @@ svg.subscription-widget__order-summary-title-icon circle {
 .subscription-widget__welcome-kit {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   margin-top: 4px;
-  padding: 16px;
+  padding: 10px;
   border-radius: 1rem;
   background: #f6f1e9;
 }
@@ -1105,8 +1105,8 @@ svg.subscription-widget__order-summary-title-icon circle {
 .subscription-widget__welcome-kit-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 8px;
   border: 1px solid #e5e0d5;
   border-radius: 0.75rem;
   background: #fff;
