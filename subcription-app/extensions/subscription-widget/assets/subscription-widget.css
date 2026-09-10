@@ -82,7 +82,9 @@
   height: 44px;
   padding: 6px 18px;
   border: 1px solid #1e1e1e;
-  border-radius: 9999px;
+  /* Rounded rectangle rather than a full pill -- matches the boxed selector
+     style in the reference sites (im8/tmrw) instead of a stadium shape. */
+  border-radius: 12px;
   background: #e6ddd3;
   cursor: pointer;
   color: #1e1e1e;

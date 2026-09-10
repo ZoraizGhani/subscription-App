@@ -159,6 +159,34 @@
       }
     }
 
+    // Each bundle card's own photo (merchant-picked per plan slot in the
+    // theme editor -- bundle_image_1/2/3, e.g. a 3-pouch photo for the
+    // 3-month plan vs. a single pouch for the 1-month plan). Read straight
+    // off the already-rendered <img> in that plan's card rather than
+    // duplicating the theme-editor image data into JS.
+    function selectedBundleImageSrc(planId) {
+      const radio = bundleRadios.find((input) => Number(input.value) === planId);
+      const card = radio ? radio.closest("[data-bundle-card]") : null;
+      const img = card ? card.querySelector(".subscription-widget__bundle-image img") : null;
+      return img ? img.currentSrc || img.src : null;
+    }
+
+    // Sticky bar's thumbnail prefers the selected plan's own bundle photo
+    // (so switching from "1 Month" to "3 Months" swaps in the 3-pouch shot)
+    // and only falls back to the flavor/product photo when that plan has no
+    // bundle image configured.
+    function setStickyImage(imgEl, variant, planId, label) {
+      if (!imgEl) return;
+      const bundleImage = selectedBundleImageSrc(planId);
+      if (bundleImage) {
+        imgEl.src = bundleImage;
+        imgEl.alt = label || product.title;
+        imgEl.hidden = false;
+      } else {
+        setProductImage(imgEl, variant);
+      }
+    }
+
     function render() {
       const variant = currentVariant();
 
@@ -238,7 +266,7 @@
       // plan label and price all recompute here so picking a plan/flavor in
       // the main widget updates it too, not just the reverse (see the sticky
       // option click handler below for that direction).
-      setProductImage(stickyImage, variant);
+      setStickyImage(stickyImage, variant, planId, label);
       setProductImage(summaryImageEl, variant);
       if (stickyPlanLabel) {
         stickyPlanLabel.textContent =
