@@ -1050,6 +1050,120 @@ svg.subscription-widget__order-summary-title-icon circle {
   background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231E1E1E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2.5l7.5 3v6c0 5.2-3.6 8.6-7.5 9.7-3.9-1.1-7.5-4.5-7.5-9.7v-6l7.5-3z'/%3E%3Cpath d='M8.5 12.2l2.3 2.3 4.7-4.7'/%3E%3C/svg%3E");
 }
 
+/* --- Free welcome-kit promo card (inside the order-summary card, below the
+   benefits/photo row) --- */
+
+.subscription-widget__welcome-kit {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 4px;
+  padding: 16px;
+  border-radius: 1rem;
+  background: #f6f1e9;
+}
+
+.subscription-widget__welcome-kit-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.subscription-widget__welcome-kit-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.subscription-widget__welcome-kit-heading-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.subscription-widget__welcome-kit-heading {
+  font-family: "Geist", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #1e1e1e;
+}
+
+.subscription-widget__welcome-kit-subheading {
+  font-family: "Geist", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #6b6b6b;
+}
+
+.subscription-widget__welcome-kit-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.subscription-widget__welcome-kit-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e5e0d5;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.subscription-widget__welcome-kit-item-media {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subscription-widget__welcome-kit-item-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.subscription-widget__welcome-kit-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.subscription-widget__welcome-kit-item-title {
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #1e1e1e;
+}
+
+.subscription-widget__welcome-kit-item-value {
+  display: inline-block;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #eee6d6;
+  font-family: "Geist", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b6b6b;
+}
+
+.subscription-widget__welcome-kit-footer {
+  margin: 0;
+  text-align: center;
+  font-family: "Geist", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b6b6b;
+}
+
 .subscription-widget__order-summary-submit {
   /* Now a sibling of the order-summary card rather than nested inside it --
      pulls it up out of some of the widget's usual 2.5rem inter-section gap

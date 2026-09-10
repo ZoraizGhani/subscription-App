@@ -50,7 +50,18 @@
         "subscribeButtonLabel": {{ block.settings.subscribe_button_label | json }},
         "bestValueBadgeText": {{ block.settings.best_value_badge_text | json }},
         "showBestValueBadge": {{ block.settings.show_best_value_badge | json }},
-        "moneyFormat": {{ shop.money_format | json }}
+        "moneyFormat": {{ shop.money_format | json }},
+        {%- comment -%}
+          Empty unless the welcome-kit promo is actually turned on -- these
+          feed addToCart() in subscription-widget.js, which adds them as
+          plain (no selling_plan) line items alongside the subscription item
+          so they ship with the initial order only, never with Shopify's own
+          auto-generated recurring renewal orders.
+        {%- endcomment -%}
+        "welcomeGiftVariantIds": {% if block.settings.show_welcome_kit %}[
+          {{ block.settings.welcome_kit_item_1_product.selected_or_first_available_variant.id | default: null | json }},
+          {{ block.settings.welcome_kit_item_2_product.selected_or_first_available_variant.id | default: null | json }}
+        ]{% else %}[]{% endif %}
       }
     </script>
 
@@ -439,6 +450,71 @@
           </span>
         </div>
       </div>
+
+      {%- comment -%}
+        Free welcome-kit promo: a merchant-configured perk shown inside the
+        order-summary card, below the benefits/photo row. Hidden entirely
+        unless a merchant turns it on and fills in at least the item titles
+        -- unlike the benefits list above, there's no sensible fallback copy
+        for gift items specific to this merchant's actual promo, so this
+        defaults to off rather than showing an empty/broken-looking box.
+      {%- endcomment -%}
+      {%- if block.settings.show_welcome_kit -%}
+        <div class="subscription-widget__welcome-kit">
+          <div class="subscription-widget__welcome-kit-header">
+            <svg class="subscription-widget__welcome-kit-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E1E1E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="3" y="8" width="18" height="13" rx="1.5"/>
+              <path d="M3 12h18"/>
+              <path d="M12 8v13"/>
+              <path d="M12 8c-1.4-4.2-6.2-4-6.2-1.3S8.8 8 12 8Z"/>
+              <path d="M12 8c1.4-4.2 6.2-4 6.2-1.3S15.2 8 12 8Z"/>
+            </svg>
+            <span class="subscription-widget__welcome-kit-heading-group">
+              <span class="subscription-widget__welcome-kit-heading">{{ block.settings.welcome_kit_heading }}</span>
+              {%- if block.settings.welcome_kit_subheading != blank -%}
+                <span class="subscription-widget__welcome-kit-subheading">{{ block.settings.welcome_kit_subheading }}</span>
+              {%- endif -%}
+            </span>
+          </div>
+
+          <div class="subscription-widget__welcome-kit-items">
+            {%- if block.settings.welcome_kit_item_1_title != blank -%}
+              <div class="subscription-widget__welcome-kit-item">
+                {%- if block.settings.welcome_kit_item_1_image -%}
+                  <span class="subscription-widget__welcome-kit-item-media">
+                    {{ block.settings.welcome_kit_item_1_image | image_url: width: 160 | image_tag: loading: "lazy", alt: block.settings.welcome_kit_item_1_title, widths: "80,160" }}
+                  </span>
+                {%- endif -%}
+                <span class="subscription-widget__welcome-kit-item-text">
+                  <span class="subscription-widget__welcome-kit-item-title">{{ block.settings.welcome_kit_item_1_title }}</span>
+                  {%- if block.settings.welcome_kit_item_1_value != blank -%}
+                    <span class="subscription-widget__welcome-kit-item-value">{{ block.settings.welcome_kit_item_1_value }}</span>
+                  {%- endif -%}
+                </span>
+              </div>
+            {%- endif -%}
+            {%- if block.settings.welcome_kit_item_2_title != blank -%}
+              <div class="subscription-widget__welcome-kit-item">
+                {%- if block.settings.welcome_kit_item_2_image -%}
+                  <span class="subscription-widget__welcome-kit-item-media">
+                    {{ block.settings.welcome_kit_item_2_image | image_url: width: 160 | image_tag: loading: "lazy", alt: block.settings.welcome_kit_item_2_title, widths: "80,160" }}
+                  </span>
+                {%- endif -%}
+                <span class="subscription-widget__welcome-kit-item-text">
+                  <span class="subscription-widget__welcome-kit-item-title">{{ block.settings.welcome_kit_item_2_title }}</span>
+                  {%- if block.settings.welcome_kit_item_2_value != blank -%}
+                    <span class="subscription-widget__welcome-kit-item-value">{{ block.settings.welcome_kit_item_2_value }}</span>
+                  {%- endif -%}
+                </span>
+              </div>
+            {%- endif -%}
+          </div>
+
+          {%- if block.settings.welcome_kit_footer != blank -%}
+            <p class="subscription-widget__welcome-kit-footer">{{ block.settings.welcome_kit_footer }}</p>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
     </div>
 
     {%- comment -%}
@@ -548,6 +624,30 @@
       "info": "Rendered as a bulleted list, each line in its own outlined circle icon (shipping / discount / pause / guarantee, in that order -- reordering or adding lines needs a matching CSS update). To link one, select its text and use the link button in this editor's toolbar; links show underlined.",
       "default": "<ul><li>Free shipping on every subscription</li><li>Save 20% on every delivery</li><li>Pause, skip, or cancel anytime</li><li>60-day money-back guarantee</li></ul>"
     },
+
+    { "type": "header", "content": "Free welcome kit" },
+    { "type": "checkbox", "id": "show_welcome_kit", "label": "Show free welcome kit", "default": false, "info": "Shown on every plan -- there's no per-plan variant of this promo." },
+    { "type": "text", "id": "welcome_kit_heading", "label": "Heading", "default": "Free Welcome Kit" },
+    { "type": "text", "id": "welcome_kit_subheading", "label": "Subheading", "default": "Included with your first subscription order" },
+    { "type": "image_picker", "id": "welcome_kit_item_1_image", "label": "Item 1 photo" },
+    { "type": "text", "id": "welcome_kit_item_1_title", "label": "Item 1 title", "default": "Performance Hat" },
+    { "type": "text", "id": "welcome_kit_item_1_value", "label": "Item 1 value", "default": "$35 value" },
+    {
+      "type": "product",
+      "id": "welcome_kit_item_1_product",
+      "label": "Item 1 product (added to cart free)",
+      "info": "The real $0 product added as a free line item when a customer subscribes. Its own title/photo aren't shown to the customer -- only the display fields above are."
+    },
+    { "type": "image_picker", "id": "welcome_kit_item_2_image", "label": "Item 2 photo" },
+    { "type": "text", "id": "welcome_kit_item_2_title", "label": "Item 2 title", "default": "Digital Guide" },
+    { "type": "text", "id": "welcome_kit_item_2_value", "label": "Item 2 value", "default": "$15 value" },
+    {
+      "type": "product",
+      "id": "welcome_kit_item_2_product",
+      "label": "Item 2 product (added to cart free)",
+      "info": "The real $0 product added as a free line item when a customer subscribes. Its own title/photo aren't shown to the customer -- only the display fields above are."
+    },
+    { "type": "text", "id": "welcome_kit_footer", "label": "Footer text", "default": "$50 total value — yours free with your first order" },
 
     { "type": "header", "content": "Buttons & appearance" },
     { "type": "text", "id": "order_summary_button_label", "label": "Order summary button label", "default": "Buy Now" },

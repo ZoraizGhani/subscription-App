@@ -531,6 +531,19 @@
         items = [{ id: currentVariant().id, quantity: currentPlanQuantity, selling_plan: selectedPlanId() }];
       }
 
+      // Free welcome-kit gifts: added as plain line items (no selling_plan)
+      // alongside the subscription item, never for a one-time purchase.
+      // Because they carry no selling_plan, Shopify only ever includes them
+      // on this initial order -- its own auto-generated recurring renewal
+      // orders are built from the subscription contract's own line items
+      // and never touch this cart/JS again, so there's no risk of the gift
+      // re-appearing on every future billing cycle.
+      if (!oneTime && Array.isArray(settings.welcomeGiftVariantIds)) {
+        settings.welcomeGiftVariantIds
+          .filter((variantId) => variantId)
+          .forEach((variantId) => items.push({ id: variantId, quantity: 1 }));
+      }
+
       const payload = { items };
 
       submitBtn.disabled = true;
