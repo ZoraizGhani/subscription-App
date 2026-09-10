@@ -59,8 +59,9 @@
           auto-generated recurring renewal orders.
         {%- endcomment -%}
         "welcomeGiftVariantIds": {% if block.settings.show_welcome_kit %}[
-          {{ block.settings.welcome_kit_item_1_product.selected_or_first_available_variant.id | default: null | json }},
-          {{ block.settings.welcome_kit_item_2_product.selected_or_first_available_variant.id | default: null | json }}
+          {%- for gift_product in block.settings.welcome_kit_products -%}
+            {{ gift_product.selected_or_first_available_variant.id | json }}{% unless forloop.last %},{% endunless %}
+          {%- endfor -%}
         ]{% else %}[]{% endif %}
       }
     </script>
@@ -631,22 +632,17 @@
     { "type": "image_picker", "id": "welcome_kit_item_1_image", "label": "Item 1 photo" },
     { "type": "text", "id": "welcome_kit_item_1_title", "label": "Item 1 title", "default": "Performance Hat" },
     { "type": "text", "id": "welcome_kit_item_1_value", "label": "Item 1 value", "default": "$35 value" },
-    {
-      "type": "product",
-      "id": "welcome_kit_item_1_product",
-      "label": "Item 1 product (added to cart free)",
-      "info": "The real $0 product added as a free line item when a customer subscribes. Its own title/photo aren't shown to the customer -- only the display fields above are."
-    },
     { "type": "image_picker", "id": "welcome_kit_item_2_image", "label": "Item 2 photo" },
     { "type": "text", "id": "welcome_kit_item_2_title", "label": "Item 2 title", "default": "Digital Guide" },
     { "type": "text", "id": "welcome_kit_item_2_value", "label": "Item 2 value", "default": "$15 value" },
-    {
-      "type": "product",
-      "id": "welcome_kit_item_2_product",
-      "label": "Item 2 product (added to cart free)",
-      "info": "The real $0 product added as a free line item when a customer subscribes. Its own title/photo aren't shown to the customer -- only the display fields above are."
-    },
     { "type": "text", "id": "welcome_kit_footer", "label": "Footer text", "default": "$50 total value — yours free with your first order" },
+    {
+      "type": "product_list",
+      "id": "welcome_kit_products",
+      "label": "Free gift products (added to cart free)",
+      "limit": 2,
+      "info": "Pick the two real $0 products added as free line items when a customer subscribes -- 1st = item 1 above, 2nd = item 2 above. Their own title/photo aren't shown to the customer, only the display fields above are. (Theme app extension blocks only allow one product-picker setting, hence one combined list instead of two.)"
+    },
 
     { "type": "header", "content": "Buttons & appearance" },
     { "type": "text", "id": "order_summary_button_label", "label": "Order summary button label", "default": "Buy Now" },
