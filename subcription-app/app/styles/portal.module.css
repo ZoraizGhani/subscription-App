@@ -156,6 +156,62 @@
   margin-bottom: 1.25rem;
 }
 
+/* --- Full-page error state (account layout's ErrorBoundary) --- */
+
+.errorPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background: #f9f8f4;
+  box-sizing: border-box;
+}
+
+.errorPageCard {
+  width: 100%;
+  max-width: 27rem;
+  background: #fcfaf5;
+  border: 1px solid #e2e2e2;
+  border-radius: 0.75rem;
+  padding: 2.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.errorPageTitle {
+  composes: heading;
+  font-size: 1.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.errorPageMessage {
+  font-family: "Geist", sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: #6b7280;
+  margin: 0 0 2rem;
+}
+
+.errorPageActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.errorPageActions .buttonPrimary,
+.errorPageActions .buttonSecondary {
+  width: 100%;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
 .buttonPrimary {
   width: 100%;
   height: 3.5rem;

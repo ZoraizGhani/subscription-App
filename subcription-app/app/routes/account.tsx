@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { LoaderFunctionArgs } from "react-router";
-import { Link, NavLink, Outlet, useLoaderData, useLocation } from "react-router";
+import { Link, NavLink, Outlet, isRouteErrorResponse, useLoaderData, useLocation, useRouteError } from "react-router";
 
 import { requirePortalSession, destroyPortalSession } from "../portal-auth.server";
 import { getPortalCustomerById } from "../models/portalCustomer.server";
@@ -165,7 +165,7 @@ export default function AccountLayout() {
           </div>
         </div>
         <div className={styles.topbarNav}>
-          <a href="https://takeclrty.com/collections/all">Shop</a>
+          <a href="https://takeclrty.com/products/daily-nootropic-gummies">Shop</a>
           <a href="https://takeclrty.com/pages/science">Science</a>
           <span className={styles.topbarNavActive}>My Account</span>
         </div>
@@ -248,6 +248,41 @@ export default function AccountLayout() {
         <main className={styles.content}>
           <Outlet />
         </main>
+      </div>
+    </div>
+  );
+}
+
+// Catches any error thrown by this layout's own loader or any child
+// account.* route's loader/action that isn't already handled locally (most
+// child routes only catch their own known error types and rethrow anything
+// else -- see e.g. account.settings.tsx's action). A 401/403 means the
+// portal session was rejected server-side (distinct from the plain
+// `requirePortalSession`/`destroyPortalSession` redirect path, which never
+// reaches this boundary since a redirect Response isn't an error); anything
+// else is treated as a generic failure. Offers both recovery paths rather
+// than trying to perfectly classify every possible error.
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const isSessionError = isRouteErrorResponse(error) && (error.status === 401 || error.status === 403);
+
+  return (
+    <div className={styles.errorPage}>
+      <div className={styles.errorPageCard}>
+        <p className={styles.errorPageTitle}>Something went wrong</p>
+        <p className={styles.errorPageMessage}>
+          {isSessionError
+            ? "Your session has expired. Please log in again to continue."
+            : "We couldn't load this page. Please try reloading, or log in again if the problem continues."}
+        </p>
+        <div className={styles.errorPageActions}>
+          <button type="button" className={styles.buttonPrimary} onClick={() => window.location.reload()}>
+            Reload page
+          </button>
+          <Link to="/account/sign-in" className={styles.buttonSecondary}>
+            Log in again
+          </Link>
+        </div>
       </div>
     </div>
   );
