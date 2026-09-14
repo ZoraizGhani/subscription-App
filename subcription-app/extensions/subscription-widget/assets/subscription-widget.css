@@ -848,12 +848,14 @@ p.subscription-widget__order-summary-banner {
 
   .subscription-widget__order-summary-media {
     width: 64% !important;
-    max-width: 255px !important;
-    margin-right: -34px !important;
-    margin-bottom: -26px !important;
+    max-width: 304px !important;
+    margin-right: -71px !important;
+    margin-bottom: -66px !important;
     position: absolute !important;
     right: 9px !important;
     bottom: 0 !important;
+    z-index: 0;
+    rotate: -25deg;
   }
 }
 
@@ -1062,6 +1064,7 @@ svg.subscription-widget__order-summary-title-icon circle {
   padding: 10px;
   border-radius: 1rem;
   background: #f6f1e9;
+  position: relative;
 }
 
 .subscription-widget__welcome-kit-header {
@@ -1577,13 +1580,14 @@ span.subscription-widget__order-summary-onetime-label {
   }
 
   .subscription-widget__order-summary-media {
-    width: 49%;
-    max-width: 255px;
-    margin-right: -22px;
-    margin-bottom: -31px;
+    width: 58%;
+    max-width: 284px;
+    margin-right: -40px;
+    margin-bottom: -40px;
     position: absolute;
     right: 5px;
     bottom: 0;
+    rotate: -18deg;
   }
 
   .subscription-widget__order-summary-media img {
@@ -1698,5 +1702,14 @@ span.subscription-widget__order-summary-onetime-label {
 
   .subscription-widget__sticky-bar-submit::before {
     content: "ADD";
+  }
+}
+
+/* Third-party app widget (not part of this extension) -- nudged up on
+   mobile so its floating launcher doesn't sit underneath/overlap this
+   widget's fixed sticky ATC bar at the bottom of the screen. */
+@media (max-width: 640px) {
+  div#willlink-app {
+    bottom: 60px;
   }
 }
