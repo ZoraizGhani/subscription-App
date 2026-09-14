@@ -1703,6 +1703,15 @@ span.subscription-widget__order-summary-onetime-label {
   .subscription-widget__sticky-bar-submit::before {
     content: "ADD";
   }
+
+  .subscription-widget__welcome-kit-item-media {
+    flex-shrink: 0 !important;
+    width: auto !important;
+    height: 53px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
 }
 
 /* Third-party app widget (not part of this extension) -- nudged up on
