@@ -1115,8 +1115,8 @@ svg.subscription-widget__order-summary-title-icon circle {
 
 .subscription-widget__welcome-kit-item-media {
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
+  width: 81px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
