@@ -1704,9 +1704,13 @@ span.subscription-widget__order-summary-onetime-label {
     content: "ADD";
   }
 
+  /* width: auto here previously created a circular sizing calc with the
+     child img's width: 100% -- Safari/WebKit resolves that far less
+     gracefully than Chrome and was collapsing this box (and its sibling
+     text) to nothing. A fixed pixel width removes the ambiguity. */
   .subscription-widget__welcome-kit-item-media {
     flex-shrink: 0 !important;
-    width: auto !important;
+    width: 53px !important;
     height: 53px !important;
     display: flex !important;
     align-items: center !important;
