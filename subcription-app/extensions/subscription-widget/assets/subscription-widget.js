@@ -102,6 +102,20 @@
       });
     }
 
+    // Tops up whichever flavor the customer already has at least one unit of
+    // (falling back to the first swatch if somehow none do) with however
+    // many units are still unpicked, so the mix always adds up to exactly
+    // what the plan ships. Used by the sticky bar's Add to Cart so it never
+    // has to block on an incomplete mix -- picking flavors stays optional
+    // there, matching a plain "one flavor, no fuss" buy flow.
+    function autoFillFlavorMix() {
+      if (!flavorSwatches.length) return;
+      const remaining = currentPlanQuantity - flavorTotalSelected();
+      if (remaining <= 0) return;
+      const target = flavorSwatches.find((el) => (flavorQuantities[el.dataset.variantId] || 0) > 0) || flavorSwatches[0];
+      flavorQuantities[target.dataset.variantId] = (flavorQuantities[target.dataset.variantId] || 0) + remaining;
+    }
+
     function currentVariant() {
       // Flavor is priced off whichever swatch currently has quantity > 0 --
       // any of them is fine for pricing since same-product flavors share a
@@ -436,10 +450,15 @@
       // buttons makes the requirement visible before the customer even
       // tries. The one-time-purchase button is exempt: it always buys a
       // single unit regardless of the mix, so it's never gated by it.
+      //
+      // The sticky bar's button is exempt too, deliberately: it auto-fills
+      // any unpicked units with whatever flavor is already selected on
+      // click (see autoFillFlavorMix), so it never needs to block -- picking
+      // flavors stays optional there, matching a plain "one flavor, no
+      // fuss" buy flow instead of forcing the mix to be finished first.
       const mixValid = sum === currentPlanQuantity;
       submitBtn.disabled = !mixValid;
       if (summarySubmitBtn) summarySubmitBtn.disabled = !mixValid;
-      if (stickySubmitBtn) stickySubmitBtn.disabled = !mixValid;
 
       // The "select N more flavors" message lives on the order-summary
       // submit button itself (its own label + a pink is-incomplete style),
@@ -580,7 +599,17 @@
     submitBtn.addEventListener("click", () => addToCart());
     if (summarySubmitBtn) summarySubmitBtn.addEventListener("click", () => addToCart());
     if (onetimeBtn) onetimeBtn.addEventListener("click", () => addToCart({ oneTime: true }));
-    if (stickySubmitBtn) stickySubmitBtn.addEventListener("click", () => addToCart());
+    if (stickySubmitBtn) {
+      stickySubmitBtn.addEventListener("click", () => {
+        // Fills in any unpicked flavor units before adding to cart, rather
+        // than blocking -- see autoFillFlavorMix's own comment.
+        if (flavorSwatches.length && flavorTotalSelected() !== currentPlanQuantity) {
+          autoFillFlavorMix();
+          render();
+        }
+        addToCart();
+      });
+    }
 
     function closeStickyPlanList() {
       if (!stickyPlanList || stickyPlanList.hidden) return;
