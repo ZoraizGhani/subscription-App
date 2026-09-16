@@ -639,6 +639,16 @@
           render();
         }
         closeStickyPlanList();
+
+        // Matches IM8: picking a plan from the sticky bar (which has no
+        // flavor picker of its own) scrolls back up to the main widget's
+        // flavor section so the customer can confirm/change their mix
+        // there, rather than leaving that choice silently up to whatever
+        // the sticky bar did on its own. Scrolling the widget back into
+        // view also naturally re-hides the sticky bar itself, since its
+        // own visibility is driven by whether the widget is on screen.
+        const flavorSection = flavorSwatches.length ? root.querySelector(".subscription-widget__swatch-grid") : null;
+        (flavorSection || root).scrollIntoView({ behavior: "smooth", block: "center" });
       });
     });
 
