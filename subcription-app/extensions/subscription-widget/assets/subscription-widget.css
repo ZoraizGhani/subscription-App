@@ -38,6 +38,27 @@
   display: none;
 }
 
+.subscription-widget__sticky-bar-media-col {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.subscription-widget__sticky-bar-welcome-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #1e1e1e;
+  color: #fff;
+  font-family: "Geist", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
 .subscription-widget__sticky-bar-media {
   flex-shrink: 0;
   width: 44px;
@@ -57,11 +78,14 @@
 .subscription-widget__sticky-bar-title {
   flex: 1 1 auto;
   min-width: 0;
+  /* Wraps up to 2 lines instead of truncating to a single ellipsized one --
+     matches the reference's two-line title treatment. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-family: "Geist", sans-serif;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 18px;
   letter-spacing: 0;
@@ -1621,7 +1645,7 @@ span.subscription-widget__order-summary-onetime-label {
     content: none;
   }
 
-  .subscription-widget__sticky-bar-media,
+  .subscription-widget__sticky-bar-media-col,
   .subscription-widget__sticky-bar-title {
     display: none;
   }

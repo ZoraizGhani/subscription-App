@@ -75,9 +75,14 @@
       entirely by render() in subscription-widget.js; the option buttons below
       are just empty shells keyed by plan id.
     {%- endcomment -%}
-    <div class="subscription-widget__sticky-bar" data-sticky-bar hidden>
-      <span class="subscription-widget__sticky-bar-media">
-        <img data-sticky-image alt="" loading="lazy" width="56" height="56" hidden>
+    <div class="subscription-widget__sticky-bar" data-sticky-bar>
+      <span class="subscription-widget__sticky-bar-media-col">
+        {%- if block.settings.show_welcome_kit and block.settings.sticky_welcome_kit_badge_text != blank -%}
+          <span class="subscription-widget__sticky-bar-welcome-badge">{{ block.settings.sticky_welcome_kit_badge_text }}</span>
+        {%- endif -%}
+        <span class="subscription-widget__sticky-bar-media">
+          <img data-sticky-image alt="" loading="lazy" width="56" height="56" hidden>
+        </span>
       </span>
       <span class="subscription-widget__sticky-bar-title" data-sticky-title>{{ product.title }}</span>
 
@@ -636,6 +641,13 @@
     { "type": "text", "id": "welcome_kit_item_2_title", "label": "Item 2 title", "default": "Digital Guide" },
     { "type": "text", "id": "welcome_kit_item_2_value", "label": "Item 2 value", "default": "$15 value" },
     { "type": "text", "id": "welcome_kit_footer", "label": "Footer text", "default": "$50 total value — yours free with your first order" },
+    {
+      "type": "text",
+      "id": "sticky_welcome_kit_badge_text",
+      "label": "Sticky bar welcome-kit badge",
+      "default": "Free Welcome Kit Included",
+      "info": "Short badge shown above the product photo in the sticky bar. Only shows when \"Show free welcome kit\" above is also on. Leave blank to hide."
+    },
     {
       "type": "product_list",
       "id": "welcome_kit_products",
