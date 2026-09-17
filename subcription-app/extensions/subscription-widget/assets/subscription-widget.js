@@ -681,16 +681,18 @@
     }
 
     // Top promo bar: hidden until the page is scrolled down a fair amount
-    // (past the hero/header, roughly), then pinned to the top; scrolling
-    // back up near the top of the page hides it again. Unlike the sticky
-    // ATC bar below, this one IS tied to scroll position, by request --
-    // it's a promo teaser meant to appear only once the customer has
-    // started reading, not from the very first frame.
+    // (past the hero/header, roughly), then slides down into a pinned
+    // position at the top; scrolling back up near the top of the page
+    // slides it back out again. Unlike the sticky ATC bar below, this one
+    // IS tied to scroll position, by request -- it's a promo teaser meant
+    // to appear only once the customer has started reading, not from the
+    // very first frame. Toggles a class (not the hidden attribute) so the
+    // transform transition in CSS can actually animate the show/hide.
     if (topBar) {
       const SHOW_THRESHOLD = Math.max(400, window.innerHeight * 0.6);
       let ticking = false;
       const updateTopBarVisibility = () => {
-        topBar.hidden = window.scrollY < SHOW_THRESHOLD;
+        topBar.classList.toggle("is-visible", window.scrollY >= SHOW_THRESHOLD);
         ticking = false;
       };
       window.addEventListener(

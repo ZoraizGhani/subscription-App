@@ -77,7 +77,7 @@
       site's own top bar, which just links back to the buy box).
     {%- endcomment -%}
     {%- if block.settings.show_top_bar -%}
-      <div class="subscription-widget__top-bar" data-top-bar hidden>
+      <div class="subscription-widget__top-bar" data-top-bar>
         <span class="subscription-widget__top-bar-brand">{{ block.settings.top_bar_brand_text | default: shop.name }}</span>
         <span class="subscription-widget__top-bar-promo">
           {%- if block.settings.top_bar_promo_text != blank -%}

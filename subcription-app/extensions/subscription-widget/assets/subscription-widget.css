@@ -34,10 +34,15 @@
   color: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   box-sizing: border-box;
+  /* Off-screen above the viewport until scrolled into range (see
+     .is-visible) -- a slow slide down/up instead of an instant show/hide,
+     since transform is animatable and display/[hidden] aren't. */
+  transform: translateY(-100%);
+  transition: transform 0.5s ease;
 }
 
-.subscription-widget__top-bar[hidden] {
-  display: none;
+.subscription-widget__top-bar.is-visible {
+  transform: translateY(0);
 }
 
 .subscription-widget__top-bar-brand {
