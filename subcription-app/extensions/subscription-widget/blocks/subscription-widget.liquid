@@ -93,8 +93,10 @@
         </span>
         <button type="button" class="subscription-widget__top-bar-button" data-top-bar-button>
           <span class="subscription-widget__top-bar-button-prefix">{{ block.settings.top_bar_button_label }}</span>
-          <span data-top-bar-button-price></span>
-          <span aria-hidden="true">&rarr;</span>
+          <span class="subscription-widget__top-bar-button-price-row">
+            <span data-top-bar-button-price></span>
+            <span aria-hidden="true">&rarr;</span>
+          </span>
         </button>
       </div>
     {%- endif -%}
