@@ -1460,33 +1460,50 @@ span.subscription-widget__order-summary-onetime-label {
    summary type, and wrapped sticky bar never actually applied. Add new
    overrides here, not back up near the rules they target. */
 @media (max-width: 640px) {
-  /* Secondary text drops first when space is tight -- the highlighted promo
-     and the button matter more than the "free shipping / guarantee" line. */
+  /* Two rows, matching the reference: highlighted promo + button share the
+     top row, the secondary ("free shipping / guarantee") line sits on its
+     own row below instead of being dropped. No room for a logo/brand at
+     this width -- the reference doesn't show one on mobile either. */
   .subscription-widget__top-bar {
-    height: 56px;
-    padding: 0 0.75rem;
-    gap: 0.5rem;
+    height: auto;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 10px 0.75rem;
+    gap: 0.375rem 0.5rem;
   }
 
-  .subscription-widget__top-bar-brand {
-    font-size: 12px;
-  }
-
+  .subscription-widget__top-bar-brand,
   .subscription-widget__top-bar-logo {
-    height: 24px;
+    display: none;
   }
 
   .subscription-widget__top-bar-promo {
+    order: 1;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    row-gap: 2px;
     font-size: 11px;
     gap: 0.375rem;
   }
 
-  .subscription-widget__top-bar-divider,
-  .subscription-widget__top-bar-secondary {
+  .subscription-widget__top-bar-promo-highlight {
+    flex: 1 1 100%;
+  }
+
+  .subscription-widget__top-bar-divider {
     display: none;
   }
 
+  .subscription-widget__top-bar-secondary {
+    flex: 1 1 100%;
+    font-size: 10px;
+    opacity: 0.85;
+  }
+
   .subscription-widget__top-bar-button {
+    order: 2;
+    flex-shrink: 0;
     padding: 0.4rem 0.75rem;
     font-size: 10px;
   }
