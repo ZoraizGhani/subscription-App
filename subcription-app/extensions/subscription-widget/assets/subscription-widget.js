@@ -93,13 +93,21 @@
       return flavorSwatches.reduce((sum, el) => sum + (flavorQuantities[el.dataset.variantId] || 0), 0);
     }
 
-    // Resets the mix whenever the selected plan's quantity changes -- the
-    // first flavor swatch starts pre-selected with one unit (matching the
-    // design), the rest start empty for the customer to fill in themselves.
+    // Resets the mix whenever the selected plan's quantity changes -- spreads
+    // one unit across each flavor in turn (a built-in variety pack) rather
+    // than dumping the whole quantity onto the first flavor. For a plan
+    // whose quantity matches the flavor count (e.g. 3 units, 3 flavors),
+    // this already completes the mix with nothing left for the customer to
+    // pick; wraps back around to the first flavor if the plan ships more
+    // units than there are flavors to spread across.
     function resetFlavorQuantities() {
-      flavorSwatches.forEach((el, index) => {
-        flavorQuantities[el.dataset.variantId] = index === 0 ? 1 : 0;
+      flavorSwatches.forEach((el) => {
+        flavorQuantities[el.dataset.variantId] = 0;
       });
+      for (let i = 0; i < currentPlanQuantity && flavorSwatches.length; i++) {
+        const el = flavorSwatches[i % flavorSwatches.length];
+        flavorQuantities[el.dataset.variantId] = (flavorQuantities[el.dataset.variantId] || 0) + 1;
+      }
     }
 
     // Tops up whichever flavor the customer already has at least one unit of
