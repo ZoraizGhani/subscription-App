@@ -65,6 +65,7 @@ api_version = "unstable"
   handle = "placeholder_product_update_events"
   topic = "Product"
   actions = [ "update" ]
+  triggers = [ "product.*" ]
   uri = "/events/app/placeholder"
 
 [auth]
