@@ -78,7 +78,11 @@
     {%- endcomment -%}
     {%- if block.settings.show_top_bar -%}
       <div class="subscription-widget__top-bar" data-top-bar>
-        <span class="subscription-widget__top-bar-brand">{{ block.settings.top_bar_brand_text | default: shop.name }}</span>
+        {%- if block.settings.top_bar_logo -%}
+          {{ block.settings.top_bar_logo | image_url: width: 200 | image_tag: loading: "lazy", alt: shop.name, class: "subscription-widget__top-bar-logo", widths: "100,200" }}
+        {%- else -%}
+          <span class="subscription-widget__top-bar-brand">{{ block.settings.top_bar_brand_text | default: shop.name }}</span>
+        {%- endif -%}
         <span class="subscription-widget__top-bar-promo">
           {%- if block.settings.top_bar_promo_text != blank -%}
             <span class="subscription-widget__top-bar-promo-highlight">{{ block.settings.top_bar_promo_text }}</span>
@@ -692,7 +696,8 @@
     { "type": "color", "id": "accent_color", "label": "Accent color", "default": "#1a1a1a" },
 
     { "type": "checkbox", "id": "show_top_bar", "label": "Show top promo bar", "default": false, "info": "Appears pinned to the top of the page once the customer scrolls down, hides again near the top of the page. Separate from the sticky add-to-cart bar." },
-    { "type": "text", "id": "top_bar_brand_text", "label": "Top bar brand text", "info": "Leave blank to use the shop's name." },
+    { "type": "image_picker", "id": "top_bar_logo", "label": "Top bar logo", "info": "Forced to solid white regardless of the source image's own colors. Leave blank to show the brand text below instead." },
+    { "type": "text", "id": "top_bar_brand_text", "label": "Top bar brand text", "info": "Only shown if no logo is picked above. Leave blank to use the shop's name." },
     { "type": "text", "id": "top_bar_promo_text", "label": "Top bar promo text", "default": "Save 20% + Free Welcome Kit" },
     { "type": "text", "id": "top_bar_secondary_text", "label": "Top bar secondary text", "default": "Free Shipping + 60-Day Guarantee" },
     { "type": "text", "id": "top_bar_button_label", "label": "Top bar button label", "default": "Start from", "info": "The live per-day price is appended automatically, e.g. \"Start from $1.60/day\"." }

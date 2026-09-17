@@ -85,6 +85,10 @@
     // cart buttons read these at click time rather than recomputing them,
     // since they need the exact same values render() already derived.
     let currentPlanQuantity = 1;
+    // The plan behind the top bar's "Start from $X/day" figure -- set in
+    // render(), read by the top bar button's click handler so it can select
+    // that exact plan before adding to cart.
+    let lowestPerDayPlanId = null;
     let lastFlavorPlanQuantity = null;
 
     function selectedOptionValues() {
@@ -246,7 +250,10 @@
         // Cheapest per-day price across every plan -- feeds the top promo
         // bar's "Start from $X/day" button, a marketing "starting at" figure
         // rather than whatever plan happens to be selected right now.
-        if (lowestPerDay === null || perDay < lowestPerDay) lowestPerDay = perDay;
+        if (lowestPerDay === null || perDay < lowestPerDay) {
+          lowestPerDay = perDay;
+          lowestPerDayPlanId = Number(radio.value);
+        }
       });
 
       if (topBarButtonLabel && lowestPerDay !== null) {
@@ -707,7 +714,26 @@
       updateTopBarVisibility();
     }
 
-    if (topBarButton) topBarButton.addEventListener("click", scrollToPurchaseWidget);
+    // Unlike the sticky bar's plan options (which just scroll back up to the
+    // widget), this button goes straight to checkout: selects whichever
+    // plan the advertised "$X/day" figure is for, fills in any unpicked
+    // flavor units the same way the sticky ATC does, and adds to cart.
+    if (topBarButton) {
+      topBarButton.addEventListener("click", () => {
+        if (lowestPerDayPlanId !== null) {
+          const radio = bundleRadios.find((input) => Number(input.value) === lowestPerDayPlanId);
+          if (radio && !radio.checked) {
+            radio.checked = true;
+            render();
+          }
+        }
+        if (flavorSwatches.length && flavorTotalSelected() !== currentPlanQuantity) {
+          autoFillFlavorMix();
+          render();
+        }
+        addToCart();
+      });
+    }
 
     // The sticky bar is always shown -- no longer tied to scroll position at
     // all (it used to hide itself while the main widget was on screen and
