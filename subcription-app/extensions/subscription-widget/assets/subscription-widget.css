@@ -1479,7 +1479,12 @@ span.subscription-widget__order-summary-onetime-label {
 
   .subscription-widget__top-bar-promo {
     order: 1;
-    flex: 1 1 auto;
+    /* flex-basis: 0 (not auto) plus min-width: 0 -- a flex item's default
+       min-width is auto, which refuses to shrink below its own content's
+       width and was squeezing the button (a sibling flex item) until its
+       text had no room and wrapped to a second line. */
+    flex: 1 1 0%;
+    min-width: 0;
     flex-wrap: wrap;
     justify-content: flex-start;
     row-gap: 2px;
@@ -1489,6 +1494,7 @@ span.subscription-widget__order-summary-onetime-label {
 
   .subscription-widget__top-bar-promo-highlight {
     flex: 1 1 100%;
+    min-width: 0;
   }
 
   .subscription-widget__top-bar-divider {
@@ -1497,6 +1503,7 @@ span.subscription-widget__order-summary-onetime-label {
 
   .subscription-widget__top-bar-secondary {
     flex: 1 1 100%;
+    min-width: 0;
     font-size: 10px;
     opacity: 0.85;
   }
@@ -1504,8 +1511,16 @@ span.subscription-widget__order-summary-onetime-label {
   .subscription-widget__top-bar-button {
     order: 2;
     flex-shrink: 0;
-    padding: 0.4rem 0.75rem;
+    padding: 0.4rem 0.625rem;
+    gap: 0.3rem;
     font-size: 10px;
+  }
+
+  /* Belt-and-braces against the same wrap: the label is a single text node
+     already inheriting white-space: nowrap from the button, but reasserting
+     it directly here rules out any inherited override being the cause. */
+  .subscription-widget__top-bar-button [data-top-bar-button-label] {
+    white-space: nowrap;
   }
 
   /* 3 columns on mobile too (not stacked) -- a card this narrow (~1/3 of a
