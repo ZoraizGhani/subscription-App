@@ -65,6 +65,10 @@
     const stickySubmitBtn = root.querySelector("[data-sticky-add-to-cart]");
     const stickySubmitLabel = root.querySelector("[data-sticky-submit-label]");
 
+    const topBar = root.querySelector("[data-top-bar]");
+    const topBarButton = root.querySelector("[data-top-bar-button]");
+    const topBarButtonLabel = root.querySelector("[data-top-bar-button-label]");
+
     // Moved to a direct child of <html> (not <body>) so it always stays
     // pinned to the real viewport. Many themes set a transform/filter/
     // will-change on <body> itself (common for slide-out mobile nav
@@ -73,6 +77,7 @@
     // has to sit outside <body> entirely to be immune to that, since
     // <html> is essentially never transformed.
     if (stickyBar) document.documentElement.appendChild(stickyBar);
+    if (topBar) document.documentElement.appendChild(topBar);
 
     const moneyFormat = settings.moneyFormat || (window.Shopify && window.Shopify.money_format);
 
@@ -217,6 +222,7 @@
       // deal rather than only reacting to whatever's currently selected.
       let bestCard = null;
       let bestDiscount = -1;
+      let lowestPerDay = null;
       bundleCards.forEach((card) => {
         const radio = card.querySelector("[data-plan-radio]");
         const { price, discount } = planDiscount(variant, Number(radio.value));
@@ -230,14 +236,22 @@
         // its own delivery-cadence day count, same shape as the per-serving
         // math further down for the selected plan.
         const perDayEl = card.querySelector("[data-bundle-per-day]");
+        const cardDays = Number(radio.dataset.days) || 0;
+        const cardQuantity = Math.max(1, Number(radio.dataset.quantity) || 1);
+        const cardTotal = price * cardQuantity;
+        const perDay = cardDays ? cardTotal / cardDays : cardTotal;
         if (perDayEl) {
-          const cardDays = Number(radio.dataset.days) || 0;
-          const cardQuantity = Math.max(1, Number(radio.dataset.quantity) || 1);
-          const cardTotal = price * cardQuantity;
-          const perDay = cardDays ? cardTotal / cardDays : cardTotal;
           perDayEl.textContent = `${formatMoney(perDay, moneyFormat)} / day`;
         }
+        // Cheapest per-day price across every plan -- feeds the top promo
+        // bar's "Start from $X/day" button, a marketing "starting at" figure
+        // rather than whatever plan happens to be selected right now.
+        if (lowestPerDay === null || perDay < lowestPerDay) lowestPerDay = perDay;
       });
+
+      if (topBarButtonLabel && lowestPerDay !== null) {
+        topBarButtonLabel.textContent = `${settings.topBarButtonLabel} ${formatMoney(lowestPerDay, moneyFormat)}/day`;
+      }
 
       bundleCards.forEach((card) => {
         const badgeEl = card.querySelector("[data-bundle-best-badge]");
@@ -654,10 +668,44 @@
         // there, rather than leaving that choice silently up to whatever
         // the sticky bar did on its own. The sticky bar itself stays
         // visible throughout -- it's no longer tied to scroll position.
-        const flavorSection = flavorSwatches.length ? root.querySelector(".subscription-widget__swatch-grid") : null;
-        (flavorSection || root).scrollIntoView({ behavior: "smooth", block: "center" });
+        scrollToPurchaseWidget();
       });
     });
+
+    // Shared by the sticky bar's plan options above and the top promo bar's
+    // button below -- both are "take me back to the actual purchase UI"
+    // actions, not purchase actions themselves.
+    function scrollToPurchaseWidget() {
+      const flavorSection = flavorSwatches.length ? root.querySelector(".subscription-widget__swatch-grid") : null;
+      (flavorSection || root).scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    // Top promo bar: hidden until the page is scrolled down a fair amount
+    // (past the hero/header, roughly), then pinned to the top; scrolling
+    // back up near the top of the page hides it again. Unlike the sticky
+    // ATC bar below, this one IS tied to scroll position, by request --
+    // it's a promo teaser meant to appear only once the customer has
+    // started reading, not from the very first frame.
+    if (topBar) {
+      const SHOW_THRESHOLD = Math.max(400, window.innerHeight * 0.6);
+      let ticking = false;
+      const updateTopBarVisibility = () => {
+        topBar.hidden = window.scrollY < SHOW_THRESHOLD;
+        ticking = false;
+      };
+      window.addEventListener(
+        "scroll",
+        () => {
+          if (ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(updateTopBarVisibility);
+        },
+        { passive: true },
+      );
+      updateTopBarVisibility();
+    }
+
+    if (topBarButton) topBarButton.addEventListener("click", scrollToPurchaseWidget);
 
     // The sticky bar is always shown -- no longer tied to scroll position at
     // all (it used to hide itself while the main widget was on screen and

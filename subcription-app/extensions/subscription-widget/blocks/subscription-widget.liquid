@@ -51,6 +51,7 @@
         "bestValueBadgeText": {{ block.settings.best_value_badge_text | json }},
         "showBestValueBadge": {{ block.settings.show_best_value_badge | json }},
         "moneyFormat": {{ shop.money_format | json }},
+        "topBarButtonLabel": {{ block.settings.top_bar_button_label | json }},
         {%- comment -%}
           Empty unless the welcome-kit promo is actually turned on -- these
           feed addToCart() in subscription-widget.js, which adds them as
@@ -65,6 +66,34 @@
         ]{% else %}[]{% endif %}
       }
     </script>
+
+    {%- comment -%}
+      Top promo bar: a separate element from the sticky ATC bar below --
+      appears once the page has scrolled down past the hero/header (not
+      immediately on load), pinned to the very top of the viewport, and
+      hides again once scrolled back up near the top. Its button scrolls
+      down to this widget's bundle grid rather than adding to cart directly
+      -- a promo teaser, not its own purchase flow (matches the reference
+      site's own top bar, which just links back to the buy box).
+    {%- endcomment -%}
+    {%- if block.settings.show_top_bar -%}
+      <div class="subscription-widget__top-bar" data-top-bar hidden>
+        <span class="subscription-widget__top-bar-brand">{{ block.settings.top_bar_brand_text | default: shop.name }}</span>
+        <span class="subscription-widget__top-bar-promo">
+          {%- if block.settings.top_bar_promo_text != blank -%}
+            <span class="subscription-widget__top-bar-promo-highlight">{{ block.settings.top_bar_promo_text }}</span>
+          {%- endif -%}
+          {%- if block.settings.top_bar_secondary_text != blank -%}
+            <span class="subscription-widget__top-bar-divider" aria-hidden="true"></span>
+            <span class="subscription-widget__top-bar-secondary">{{ block.settings.top_bar_secondary_text }}</span>
+          {%- endif -%}
+        </span>
+        <button type="button" class="subscription-widget__top-bar-button" data-top-bar-button>
+          <span data-top-bar-button-label>{{ block.settings.top_bar_button_label }}</span>
+          <span aria-hidden="true">&rarr;</span>
+        </button>
+      </div>
+    {%- endif -%}
 
     {%- comment -%}
       Sticky add-to-cart bar: always visible, not tied to scroll position.
@@ -660,7 +689,13 @@
     { "type": "header", "content": "Buttons & appearance" },
     { "type": "text", "id": "order_summary_button_label", "label": "Order summary button label", "default": "Buy Now" },
     { "type": "text", "id": "subscribe_button_label", "label": "Subscribe button label", "default": "Subscribe" },
-    { "type": "color", "id": "accent_color", "label": "Accent color", "default": "#1a1a1a" }
+    { "type": "color", "id": "accent_color", "label": "Accent color", "default": "#1a1a1a" },
+
+    { "type": "checkbox", "id": "show_top_bar", "label": "Show top promo bar", "default": false, "info": "Appears pinned to the top of the page once the customer scrolls down, hides again near the top of the page. Separate from the sticky add-to-cart bar." },
+    { "type": "text", "id": "top_bar_brand_text", "label": "Top bar brand text", "info": "Leave blank to use the shop's name." },
+    { "type": "text", "id": "top_bar_promo_text", "label": "Top bar promo text", "default": "Save 20% + Free Welcome Kit" },
+    { "type": "text", "id": "top_bar_secondary_text", "label": "Top bar secondary text", "default": "Free Shipping + 60-Day Guarantee" },
+    { "type": "text", "id": "top_bar_button_label", "label": "Top bar button label", "default": "Start from", "info": "The live per-day price is appended automatically, e.g. \"Start from $1.60/day\"." }
   ]
 }
 {% endschema %}
