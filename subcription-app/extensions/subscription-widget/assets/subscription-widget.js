@@ -67,7 +67,7 @@
 
     const topBar = root.querySelector("[data-top-bar]");
     const topBarButton = root.querySelector("[data-top-bar-button]");
-    const topBarButtonLabel = root.querySelector("[data-top-bar-button-label]");
+    const topBarButtonPrice = root.querySelector("[data-top-bar-button-price]");
 
     // Moved to a direct child of <html> (not <body>) so it always stays
     // pinned to the real viewport. Many themes set a transform/filter/
@@ -256,8 +256,12 @@
         }
       });
 
-      if (topBarButtonLabel && lowestPerDay !== null) {
-        topBarButtonLabel.textContent = `${settings.topBarButtonLabel} ${formatMoney(lowestPerDay, moneyFormat)}/day`;
+      if (topBarButtonPrice && lowestPerDay !== null) {
+        // The "Start from" prefix is static (rendered straight from the
+        // setting in liquid) -- only the price itself is dynamic, and it's
+        // its own span specifically so mobile CSS can drop the prefix
+        // without touching this.
+        topBarButtonPrice.textContent = `${formatMoney(lowestPerDay, moneyFormat)}/day`;
       }
 
       bundleCards.forEach((card) => {

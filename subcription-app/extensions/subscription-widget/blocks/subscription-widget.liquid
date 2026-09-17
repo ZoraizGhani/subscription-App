@@ -51,7 +51,6 @@
         "bestValueBadgeText": {{ block.settings.best_value_badge_text | json }},
         "showBestValueBadge": {{ block.settings.show_best_value_badge | json }},
         "moneyFormat": {{ shop.money_format | json }},
-        "topBarButtonLabel": {{ block.settings.top_bar_button_label | json }},
         {%- comment -%}
           Empty unless the welcome-kit promo is actually turned on -- these
           feed addToCart() in subscription-widget.js, which adds them as
@@ -93,7 +92,8 @@
           {%- endif -%}
         </span>
         <button type="button" class="subscription-widget__top-bar-button" data-top-bar-button>
-          <span data-top-bar-button-label>{{ block.settings.top_bar_button_label }}</span>
+          <span class="subscription-widget__top-bar-button-prefix">{{ block.settings.top_bar_button_label }}</span>
+          <span data-top-bar-button-price></span>
           <span aria-hidden="true">&rarr;</span>
         </button>
       </div>

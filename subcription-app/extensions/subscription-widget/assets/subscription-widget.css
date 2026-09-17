@@ -1525,7 +1525,15 @@ span.subscription-widget__order-summary-onetime-label {
     font-size: 10px;
   }
 
-  .subscription-widget__top-bar-button [data-top-bar-button-label] {
+  /* Drops the "Start from" prefix on mobile entirely -- just the price +
+     arrow remain, short enough to always fit on one line regardless of any
+     wrapping quirk, rather than continuing to fight nowrap/flex overrides
+     against whatever's forcing it to wrap. */
+  .subscription-widget__top-bar-button-prefix {
+    display: none;
+  }
+
+  .subscription-widget__top-bar-button [data-top-bar-button-price] {
     white-space: nowrap !important;
   }
 
