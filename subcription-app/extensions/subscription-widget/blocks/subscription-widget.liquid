@@ -67,13 +67,13 @@
     </script>
 
     {%- comment -%}
-      Top promo bar: a separate element from the sticky ATC bar below --
-      appears once the page has scrolled down past the hero/header (not
-      immediately on load), pinned to the very top of the viewport, and
-      hides again once scrolled back up near the top. Its button scrolls
-      down to this widget's bundle grid rather than adding to cart directly
-      -- a promo teaser, not its own purchase flow (matches the reference
-      site's own top bar, which just links back to the buy box).
+      Top promo bar: a separate element from the sticky ATC bar below, but
+      sharing the exact same show/hide trigger -- both appear together once
+      the customer scrolls past this widget (not immediately on load), and
+      hide together as soon as any part of the widget is back on screen.
+      Pinned to the very top of the viewport while visible. Its button adds
+      the advertised plan to cart and goes straight to checkout (see
+      subscription-widget.js).
     {%- endcomment -%}
     {%- if block.settings.show_top_bar -%}
       <div class="subscription-widget__top-bar" data-top-bar>

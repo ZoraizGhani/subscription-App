@@ -693,33 +693,6 @@
       (flavorSection || root).scrollIntoView({ behavior: "smooth", block: "center" });
     }
 
-    // Top promo bar: hidden until the page is scrolled down a fair amount
-    // (past the hero/header, roughly), then slides down into a pinned
-    // position at the top; scrolling back up near the top of the page
-    // slides it back out again. Unlike the sticky ATC bar below, this one
-    // IS tied to scroll position, by request -- it's a promo teaser meant
-    // to appear only once the customer has started reading, not from the
-    // very first frame. Toggles a class (not the hidden attribute) so the
-    // transform transition in CSS can actually animate the show/hide.
-    if (topBar) {
-      const SHOW_THRESHOLD = Math.max(400, window.innerHeight * 0.6);
-      let ticking = false;
-      const updateTopBarVisibility = () => {
-        topBar.classList.toggle("is-visible", window.scrollY >= SHOW_THRESHOLD);
-        ticking = false;
-      };
-      window.addEventListener(
-        "scroll",
-        () => {
-          if (ticking) return;
-          ticking = true;
-          window.requestAnimationFrame(updateTopBarVisibility);
-        },
-        { passive: true },
-      );
-      updateTopBarVisibility();
-    }
-
     // Unlike the sticky bar's plan options (which just scroll back up to the
     // widget), this button goes straight to checkout: selects whichever
     // plan the advertised "$X/day" figure is for, fills in any unpicked
@@ -746,22 +719,28 @@
     // any part of the widget is back on screen. Watches `root` itself (not
     // just the order summary's submit button) so the sticky bar stays hidden
     // the entire time the widget -- flavors, bundles, order summary -- is
-    // still visible, not just while that one button is.
+    // still visible, not just while that one button is. The top promo bar
+    // shares this exact same trigger -- both appear/disappear together,
+    // rather than the top bar using its own independent scroll threshold.
     //
     // isIntersecting alone isn't enough: it's also false before the page has
     // scrolled down as far as the widget (e.g. right after load, when the
-    // widget is still below the fold), which would show the sticky bar
+    // widget is still below the fold), which would show both bars
     // immediately on load instead of only after the widget. Checking that
     // the widget's own top edge has scrolled above the viewport (top < 0) is
     // what distinguishes "scrolled past it" from "haven't reached it yet".
-    if (stickyBar && "IntersectionObserver" in window) {
-      const stickyBarObserver = new IntersectionObserver(
+    if ((stickyBar || topBar) && "IntersectionObserver" in window) {
+      const barsObserver = new IntersectionObserver(
         ([entry]) => {
-          stickyBar.hidden = entry.isIntersecting || entry.boundingClientRect.top > 0;
+          const scrolledPast = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+          if (stickyBar) stickyBar.hidden = !scrolledPast;
+          // Toggles a class (not the hidden attribute) so the top bar's CSS
+          // transform transition can actually animate the show/hide.
+          if (topBar) topBar.classList.toggle("is-visible", scrolledPast);
         },
         { threshold: 0 },
       );
-      stickyBarObserver.observe(root);
+      barsObserver.observe(root);
     }
 
     render();
