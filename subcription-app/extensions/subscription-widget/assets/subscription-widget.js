@@ -677,8 +677,10 @@
         // flavor picker of its own) scrolls back up to the main widget's
         // flavor section so the customer can confirm/change their mix
         // there, rather than leaving that choice silently up to whatever
-        // the sticky bar did on its own. The sticky bar itself stays
-        // visible throughout -- it's no longer tied to scroll position.
+        // the sticky bar did on its own. That scroll also naturally hides
+        // the sticky bar again, since its visibility is tied to whether
+        // the main widget is on screen (see the IntersectionObserver
+        // below).
         scrollToPurchaseWidget();
       });
     });
@@ -739,10 +741,28 @@
       });
     }
 
-    // The sticky bar is always shown -- no longer tied to scroll position at
-    // all (it used to hide itself while the main widget was on screen and
-    // only appear once scrolled past it; that hide/show behavior has been
-    // removed entirely per request, so it stays visible from page load).
+    // Shows the sticky bar only once the whole subscription widget has been
+    // scrolled past (off the top of the viewport), hides it again as soon as
+    // any part of the widget is back on screen. Watches `root` itself (not
+    // just the order summary's submit button) so the sticky bar stays hidden
+    // the entire time the widget -- flavors, bundles, order summary -- is
+    // still visible, not just while that one button is.
+    //
+    // isIntersecting alone isn't enough: it's also false before the page has
+    // scrolled down as far as the widget (e.g. right after load, when the
+    // widget is still below the fold), which would show the sticky bar
+    // immediately on load instead of only after the widget. Checking that
+    // the widget's own top edge has scrolled above the viewport (top < 0) is
+    // what distinguishes "scrolled past it" from "haven't reached it yet".
+    if (stickyBar && "IntersectionObserver" in window) {
+      const stickyBarObserver = new IntersectionObserver(
+        ([entry]) => {
+          stickyBar.hidden = entry.isIntersecting || entry.boundingClientRect.top > 0;
+        },
+        { threshold: 0 },
+      );
+      stickyBarObserver.observe(root);
+    }
 
     render();
   }

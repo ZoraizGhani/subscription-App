@@ -102,16 +102,18 @@
     {%- endif -%}
 
     {%- comment -%}
-      Sticky add-to-cart bar: always visible, not tied to scroll position.
-      Its plan selector and price mirror whichever plan/variant is selected
-      in the main widget above -- and picking a plan here updates that same
-      state, so both stay in sync in either direction (picking one here also
-      scrolls back up to the main widget's flavor picker, since this bar has
-      no flavor picker of its own). Content is filled in/kept in sync
-      entirely by render() in subscription-widget.js; the option buttons
-      below are just empty shells keyed by plan id.
+      Sticky add-to-cart bar: hidden by default, shown by
+      subscription-widget.js only once the customer has scrolled past the
+      main widget above (not from page load). Its plan selector and price
+      mirror whichever plan/variant is selected in the main widget above --
+      and picking a plan here updates that same state, so both stay in sync
+      in either direction (picking one here also scrolls back up to the
+      main widget's flavor picker, since this bar has no flavor picker of
+      its own). Content is filled in/kept in sync entirely by render() in
+      subscription-widget.js; the option buttons below are just empty
+      shells keyed by plan id.
     {%- endcomment -%}
-    <div class="subscription-widget__sticky-bar" data-sticky-bar>
+    <div class="subscription-widget__sticky-bar" data-sticky-bar hidden>
       <span class="subscription-widget__sticky-bar-media-col">
         {%- if block.settings.show_welcome_kit and block.settings.sticky_welcome_kit_badge_text != blank -%}
           <span class="subscription-widget__sticky-bar-welcome-badge">{{ block.settings.sticky_welcome_kit_badge_text }}</span>
