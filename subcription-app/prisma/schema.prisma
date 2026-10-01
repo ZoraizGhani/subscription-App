@@ -63,6 +63,11 @@ model ShopSettings {
   widgetSubscribeLabel   String @default("Subscribe")
   widgetShowDiscountBadge Boolean @default(true)
 
+  // Branding -- shown in the admin dashboard nav and the customer account
+  // portal (topbar, sidebar, sign-in/create-account/forgot/reset password
+  // pages) in place of the plain "CLRTY" text wordmark once set.
+  logoUrl String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

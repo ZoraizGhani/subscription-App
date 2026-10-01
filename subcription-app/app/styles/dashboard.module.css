@@ -24,6 +24,15 @@
   flex-wrap: wrap;
 }
 
+.dashboardLogo {
+  display: block;
+  flex-shrink: 0;
+  height: 28px;
+  width: auto;
+  max-width: 10rem;
+  object-fit: contain;
+}
+
 .searchForm {
   flex: 1;
   /* Flex items default to min-width: auto (content-based), which for a form

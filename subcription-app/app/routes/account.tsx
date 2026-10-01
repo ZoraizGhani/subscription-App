@@ -4,11 +4,15 @@ import { Link, NavLink, Outlet, isRouteErrorResponse, useLoaderData, useLocation
 
 import { requirePortalSession, destroyPortalSession } from "../portal-auth.server";
 import { getPortalCustomerById } from "../models/portalCustomer.server";
+import { getShopSettings } from "../models/settings.server";
 import styles from "../styles/portal.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const session = await requirePortalSession(request);
-  const customer = await getPortalCustomerById(session.portalCustomerId);
+  const [customer, settings] = await Promise.all([
+    getPortalCustomerById(session.portalCustomerId),
+    getShopSettings(session.shop),
+  ]);
 
   if (!customer || customer.shop !== session.shop) {
     throw await destroyPortalSession(request);
@@ -17,6 +21,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     shop: session.shop,
     customer: { name: customer.name, email: customer.email },
+    logoUrl: settings.logoUrl,
   };
 };
 
@@ -121,7 +126,7 @@ function SettingsIcon({ className }: { className?: string }) {
 }
 
 export default function AccountLayout() {
-  const { shop, customer } = useLoaderData<typeof loader>();
+  const { shop, customer, logoUrl } = useLoaderData<typeof loader>();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
@@ -160,8 +165,14 @@ export default function AccountLayout() {
             <MenuIcon className={styles.hamburgerIcon} />
           </button>
           <div className={styles.topbarLogo}>
-            <span className={styles.topbarBrandMark}>CLRTY</span>
-            <span className={styles.topbarBrandSub}>Supplements</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt={shop} className={styles.topbarLogoImage} />
+            ) : (
+              <>
+                <span className={styles.topbarBrandMark}>CLRTY</span>
+                <span className={styles.topbarBrandSub}>Supplements</span>
+              </>
+            )}
           </div>
         </div>
         <div className={styles.topbarNav}>
@@ -183,7 +194,11 @@ export default function AccountLayout() {
         )}
         <aside className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ""}`}>
           <div className={styles.sidebarHeader}>
-            <span className={styles.brandMark}>CLRTY</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt={shop} className={styles.sidebarLogoImage} />
+            ) : (
+              <span className={styles.brandMark}>CLRTY</span>
+            )}
             <button
               type="button"
               className={styles.sidebarCloseButton}

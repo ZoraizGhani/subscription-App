@@ -2,13 +2,20 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, Link, useLoaderData, useNavigation, useActionData } from "react-router";
 
 import { resetPortalPassword, PortalAuthError } from "../models/portalCustomer.server";
-import { createPortalUserSession } from "../portal-auth.server";
+import { createPortalUserSession, resolveDefaultShop } from "../portal-auth.server";
+import { getShopSettings } from "../models/settings.server";
 import styles from "../styles/portal.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const token = url.searchParams.get("token") ?? "";
-  return { token };
+  // No shop is resolvable from the reset token itself at this point (that
+  // only happens once the action verifies it) -- this app is
+  // single-merchant, so falling back to the one configured shop is enough
+  // just to show the right branding here.
+  const shop = await resolveDefaultShop();
+  const settings = shop ? await getShopSettings(shop) : null;
+  return { token, logoUrl: settings?.logoUrl ?? null };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -40,7 +47,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function PortalResetPassword() {
-  const { token } = useLoaderData<typeof loader>();
+  const { token, logoUrl } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
@@ -49,8 +56,14 @@ export default function PortalResetPassword() {
     <div className={styles.page}>
       <div className={styles.authWrap}>
         <div className={styles.authLogo}>
-          <span className={styles.authLogoMark}>CLRTY</span>
-          <span className={styles.authLogoSub}>Supplements</span>
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className={styles.authLogoImage} />
+          ) : (
+            <>
+              <span className={styles.authLogoMark}>CLRTY</span>
+              <span className={styles.authLogoSub}>Supplements</span>
+            </>
+          )}
         </div>
 
         <span className={styles.authEyebrow}>My account</span>

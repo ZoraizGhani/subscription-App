@@ -51,6 +51,14 @@
   margin-bottom: 2.25rem;
 }
 
+.authLogoImage {
+  display: block;
+  height: 3rem;
+  width: auto;
+  max-width: 16rem;
+  object-fit: contain;
+}
+
 .authLogoMark {
   font-family: "Geist", sans-serif;
   font-weight: 900;
@@ -291,6 +299,14 @@
 .brandMark {
   composes: authLogoMark;
   font-size: 1.75rem;
+}
+
+.sidebarLogoImage {
+  display: block;
+  height: 1.75rem;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 /* Backdrop is only ever mounted (by React) while the drawer is open, so it
@@ -895,6 +911,14 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+}
+
+.topbarLogoImage {
+  display: block;
+  height: 1.75rem;
+  width: auto;
+  max-width: 12rem;
+  object-fit: contain;
 }
 
 .topbarBrandMark {

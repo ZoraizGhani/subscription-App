@@ -1,12 +1,26 @@
-import { redirect } from "react-router";
 import type { LoaderFunctionArgs } from "react-router";
 
 import { authenticate } from "../shopify.server";
 
-// No settings form lives on this index yet -- Selling plans is the only real
-// settings screen built so far, so land here directly instead of showing a
-// placeholder page in between.
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
-  throw redirect("/app/settings/selling-plans");
+  return null;
 };
+
+export default function SettingsIndex() {
+  return (
+    <s-page heading="Settings">
+      <s-section heading="Selling plans">
+        <s-paragraph color="subdued">Configure subscription plans and discounts per product.</s-paragraph>
+        <s-link href="/app/settings/selling-plans">Open</s-link>
+      </s-section>
+
+      <s-section heading="Branding">
+        <s-paragraph color="subdued">
+          Set the logo shown on this dashboard and the customer account portal.
+        </s-paragraph>
+        <s-link href="/app/settings/branding">Open</s-link>
+      </s-section>
+    </s-page>
+  );
+}

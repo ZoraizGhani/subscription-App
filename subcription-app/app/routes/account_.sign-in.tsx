@@ -3,14 +3,16 @@ import { Form, Link, useLoaderData, useNavigation, useActionData } from "react-r
 
 import { verifyPortalLogin, PortalAuthError } from "../models/portalCustomer.server";
 import { createPortalUserSession, getPortalSession, resolveDefaultShop } from "../portal-auth.server";
+import { getShopSettings } from "../models/settings.server";
 import styles from "../styles/portal.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const existing = await getPortalSession(request);
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop") || existing?.shop || (await resolveDefaultShop());
+  const settings = shop ? await getShopSettings(shop) : null;
 
-  return { shop };
+  return { shop, logoUrl: settings?.logoUrl ?? null };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -43,7 +45,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function PortalSignIn() {
-  const { shop } = useLoaderData<typeof loader>();
+  const { shop, logoUrl } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
@@ -52,8 +54,14 @@ export default function PortalSignIn() {
     <div className={styles.page}>
       <div className={styles.authWrap}>
         <div className={styles.authLogo}>
-          <span className={styles.authLogoMark}>CLRTY</span>
-          <span className={styles.authLogoSub}>Supplements</span>
+          {logoUrl ? (
+            <img src={logoUrl} alt={shop ?? ""} className={styles.authLogoImage} />
+          ) : (
+            <>
+              <span className={styles.authLogoMark}>CLRTY</span>
+              <span className={styles.authLogoSub}>Supplements</span>
+            </>
+          )}
         </div>
 
         <span className={styles.authEyebrow}>My account</span>

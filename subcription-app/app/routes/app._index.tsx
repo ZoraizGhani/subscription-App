@@ -12,6 +12,7 @@ import {
   type FlowBucketUnit,
 } from "../models/dashboard.server";
 import type { QuickReviewData } from "../models/adminQuickReview.server";
+import { getShopSettings } from "../models/settings.server";
 import styles from "../styles/dashboard.module.css";
 
 const FREQUENCY_OPTIONS = [
@@ -307,7 +308,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const range: RangeKey = isRangeKey(rangeParam) ? rangeParam : "monthly";
   const config = RANGE_CONFIG[range];
 
-  const [metrics, series, needsAttention, renewals, shopResponse] = await Promise.all([
+  const [metrics, series, needsAttention, renewals, shopResponse, settings] = await Promise.all([
     getDashboardMetrics({ shop, windowDays: config.windowDays }),
     getNewVsCancelledSeries({ shop, unit: config.chartUnit, count: config.chartCount }),
     getNeedsAttention({ shop }),
@@ -317,12 +318,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         shop { name currencyCode }
       }
     `),
+    getShopSettings(shop),
   ]);
   const shopData = (await shopResponse.json()) as { data?: { shop: { name: string; currencyCode: string } } };
   const currencyCode = shopData.data?.shop.currencyCode ?? "USD";
   const shopName = shopData.data?.shop.name ?? shop;
 
-  return { metrics, series, needsAttention, renewals, currencyCode, shopName, range };
+  return { metrics, series, needsAttention, renewals, currencyCode, shopName, range, logoUrl: settings.logoUrl };
 };
 
 function formatMoney(amount: number | null, currencyCode: string) {
@@ -357,7 +359,7 @@ function Delta({ value, unit, positiveIsGood }: { value: number | null; unit: "p
 }
 
 export default function Dashboard() {
-  const { metrics, series, needsAttention, renewals, currencyCode, shopName, range } = useLoaderData<typeof loader>();
+  const { metrics, series, needsAttention, renewals, currencyCode, shopName, range, logoUrl } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
   const [reviewContractId, setReviewContractId] = useState<string | null>(null);
   const config = RANGE_CONFIG[range];
@@ -367,6 +369,7 @@ export default function Dashboard() {
   return (
     <div className={styles.page}>
       <div className={styles.topBar}>
+        {logoUrl && <img src={logoUrl} alt={shopName} className={styles.dashboardLogo} />}
         <Form className={styles.searchForm} method="get" action="/app/subscriptions">
           <input className={styles.search} type="search" name="q" placeholder="Search customers, orders, contract #..." />
         </Form>
