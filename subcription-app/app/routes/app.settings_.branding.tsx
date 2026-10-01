@@ -5,7 +5,7 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 
 import { authenticate } from "../shopify.server";
 import { getShopSettings, updateShopSettings } from "../models/settings.server";
-import { FileUploadError, uploadImageFile } from "../models/fileUpload.server";
+import { uploadImageFile } from "../models/fileUpload.server";
 import styles from "../styles/branding.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -29,10 +29,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       await updateShopSettings(session.shop, { logoUrl });
       return { saved: true };
     } catch (error) {
-      if (error instanceof FileUploadError) {
-        return { saved: false, error: error.message };
-      }
-      throw error;
+      // Catches everything here, not just FileUploadError -- this step talks
+      // to two external systems (Shopify's Admin API and its upload
+      // storage), and any unexpected failure from either should surface as
+      // a readable message on the page instead of crashing to a blank
+      // "Application Error" with no detail to act on.
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("Logo upload failed:", error);
+      return { saved: false, error: `Upload failed: ${message}` };
     }
   }
 
