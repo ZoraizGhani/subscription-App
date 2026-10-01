@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
@@ -6,6 +6,7 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { getShopSettings, updateShopSettings } from "../models/settings.server";
 import { FileUploadError, uploadImageFile } from "../models/fileUpload.server";
+import styles from "../styles/branding.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -40,6 +41,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return { saved: true };
 };
 
+function UploadIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 16V4" />
+      <path d="M7 9l5-5 5 5" />
+      <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+    </svg>
+  );
+}
+
 export default function BrandingSettings() {
   const { logoUrl } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
@@ -47,17 +58,20 @@ export default function BrandingSettings() {
   const shopify = useAppBridge();
   const submit = useSubmit();
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isSaving = navigation.state === "submitting";
+
+  const [fileName, setFileName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!actionData?.saved) return;
     shopify.toast.show("Branding settings saved");
-    // Clears the file input after a successful upload so the form doesn't
-    // look like it still has that file staged for a second, unintended
+    // Clears the staged file after a successful upload so the form doesn't
+    // look like it still has that file queued for a second, unintended
     // submit -- the saved result is now reflected by the preview below
     // instead.
-    const fileInput = formRef.current?.elements.namedItem("logoFile");
-    if (fileInput instanceof HTMLInputElement) fileInput.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setFileName(null);
   }, [actionData, shopify]);
 
   const save = () => {
@@ -83,10 +97,34 @@ export default function BrandingSettings() {
             (same pattern as the Selling Plan Settings page). */}
         <form ref={formRef} encType="multipart/form-data">
           <s-stack direction="block" gap="base">
-            <label>
-              <s-text>Upload an image</s-text>
-              <input type="file" name="logoFile" accept="image/*" />
-            </label>
+            <div className={styles.uploadField}>
+              <span className={styles.uploadLabel}>Upload an image</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                name="logoFile"
+                accept="image/*"
+                className={styles.hiddenInput}
+                onChange={(event) => setFileName(event.currentTarget.files?.[0]?.name ?? null)}
+              />
+              <button
+                type="button"
+                className={`${styles.dropzone} ${fileName ? styles.hasFile : ""}`}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <span className={styles.dropzoneIcon}>
+                  <UploadIcon />
+                </span>
+                <span className={styles.dropzoneText}>
+                  {fileName ? (
+                    <span className={styles.dropzoneFilename}>{fileName}</span>
+                  ) : (
+                    "Click to choose an image (PNG, JPG, SVG)"
+                  )}
+                </span>
+                <span className={styles.dropzoneBrowse}>Browse</span>
+              </button>
+            </div>
 
             <s-text-field
               name="logoUrl"
@@ -96,12 +134,10 @@ export default function BrandingSettings() {
             />
 
             {logoUrl && (
-              <s-box padding="base" borderWidth="base" borderRadius="base">
-                <s-stack direction="block" gap="small-300">
-                  <s-text color="subdued">Current logo</s-text>
-                  <img src={logoUrl} alt="Logo preview" style={{ height: "40px", width: "auto", display: "block" }} />
-                </s-stack>
-              </s-box>
+              <div className={styles.previewCard}>
+                <span className={styles.previewLabel}>Current logo</span>
+                <img src={logoUrl} alt="Logo preview" className={styles.previewImage} />
+              </div>
             )}
 
             <s-button type="button" variant="primary" onClick={save} {...(isSaving ? { loading: true } : {})}>
