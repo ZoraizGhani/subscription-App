@@ -5,6 +5,7 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 
 import { authenticate } from "../shopify.server";
 import { getShopSettings, updateShopSettings } from "../models/settings.server";
+import { FileUploadError, uploadImageFile } from "../models/fileUpload.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -13,12 +14,29 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
+
+  // An uploaded file takes priority over the pasted-URL fallback below --
+  // browsers submit an empty File (size 0, name "") for an untouched file
+  // input, so size is what actually distinguishes "a file was chosen" from
+  // "nothing was chosen".
+  const uploaded = formData.get("logoFile");
+  if (uploaded instanceof File && uploaded.size > 0) {
+    try {
+      const logoUrl = await uploadImageFile({ graphql: admin.graphql, file: uploaded });
+      await updateShopSettings(session.shop, { logoUrl });
+      return { saved: true };
+    } catch (error) {
+      if (error instanceof FileUploadError) {
+        return { saved: false, error: error.message };
+      }
+      throw error;
+    }
+  }
+
   const logoUrl = String(formData.get("logoUrl") ?? "").trim();
-
   await updateShopSettings(session.shop, { logoUrl: logoUrl || null });
-
   return { saved: true };
 };
 
@@ -34,10 +52,16 @@ export default function BrandingSettings() {
   useEffect(() => {
     if (!actionData?.saved) return;
     shopify.toast.show("Branding settings saved");
+    // Clears the file input after a successful upload so the form doesn't
+    // look like it still has that file staged for a second, unintended
+    // submit -- the saved result is now reflected by the preview below
+    // instead.
+    const fileInput = formRef.current?.elements.namedItem("logoFile");
+    if (fileInput instanceof HTMLInputElement) fileInput.value = "";
   }, [actionData, shopify]);
 
   const save = () => {
-    if (formRef.current) submit(formRef.current, { method: "post" });
+    if (formRef.current) submit(formRef.current, { method: "post", encType: "multipart/form-data" });
   };
 
   return (
@@ -45,18 +69,31 @@ export default function BrandingSettings() {
       <s-section heading="Logo">
         <s-paragraph color="subdued">
           Shown in place of the plain text wordmark on the customer account portal (sign-in, create
-          account, and the account dashboard) and on this app&rsquo;s own dashboard. Paste a direct
-          image URL -- e.g. a link to a file already uploaded under Shopify admin&rsquo;s Content &gt;
-          Files. Leave blank to use the default text wordmark instead.
+          account, and the account dashboard) and on this app&rsquo;s own dashboard. Leave blank to
+          use the default text wordmark instead.
         </s-paragraph>
+
+        {actionData?.saved === false && actionData.error && (
+          <s-paragraph tone="critical">{actionData.error}</s-paragraph>
+        )}
 
         {/* A plain <form>, not React Router's <Form> -- s-button's shadow-DOM
             submit signal doesn't reliably reach React Router's interception,
             so Save reads this form's live FormData explicitly via useSubmit
             (same pattern as the Selling Plan Settings page). */}
-        <form ref={formRef}>
+        <form ref={formRef} encType="multipart/form-data">
           <s-stack direction="block" gap="base">
-            <s-text-field name="logoUrl" label="Logo image URL" defaultValue={logoUrl} placeholder="https://" />
+            <label>
+              <s-text>Upload an image</s-text>
+              <input type="file" name="logoFile" accept="image/*" />
+            </label>
+
+            <s-text-field
+              name="logoUrl"
+              label="Or paste an image URL instead"
+              defaultValue={logoUrl}
+              placeholder="https://"
+            />
 
             {logoUrl && (
               <s-box padding="base" borderWidth="base" borderRadius="base">
