@@ -362,18 +362,9 @@
       }
 
       if (summaryBillingEl) {
-        // Same unit logic as the bundle card titles: whole months at 30+
-        // days, whole weeks when evenly divisible, otherwise raw days.
-        let cadence;
-        if (days >= 30 && days % 30 === 0) {
-          const months = days / 30;
-          cadence = `${months} month${months === 1 ? "" : "s"}`;
-        } else if (days >= 7 && days % 7 === 0) {
-          const weeks = days / 7;
-          cadence = `${weeks} week${weeks === 1 ? "" : "s"}`;
-        } else {
-          cadence = `${days} day${days === 1 ? "" : "s"}`;
-        }
+        // Always the exact day count (30 / 60 / 90 days) so it matches the
+        // plan's real billing interval, not a rounded month/week figure.
+        const cadence = `${days} day${days === 1 ? "" : "s"}`;
         summaryBillingEl.textContent = `Billed ${formatMoney(totalPrice, moneyFormat)} USD every ${cadence} · Free shipping`;
       }
       if (summaryPerServingEl) summaryPerServingEl.textContent = `${formatMoney(perServing, moneyFormat)} USD / SERVING`;

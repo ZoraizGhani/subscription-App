@@ -201,9 +201,8 @@
             only exists in plan.name, which this app itself always sets to
             "Every {N} days" when it creates the plan (see sellingPlanInput in
             app/models/sellingPlan.server.ts), so it's safe to parse back out.
-            30+ days displays as whole months (30 -> "1 Month", 90 -> "3
-            Months"); anything shorter stays as "Every N days" since it isn't
-            evenly expressible in months.
+            The title shows the exact day count (30 -> "30 Days", 90 -> "90
+            Days"), never a rounded month/week figure.
 
             The bundle count comes from the plan's own second option value
             (options[1], the "Count" dimension the merchant fills in when
@@ -212,12 +211,7 @@
           {%- endcomment -%}
           {%- assign name_parts = plan.name | split: " " -%}
           {%- assign day_count = name_parts[1] | plus: 0 -%}
-          {%- if day_count >= 30 -%}
-            {%- assign bundle_months = day_count | divided_by: 30 -%}
-            {%- capture bundle_title -%}{{ bundle_months }} Month{% if bundle_months != 1 %}s{% endif %}{%- endcapture -%}
-          {%- else -%}
-            {%- assign bundle_title = plan.name | remove_first: "Every " -%}
-          {%- endif -%}
+          {%- capture bundle_title -%}{{ day_count }} Day{% if day_count != 1 %}s{% endif %}{%- endcapture -%}
           {%- assign bundle_count = plan.options[1].value | default: day_count -%}
           {%- comment -%}
             options[2] is "Quantity" -- the real cart quantity added when
