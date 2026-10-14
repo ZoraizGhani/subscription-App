@@ -361,28 +361,44 @@
         summaryCompareEl.textContent = selectedDiscount > 0 ? formatMoney(variant.price, moneyFormat) : "";
       }
 
-      const weeks = days ? Math.round(days / 7) || 1 : 0;
       if (summaryBillingEl) {
-        summaryBillingEl.textContent = `Billed ${formatMoney(totalPrice, moneyFormat)} USD every ${weeks} week${weeks === 1 ? "" : "s"}`;
+        // Same unit logic as the bundle card titles: whole months at 30+
+        // days, whole weeks when evenly divisible, otherwise raw days.
+        let cadence;
+        if (days >= 30 && days % 30 === 0) {
+          const months = days / 30;
+          cadence = `${months} month${months === 1 ? "" : "s"}`;
+        } else if (days >= 7 && days % 7 === 0) {
+          const weeks = days / 7;
+          cadence = `${weeks} week${weeks === 1 ? "" : "s"}`;
+        } else {
+          cadence = `${days} day${days === 1 ? "" : "s"}`;
+        }
+        summaryBillingEl.textContent = `Billed ${formatMoney(totalPrice, moneyFormat)} USD every ${cadence} · Free shipping`;
       }
       if (summaryPerServingEl) summaryPerServingEl.textContent = `${formatMoney(perServing, moneyFormat)} USD / SERVING`;
 
       // A one-time purchase skips the selling plan entirely, so it's priced
       // off the variant's own price/compare-at price -- not the subscription
       // discount (`selectedPrice`), which only applies when actually
-      // subscribing. This headline number is always a single unit's price
-      // (a "from $X" tag), independent of how many flavors/units addToCart()
-      // actually adds to the cart for the one-time mix. Show the
-      // strikethrough only when the variant genuinely has a compare-at price
-      // higher than its price; otherwise just the price.
-      const oneTimePrice = variant.price;
-      const oneTimeCompare = variant.compare_at_price;
+      // subscribing. Scaled by currentPlanQuantity to match what
+      // addToCart({oneTime:true}) actually adds to cart: the same flavor mix
+      // size as the selected plan (e.g. 2 units for a 2-month plan), not
+      // just a single unit's price. Show the strikethrough only when the
+      // variant genuinely has a compare-at price higher than its price;
+      // otherwise just the price.
+      const oneTimePrice = variant.price * currentPlanQuantity;
+      const oneTimeCompare = variant.compare_at_price ? variant.compare_at_price * currentPlanQuantity : null;
       const oneTimeHasCompare = Boolean(oneTimeCompare) && oneTimeCompare > oneTimePrice;
       if (summaryOnetimeCompareEl) {
         summaryOnetimeCompareEl.hidden = !oneTimeHasCompare;
         summaryOnetimeCompareEl.textContent = oneTimeHasCompare ? formatMoney(oneTimeCompare, moneyFormat) : "";
       }
-      if (summaryOnetimePriceEl) summaryOnetimePriceEl.textContent = formatMoney(oneTimePrice, moneyFormat);
+      if (summaryOnetimePriceEl) {
+        const shippingFee = settings.oneTimeShippingVariantId ? Number(settings.oneTimeShippingPrice) || 0 : 0;
+        summaryOnetimePriceEl.textContent =
+          formatMoney(oneTimePrice, moneyFormat) + (shippingFee ? ` + ${formatMoney(shippingFee, moneyFormat)} shipping` : "");
+      }
       // Per-day price is a constant property of a single unit (each one is a
       // fixed 30-day supply) -- buying more units doesn't change the price
       // per day, so this divides the single-unit price, not the quantity-
@@ -588,6 +604,11 @@
         settings.welcomeGiftVariantIds
           .filter((variantId) => variantId)
           .forEach((variantId) => items.push({ id: variantId, quantity: 1 }));
+      }
+
+      // One-time orders pay the flat shipping fee; subscriptions never do.
+      if (oneTime && settings.oneTimeShippingVariantId) {
+        items.push({ id: settings.oneTimeShippingVariantId, quantity: 1 });
       }
 
       const payload = { items };

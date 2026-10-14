@@ -62,7 +62,16 @@
           {%- for gift_product in block.settings.welcome_kit_products -%}
             {{ gift_product.selected_or_first_available_variant.id | json }}{% unless forloop.last %},{% endunless %}
           {%- endfor -%}
-        ]{% else %}[]{% endif %}
+        ]{% else %}[]{% endif %},
+        {%- comment -%}
+          Subscriptions ship free; one-time purchases pay a flat fee. Shopify
+          shipping profiles can't tell the two apart, so the fee is a plain
+          line item (a merchant-created "Shipping" product, no selling plan)
+          that addToCart({oneTime:true}) adds. Empty/0 when no product is set.
+        {%- endcomment -%}
+        {%- assign shipping_variant = block.settings.one_time_shipping_product.selected_or_first_available_variant -%}
+        "oneTimeShippingVariantId": {{ shipping_variant.id | json }},
+        "oneTimeShippingPrice": {{ shipping_variant.price | default: 0 | json }}
       }
     </script>
 
@@ -669,6 +678,7 @@
       "default": "<ul><li>Free shipping on every subscription</li><li>Save 20% on every delivery</li><li>Pause, skip, or cancel anytime</li><li>60-day money-back guarantee</li></ul>"
     },
 
+    { "type": "product", "id": "one_time_shipping_product", "label": "One-time shipping fee product", "info": "Create a $4.99 product (e.g. \"Shipping\") and pick it here. It's added to the cart for one-time purchases only; subscriptions ship free. Exclude it from shipping/make it non-physical so checkout doesn't charge shipping twice." },
     { "type": "checkbox", "id": "show_welcome_kit", "label": "Show free welcome kit", "default": false, "info": "Shown on every plan -- there's no per-plan variant of this promo." },
     { "type": "text", "id": "welcome_kit_heading", "label": "Heading", "default": "Free Welcome Kit" },
     { "type": "text", "id": "welcome_kit_subheading", "label": "Subheading", "default": "Included with your first subscription order" },
